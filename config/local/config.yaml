@@ -1,0 +1,13 @@
+Server:
+  Host: "127.0.0.1"
+  Port: 50051
+DB:
+  Host: "localhost"
+  Port: 5432
+  Username: "postgres"
+  Name: "sciobjsdb-test"
+OAuth2:
+  UserInfoEndpoint: "https://keycloak.infra.ingress.rancher.computational.bio/auth/realms/BioDataDB/protocol/openid-connect/userinfo"
+S3:
+  Bucket: "ScienceObjectsDBDev"
+

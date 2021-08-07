@@ -1,0 +1,58 @@
+name: Docker
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+
+env:
+  IMAGE_NAME: core-server
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run tests
+        run: |
+          if [ -f docker-compose.test.yml ]; then
+            docker-compose --file docker-compose.test.yml build
+            docker-compose --file docker-compose.test.yml run test
+          else
+            docker build . --file Dockerfile
+          fi
+  push:
+    needs: test
+
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build image
+        run: docker build . --file Dockerfile --tag $IMAGE_NAME
+
+      - name: Push image to harbor registry
+        run: |
+          # Strip git ref prefix from version
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+          # Strip "v" prefix from tag name
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+
+          # Use Docker `latest` tag convention
+          [ "$VERSION" == "main" ] && VERSION=latest
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+
+          echo "${{ secrets.HARBORPW }}" | docker login harbor.computational.bio.uni-giessen.de -u '${{ secrets.HARBORUSER }}' --password-stdin
+
+          HARBOR_IMAGE_ID=harbor.computational.bio.uni-giessen.de/scienceobjectsdb/core-server
+
+          docker tag $IMAGE_NAME $HARBOR_IMAGE_ID:$VERSION
+          docker push $HARBOR_IMAGE_ID:$VERSION
