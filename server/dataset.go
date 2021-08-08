@@ -287,7 +287,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request
 	return response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetDatsetVersionRevisions(ctx context.Context, request *services.GetDatsetVersionRevisionsRequest) (*services.GetDatsetVersionRevisionsResponse, error) {
+func (endpoint *DatasetEndpoints) GetDatsetVersionRevisions(ctx context.Context, request *services.GetDatasetVersionRevisionsRequest) (*services.GetDatasetVersionRevisionsResponse, error) {
 	version, err := endpoint.ReadHandler.GetDatasetVersionWithRevisions(uint(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
@@ -311,7 +311,7 @@ func (endpoint *DatasetEndpoints) GetDatsetVersionRevisions(ctx context.Context,
 		protoRevisions = append(protoRevisions, protoRevision)
 	}
 
-	response := &services.GetDatsetVersionRevisionsResponse{
+	response := &services.GetDatasetVersionRevisionsResponse{
 		ObjectGroupRevision: protoRevisions,
 	}
 
