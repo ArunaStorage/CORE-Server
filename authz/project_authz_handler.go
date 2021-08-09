@@ -5,7 +5,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ScienceObjectsDB/CORE-Server/models"
 	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	"google.golang.org/grpc/metadata"
 	"gorm.io/gorm"
@@ -43,33 +42,25 @@ func (projectHandler *ProjectHandler) GetUserID(metadata metadata.MD) (string, e
 }
 
 func (projectHandler *ProjectHandler) Authorize(projectID uint, requestedRight protoModels.Right, metadata metadata.MD) error {
-	var userID string
-	var err error
 	if len(metadata.Get(API_TOKEN_ENTRY_KEY)) > 0 {
-		userID, err = projectHandler.APITokenHandler.GetUserID(metadata.Get(API_TOKEN_ENTRY_KEY)[0])
+		_, err := projectHandler.APITokenHandler.Authorize(metadata.Get(API_TOKEN_ENTRY_KEY)[0], projectID)
 		if err != nil {
 			log.Println(err.Error())
 			return fmt.Errorf("could not authorize requested action")
 		}
+
+		return nil
 	}
 
 	if len(metadata.Get(USER_TOKEN_ENTRY_KEY)) > 0 {
-		userID, err = projectHandler.OAuth2Handler.GetUserID(metadata.Get(USER_TOKEN_ENTRY_KEY)[0])
+		_, err := projectHandler.OAuth2Handler.Authorize(metadata.Get(USER_TOKEN_ENTRY_KEY)[0], projectID)
 		if err != nil {
 			log.Println(err.Error())
 			return fmt.Errorf("could not authorize requested action")
 		}
+
+		return nil
 	}
 
-	user := &models.User{
-		UserOauth2ID: userID,
-		ProjectID:    projectID,
-	}
-
-	if err := projectHandler.DB.First(user).Error; err != nil {
-		log.Println(err.Error())
-		return fmt.Errorf("could not authorize requested action")
-	}
-
-	return nil
+	return fmt.Errorf("could not authorize requested action")
 }

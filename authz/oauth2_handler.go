@@ -7,16 +7,19 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/ScienceObjectsDB/CORE-Server/models"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 
 	"github.com/spf13/viper"
 )
 
 type OAuth2Authz struct {
 	UserInfoEndpointURL string
+	DB                  *gorm.DB
 }
 
-func NewOAuth2Authz() (*OAuth2Authz, error) {
+func NewOAuth2Authz(db *gorm.DB) (*OAuth2Authz, error) {
 	endpointURL := viper.GetString("OAuth2.UserInfoEndpoint")
 	if endpointURL == "" {
 		err := errors.New("endpoint URL has to be provided in config as 'OAuth2.UserInfoEndpoint'")
@@ -26,9 +29,34 @@ func NewOAuth2Authz() (*OAuth2Authz, error) {
 
 	handler := OAuth2Authz{
 		UserInfoEndpointURL: endpointURL,
+		DB:                  db,
 	}
 
 	return &handler, nil
+}
+
+func (handler *OAuth2Authz) Authorize(token string, projectID uint) (bool, error) {
+	userOauth2, err := handler.GetUserID(token)
+	if err != nil {
+		log.Println(err.Error())
+		return false, err
+	}
+
+	user := &models.User{
+		UserOauth2ID: userOauth2,
+		ProjectID:    projectID,
+	}
+
+	if err := handler.DB.First(user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return false, fmt.Errorf("could not authorize request")
+		}
+
+		log.Println(err.Error())
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (handler *OAuth2Authz) GetUserID(token string) (string, error) {

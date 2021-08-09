@@ -109,7 +109,7 @@ func createGenericEndpoint() (*Endpoints, error) {
 		S3Handler: objectHandler,
 	}
 
-	oauth2Handler, err := authz.NewOAuth2Authz()
+	oauth2Handler, err := authz.NewOAuth2Authz(db)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
