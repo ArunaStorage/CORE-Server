@@ -38,7 +38,7 @@ func (dataset *Dataset) ToProtoModel() protomodels.Dataset {
 		Created:     timestamppb.New(dataset.CreatedAt),
 		Labels:      labels,
 		Metadata:    metadataList,
-		ProjectId:   uint64(dataset.ID),
+		ProjectId:   uint64(dataset.ProjectID),
 		IsPublic:    dataset.IsPublic,
 	}
 }
