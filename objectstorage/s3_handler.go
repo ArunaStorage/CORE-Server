@@ -137,6 +137,10 @@ func (s3Handler *S3ObjectStorageHandler) CompleteMultipartUpload(object *models.
 }
 
 func (s3Handler *S3ObjectStorageHandler) DeleteObjects(objects []*models.Object) error {
+	if len(objects) == 0 {
+		return nil
+	}
+
 	var deleteObjects []types.ObjectIdentifier
 	for _, object := range objects {
 		deleteObjects = append(deleteObjects, types.ObjectIdentifier{

@@ -219,12 +219,10 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *se
 		return nil, err
 	}
 
-	if len(objects) > 0 {
-		err = endpoint.ObjectHandler.DeleteObjects(objects)
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
+	err = endpoint.ObjectHandler.DeleteObjects(objects)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
 	}
 
 	err = endpoint.DeleteHandler.DeleteDataset(uint(request.GetId()))
