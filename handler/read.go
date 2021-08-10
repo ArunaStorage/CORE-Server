@@ -94,7 +94,7 @@ func (read *Read) GetObject(objectID uint) (*models.Object, error) {
 	object := models.Object{}
 	object.ID = objectID
 
-	if err := read.DB.Preload("Location").First(&object).Error; err != nil {
+	if err := read.DB.Preload("Labels").Preload("Metadata").Preload("Location").First(&object).Error; err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
