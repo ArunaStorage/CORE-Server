@@ -122,7 +122,7 @@ func TestDataset(t *testing.T) {
 		},
 	}
 
-	id, err := createHandler.CreateObjectGroup(&createObjectGroupRequest)
+	id, _, err := createHandler.CreateObjectGroup(&createObjectGroupRequest)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -178,7 +178,7 @@ func TestDataset(t *testing.T) {
 		},
 	}
 
-	_, err = createHandler.CreateObjectGroup(&createObjectGroupRequest2)
+	_, _, err = createHandler.CreateObjectGroup(&createObjectGroupRequest2)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}

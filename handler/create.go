@@ -65,14 +65,14 @@ func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (uin
 	return dataset.ID, nil
 }
 
-func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupRequest) (uint, error) {
+func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupRequest) (uint, uint, error) {
 	dataset := models.Dataset{}
 
 	dataset.ID = uint(request.GetDatasetId())
 	result := create.DB.Find(&dataset)
 	if result.Error != nil {
 		log.Println(result.Error.Error())
-		return 0, result.Error
+		return 0, 0, result.Error
 	}
 
 	labels := []models.Label{}
@@ -98,18 +98,21 @@ func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupReque
 
 	if err := create.DB.Save(&objectGroupModel).Error; err != nil {
 		log.Println(err.Error())
-		return 0, err
+		return 0, 0, err
 	}
 
+	revision_id := uint(0)
+	var err error
+
 	if request.ObjectGroupRevision != nil {
-		_, err := create.CreateObjectGroupRevision(request.ObjectGroupRevision, objectGroupModel.ID)
+		revision_id, err = create.CreateObjectGroupRevision(request.ObjectGroupRevision, objectGroupModel.ID)
 		if err != nil {
 			log.Println(err.Error())
-			return 0, err
+			return 0, 0, err
 		}
 	}
 
-	return objectGroupModel.ID, nil
+	return objectGroupModel.ID, revision_id, nil
 }
 
 func (create *Create) AddObjectGroupRevision(request *services.AddRevisionToObjectGroupRequest) (uint, error) {

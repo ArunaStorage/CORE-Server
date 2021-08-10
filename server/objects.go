@@ -43,7 +43,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 		return nil, err
 	}
 
-	id, err := endpoint.CreateHandler.CreateObjectGroup(request)
+	id, revision_id, err := endpoint.CreateHandler.CreateObjectGroup(request)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -51,6 +51,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 
 	response := services.CreateObjectGroupResponse{
 		ObjectGroupId: uint64(id),
+		RevisionId:    uint64(revision_id),
 	}
 
 	return &response, nil
