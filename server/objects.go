@@ -89,7 +89,7 @@ func (endpoint *ObjectServerEndpoints) AddRevisionToObjectGroup(ctx context.Cont
 	}
 
 	response := &services.AddRevisionToObjectGroupResponse{
-		RevisionId:     request.GetObjectGroupId(),
+		RevisionId:     uint64(id),
 		RevisionNumber: objectgroupRevision.Revision,
 	}
 
