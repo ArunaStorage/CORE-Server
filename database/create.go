@@ -1,4 +1,4 @@
-package handler
+package database
 
 import (
 	"encoding/base64"
@@ -16,6 +16,18 @@ type Create struct {
 }
 
 func (create *Create) CreateProject(request *services.CreateProjectRequest, userID string) (uint, error) {
+	labels := []models.Label{}
+	for _, protoLabel := range request.Labels {
+		label := models.Label{}
+		labels = append(labels, *label.FromProtoModel(protoLabel))
+	}
+
+	metadataList := []models.Metadata{}
+	for _, protoMetadata := range request.Metadata {
+		metadata := &models.Metadata{}
+		metadataList = append(metadataList, *metadata.FromProtoModel(protoMetadata))
+	}
+
 	project := models.Project{
 		Description: request.Description,
 		Name:        request.Name,
@@ -24,6 +36,8 @@ func (create *Create) CreateProject(request *services.CreateProjectRequest, user
 				UserOauth2ID: userID,
 			},
 		},
+		Labels:   labels,
+		Metadata: metadataList,
 	}
 
 	result := create.DB.Create(&project)

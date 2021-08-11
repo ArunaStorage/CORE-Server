@@ -4,24 +4,22 @@ import (
 	"fmt"
 	"net"
 
-	log "github.com/sirupsen/logrus"
-
-	"google.golang.org/grpc"
-
 	"github.com/ScienceObjectsDB/CORE-Server/authz"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
-	"github.com/ScienceObjectsDB/CORE-Server/handler"
 	"github.com/ScienceObjectsDB/CORE-Server/objectstorage"
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
+
+	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
 )
 
 type Endpoints struct {
-	ReadHandler   *handler.Read
-	CreateHandler *handler.Create
-	UpdateHandler *handler.Update
-	DeleteHandler *handler.Delete
-	AuthzHandler  *authz.ProjectHandler
+	ReadHandler   *database.Read
+	CreateHandler *database.Create
+	UpdateHandler *database.Update
+	DeleteHandler *database.Delete
+	AuthzHandler  authz.AuthInterface
 	ObjectHandler *objectstorage.S3ObjectStorageHandler
 }
 
@@ -104,7 +102,7 @@ func createGenericEndpoint() (*Endpoints, error) {
 		return nil, err
 	}
 
-	commonHandler := handler.Common{
+	commonHandler := database.Common{
 		DB:        db,
 		S3Handler: objectHandler,
 	}
@@ -126,15 +124,15 @@ func createGenericEndpoint() (*Endpoints, error) {
 	}
 
 	endpoints := &Endpoints{
-		ReadHandler: &handler.Read{
+		ReadHandler: &database.Read{
 			Common: &commonHandler,
 		},
-		CreateHandler: &handler.Create{Common: &commonHandler},
+		CreateHandler: &database.Create{Common: &commonHandler},
 		ObjectHandler: objectHandler,
-		UpdateHandler: &handler.Update{
+		UpdateHandler: &database.Update{
 			Common: &commonHandler,
 		},
-		DeleteHandler: &handler.Delete{
+		DeleteHandler: &database.Delete{
 			Common: &commonHandler,
 		},
 		AuthzHandler: authzHandler,

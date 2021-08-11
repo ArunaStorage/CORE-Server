@@ -1,0 +1,12 @@
+Server:
+  Host: "127.0.0.1"
+  Port: 50051
+DB:
+  Host: "psql"
+  Port: 5432
+  Username: "postgres"
+  Name: "core-server-test-db"
+S3:
+  Bucket: "test-bucket"
+  Endpoint: "http://minio:9000"
+

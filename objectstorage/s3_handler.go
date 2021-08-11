@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -22,6 +23,10 @@ type S3ObjectStorageHandler struct {
 
 func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageHandler, error) {
 	endpoint := "https://s3.computational.bio.uni-giessen.de"
+	if configEndpoint := viper.GetString("S3.Endpoint"); configEndpoint != "" {
+		endpoint = configEndpoint
+	}
+
 	cfg, err := config.LoadDefaultConfig(
 		context.Background(),
 		config.WithRegion("RegionOne"),
@@ -38,7 +43,7 @@ func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageH
 		return nil, err
 	}
 
-	client := s3.NewFromConfig(cfg)
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = true })
 	presignClient := s3.NewPresignClient(client)
 
 	s3Handler.S3Endpoint = endpoint

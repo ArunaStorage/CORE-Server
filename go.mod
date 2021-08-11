@@ -13,6 +13,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cast v1.4.0 // indirect
 	github.com/spf13/viper v1.8.1
+	github.com/stretchr/testify v1.7.0 // indirect
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
 	google.golang.org/genproto v0.0.0-20210805201207-89edb61ffb67 // indirect
 	google.golang.org/grpc v1.39.1

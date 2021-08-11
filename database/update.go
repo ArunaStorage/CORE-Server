@@ -1,4 +1,4 @@
-package handler
+package database
 
 import (
 	"github.com/ScienceObjectsDB/CORE-Server/models"

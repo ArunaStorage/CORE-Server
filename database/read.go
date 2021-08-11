@@ -1,4 +1,4 @@
-package handler
+package database
 
 import (
 	log "github.com/sirupsen/logrus"
@@ -14,7 +14,7 @@ func (read *Read) GetProject(projectID uint) (*models.Project, error) {
 	project := &models.Project{}
 	project.ID = projectID
 
-	if err := read.DB.First(project).Error; err != nil {
+	if err := read.DB.Preload("Labels").Preload("Metadata").First(project).Error; err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func (read *Read) GetDataset(datasetID uint) (*models.Dataset, error) {
 	dataset := &models.Dataset{}
 	dataset.ID = datasetID
 
-	if err := read.DB.First(dataset).Error; err != nil {
+	if err := read.DB.Preload("Labels").Preload("Metadata").First(dataset).Error; err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
