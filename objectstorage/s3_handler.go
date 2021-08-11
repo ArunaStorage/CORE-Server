@@ -43,7 +43,11 @@ func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageH
 		return nil, err
 	}
 
-	client := s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = true })
+	client := s3.NewFromConfig(cfg)
+
+	if endpoint == "http://minio:9000" {
+		client = s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = true })
+	}
 	presignClient := s3.NewPresignClient(client)
 
 	s3Handler.S3Endpoint = endpoint
