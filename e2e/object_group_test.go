@@ -238,7 +238,7 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	dlResponse, err := http.DefaultClient.Get(downloadLink.GetUploadLink())
+	dlResponse, err := http.DefaultClient.Get(downloadLink.GetDownloadLink())
 	if err != nil {
 		log.Fatalln(err.Error())
 	}

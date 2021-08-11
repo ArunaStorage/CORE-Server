@@ -79,7 +79,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *
 	}
 
 	response := services.CreateDownloadLinkResponse{
-		UploadLink: downloadLink,
+		DownloadLink: downloadLink,
 	}
 
 	return &response, nil
