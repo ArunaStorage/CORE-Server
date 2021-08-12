@@ -45,6 +45,7 @@ func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageH
 
 	client := s3.NewFromConfig(cfg)
 
+	//Testing endpoint, minio kann kein bucket host style mit presigned keys
 	if endpoint == "http://minio:9000" {
 		client = s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = true })
 	}
