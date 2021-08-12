@@ -63,11 +63,12 @@ func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (uin
 	}
 
 	dataset := models.Dataset{
-		Name:      request.Name,
-		Metadata:  metadataList,
-		Labels:    labels,
-		ProjectID: uint(request.ProjectId),
-		IsPublic:  false,
+		Name:        request.Name,
+		Description: request.Description,
+		Metadata:    metadataList,
+		Labels:      labels,
+		ProjectID:   uint(request.ProjectId),
+		IsPublic:    false,
 	}
 
 	result := create.DB.Create(&dataset)
@@ -106,6 +107,7 @@ func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupReque
 		ProjectID:       dataset.ProjectID,
 		RevisionCounter: 0,
 		Name:            request.Name,
+		Description:     request.Description,
 		Metadata:        metadataList,
 		Labels:          labels,
 	}
@@ -253,6 +255,7 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 	}
 
 	version := &models.DatasetVersion{
+		Name:                 request.Name,
 		Labels:               labels,
 		Metadata:             metadataList,
 		Description:          request.Description,

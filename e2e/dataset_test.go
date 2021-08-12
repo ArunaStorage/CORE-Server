@@ -73,6 +73,7 @@ func TestDataset(t *testing.T) {
 	}
 
 	assert.Equal(t, createDatasetRequest.Name, datasetGetResponse.Dataset.Name)
+	assert.Equal(t, createDatasetRequest.Description, datasetGetResponse.GetDataset().Description)
 	assert.ElementsMatch(t, createDatasetRequest.Labels, datasetGetResponse.Dataset.Labels)
 	assert.ElementsMatch(t, createDatasetRequest.Metadata, datasetGetResponse.Dataset.Metadata)
 

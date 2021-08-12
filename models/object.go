@@ -94,6 +94,7 @@ func (objectGroupRevision *ObjectGroupRevision) ToProtoModel() *protomodels.Obje
 type ObjectGroup struct {
 	gorm.Model
 	Name                 string
+	Description          string
 	DatasetID            uint
 	Dataset              Dataset
 	ProjectID            uint
@@ -121,6 +122,7 @@ func (objectGroup *ObjectGroup) ToProtoModel() *protomodels.ObjectGroup {
 	return &protomodels.ObjectGroup{
 		Id:              uint64(objectGroup.ID),
 		Name:            objectGroup.Name,
+		Description:     objectGroup.Description,
 		DatasetId:       uint64(objectGroup.DatasetID),
 		Labels:          labels,
 		Metadata:        metadataList,

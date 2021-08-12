@@ -45,6 +45,7 @@ func (dataset *Dataset) ToProtoModel() protomodels.Dataset {
 
 type DatasetVersion struct {
 	gorm.Model
+	Name                 string
 	Description          string
 	Labels               []Label               `gorm:"many2many:dataset_version_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata             []Metadata            `gorm:"many2many:dataset_version_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
@@ -93,6 +94,7 @@ func (version *DatasetVersion) ToProtoModel() *protomodels.DatasetVersion {
 			Stage:    protomodels.Version_VersionStage(versionTag),
 		},
 		ObjectGroupIds: objectGroupIDs,
+		Name:           version.Name,
 	}
 
 	return protoVersion
