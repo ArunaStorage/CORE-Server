@@ -1,11 +1,8 @@
 package e2e
 
 import (
-	"bytes"
 	"context"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"testing"
 
 	v1 "github.com/ScienceObjectsDB/go-api/api/models/v1"
@@ -13,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestObjectGroup(t *testing.T) {
+func TestDatasetVersion(t *testing.T) {
 	createProjectRequest := &services.CreateProjectRequest{
 		Name:        "testproject_dataset",
 		Description: "test",
@@ -174,12 +171,6 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, createObjectGroupRequest.Name, getObjectGroupResponse.ObjectGroup.Name)
-	assert.Equal(t, createObjectGroupRequest.DatasetId, getObjectGroupResponse.ObjectGroup.DatasetId)
-	assert.Equal(t, createDatasetRequest.Description, getObjectGroupResponse.GetObjectGroup().Description)
-	assert.ElementsMatch(t, createObjectGroupRequest.Labels, getObjectGroupResponse.ObjectGroup.Labels)
-	assert.ElementsMatch(t, createObjectGroupRequest.Metadata, getObjectGroupResponse.ObjectGroup.Metadata)
-
 	secondRevision := &services.CreateObjectGroupRevisionRequest{
 		Objects: []*services.CreateObjectRequest{
 			{
@@ -207,51 +198,64 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, "testfile3", currentRevisionResponse.ObjectGroupRevision.Objects[0].Filename)
+	versionMetadata := []*v1.Metadata{
+		{
+			Key:      "Key1V",
+			Metadata: []byte("dasddasdV"),
+		},
+		{
+			Key:      "Key2V",
+			Metadata: []byte("asdasdV"),
+		},
+	}
 
-	object := currentRevisionResponse.ObjectGroupRevision.Objects[0]
+	versionLabel := []*v1.Label{
+		{
+			Key:   "Label1",
+			Value: "LabelValue1",
+		},
+		{
+			Key:   "Label2",
+			Value: "LabelValue2",
+		},
+	}
 
-	uploadLink, err := ServerEndpoints.load.CreateUploadLink(context.Background(), &services.CreateUploadLinkRequest{
-		Id: object.GetId(),
+	releaseVersionRequest := &services.ReleaseDatasetVersionRequest{
+		Name:      "foo",
+		DatasetId: datasetCreateResponse.GetId(),
+		Version: &v1.Version{
+			Major:    1,
+			Minor:    0,
+			Patch:    2,
+			Revision: 1,
+			Stage:    v1.Version_STABLE,
+		},
+		Description: "testrelease",
+		RevisionIds: []uint64{currentRevisionResponse.ObjectGroupRevision.Id},
+		Labels:      versionLabel,
+		Metadata:    versionMetadata,
+	}
+
+	versionResponse, err := ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	response, err := ServerEndpoints.dataset.GetDatasetVersions(context.Background(), &services.GetDatasetVersionsRequest{
+		Id: datasetCreateResponse.GetId(),
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	uploadHttpRequest, err := http.NewRequest("PUT", uploadLink.UploadLink, bytes.NewBufferString("foo"))
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
+	assert.Equal(t, len(response.GetDatasetVersions()), 1)
 
-	response, err := http.DefaultClient.Do(uploadHttpRequest)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	if response.StatusCode != 200 {
-		log.Fatalln(response.Status)
-	}
-
-	downloadLink, err := ServerEndpoints.load.CreateDownloadLink(context.Background(), &services.CreateDownloadLinkRequest{
-		Id: object.GetId(),
+	versionRevisions, err := ServerEndpoints.dataset.GetDatasetVersionRevisions(context.Background(), &services.GetDatasetVersionRevisionsRequest{
+		Id: versionResponse.GetId(),
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	dlResponse, err := http.DefaultClient.Get(downloadLink.GetDownloadLink())
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	if response.StatusCode != 200 {
-		log.Fatalln(response.Status)
-	}
-
-	data, err := ioutil.ReadAll(dlResponse.Body)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	assert.Equal(t, string(data), "foo")
+	assert.Equal(t, len(versionRevisions.GetObjectGroupRevision()), 1)
 }

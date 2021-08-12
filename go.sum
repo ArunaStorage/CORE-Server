@@ -57,6 +57,8 @@ github.com/ScienceObjectsDB/go-api v0.0.0-20210811165948-9bedab87da9e h1:I+WW0Hg
 github.com/ScienceObjectsDB/go-api v0.0.0-20210811165948-9bedab87da9e/go.mod h1:dz9plYGE4ji/+H1mkASuIX0hQ4sndThwXHFu5cSC0ek=
 github.com/ScienceObjectsDB/go-api v0.0.0-20210812102220-4d85a931b595 h1:E7vz8TYbOZ2BFCxA6oThwDhb7B9tal9o3DPHwu9tOaY=
 github.com/ScienceObjectsDB/go-api v0.0.0-20210812102220-4d85a931b595/go.mod h1:dz9plYGE4ji/+H1mkASuIX0hQ4sndThwXHFu5cSC0ek=
+github.com/ScienceObjectsDB/go-api v0.0.0-20210812134709-8b785c04163d h1:71XVYDKF3XegQO2V92YBir+vR6nNQKUfKYUFJqfUgrY=
+github.com/ScienceObjectsDB/go-api v0.0.0-20210812134709-8b785c04163d/go.mod h1:dz9plYGE4ji/+H1mkASuIX0hQ4sndThwXHFu5cSC0ek=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=

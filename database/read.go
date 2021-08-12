@@ -129,7 +129,7 @@ func (read *Read) GetDatasetVersion(versionID uint) (*models.DatasetVersion, err
 	datasetVersion := &models.DatasetVersion{}
 	datasetVersion.ID = versionID
 
-	if err := read.DB.Preload("Labels").Preload("Metadata").Find(datasetVersion).Error; err != nil {
+	if err := read.DB.Preload("Labels").Preload("Metadata").Preload("ObjectGroupRevisions").Find(datasetVersion).Error; err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (read *Read) GetDatasetVersion(versionID uint) (*models.DatasetVersion, err
 
 func (read *Read) GetDatasetVersions(datasetID uint) ([]models.DatasetVersion, error) {
 	var datasetVersions []models.DatasetVersion
-	if err := read.DB.Preload("Metadata").Preload("Labels").Where("dataset_id = ?", datasetID).Find(datasetVersions).Error; err != nil {
+	if err := read.DB.Preload("Metadata").Preload("Labels").Where("dataset_id = ?", datasetID).Find(&datasetVersions).Error; err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (read *Read) GetDatasetVersionWithRevisions(datasetVersionID uint) (*models
 	version := &models.DatasetVersion{}
 	version.ID = datasetVersionID
 
-	if err := read.DB.Preload("object_group_revisions").First(version).Error; err != nil {
+	if err := read.DB.Preload("ObjectGroupRevisions").First(version).Error; err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}

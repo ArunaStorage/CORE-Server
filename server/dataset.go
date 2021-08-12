@@ -293,7 +293,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request
 	return response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetDatsetVersionRevisions(ctx context.Context, request *services.GetDatasetVersionRevisionsRequest) (*services.GetDatasetVersionRevisionsResponse, error) {
+func (endpoint *DatasetEndpoints) GetDatasetVersionRevisions(ctx context.Context, request *services.GetDatasetVersionRevisionsRequest) (*services.GetDatasetVersionRevisionsResponse, error) {
 	version, err := endpoint.ReadHandler.GetDatasetVersionWithRevisions(uint(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
