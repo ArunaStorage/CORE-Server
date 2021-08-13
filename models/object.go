@@ -20,7 +20,7 @@ type Object struct {
 	DatasetID             uint
 	Dataset               Dataset
 	ObjectGroupID         uint
-	ObjectGroupRevisionID *uint
+	ObjectGroupRevisionID *uint //reference to make it optional
 	ObjectGroupRevision   ObjectGroupRevision
 }
 
@@ -100,7 +100,7 @@ type ObjectGroup struct {
 	ProjectID            uint
 	Project              Project
 	Labels               []Label    `gorm:"many2many:object_group_label;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Metadata             []Metadata `gorm:"many2many:object_group_metadata;onstraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Metadata             []Metadata `gorm:"many2many:object_group_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Status               string
 	HeadID               uint
 	RevisionCounter      uint64

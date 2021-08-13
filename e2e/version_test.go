@@ -258,4 +258,11 @@ func TestDatasetVersion(t *testing.T) {
 	}
 
 	assert.Equal(t, len(versionRevisions.GetObjectGroupRevision()), 1)
+
+	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &services.DeleteDatasetRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 }

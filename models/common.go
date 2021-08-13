@@ -9,6 +9,7 @@ type Metadata struct {
 	gorm.Model
 	Name     string
 	Metadata string
+	ParentID uint
 }
 
 func (metadata *Metadata) ToProtoModel() *protomodels.Metadata {

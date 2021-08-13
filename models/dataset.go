@@ -49,7 +49,7 @@ type DatasetVersion struct {
 	Description          string
 	Labels               []Label               `gorm:"many2many:dataset_version_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata             []Metadata            `gorm:"many2many:dataset_version_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	ObjectGroupRevisions []ObjectGroupRevision `gorm:"many2many:dataset_version_object_group_revisions;"`
+	ObjectGroupRevisions []ObjectGroupRevision `gorm:"many2many:dataset_version_object_group_revisions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	MajorVersion         uint
 	MinorVersion         uint
 	PatchVersion         uint

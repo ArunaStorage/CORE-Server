@@ -36,7 +36,7 @@ func (handler *Delete) DeleteDataset(datasetID uint) error {
 	dataset := &models.Dataset{}
 	dataset.ID = datasetID
 
-	if err := handler.DB.Select("Labels", "Metadata", "ObjectGroups", "DatasetVersion", "ObjectGroups.ObjectGroupRevision", "ObjectsGroups.Objects").Unscoped().Delete(dataset).Error; err != nil {
+	if err := handler.DB.Select("Labels", "Metadata", "Objects", "ObjectGroups", "DatasetVersion", "ObjectGroups.ObjectGroupRevision", "ObjectsGroups.Objects").Unscoped().Delete(dataset).Error; err != nil {
 		log.Println(err.Error())
 		return err
 	}
