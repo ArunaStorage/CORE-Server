@@ -261,7 +261,7 @@ func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, re
 }
 
 func (endpoint *ObjectServerEndpoints) DeleteObjectGroupRevision(ctx context.Context, request *services.DeleteObjectGroupRevisionRequest) (*services.DeleteObjectGroupRevisionResponse, error) {
-	revision, err := endpoint.ReadHandler.GetCurrentObjectGroupRevision(uint(request.GetId()))
+	revision, err := endpoint.ReadHandler.GetObjectGroupRevision(uint(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
