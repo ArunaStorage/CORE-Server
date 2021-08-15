@@ -15,6 +15,21 @@ func NewPsqlDB(host string, port uint64, username string, dbName string) (*gorm.
 	psqlPW := os.Getenv("PSQL_PASSWORD")
 
 	dsn := fmt.Sprintf("host=%v user=%v password=%v dbname=%v port=%v sslmode=disable TimeZone=Europe/Berlin", host, username, psqlPW, dbName, port)
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	db = makeMigrations(db)
+
+	return db, nil
+}
+
+func NewPsqlDBCITest() (*gorm.DB, error) {
+	dsn := "postgres://root@cockroach:26257/defaultdb?sslmode=disable"
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Println(err.Error())

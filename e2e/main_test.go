@@ -2,9 +2,10 @@ package e2e
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ScienceObjectsDB/CORE-Server/authz"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
@@ -23,6 +24,9 @@ type ServerEndpointsTest struct {
 var ServerEndpoints = &ServerEndpointsTest{}
 
 func TestMain(m *testing.M) {
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetReportCaller(true)
+
 	init_test_endpoints()
 	code := m.Run()
 	os.Exit(code)
@@ -39,12 +43,7 @@ func init_test_endpoints() {
 		panic(fmt.Errorf("fatal error config file: %w", err))
 	}
 
-	dbHost := viper.GetString("DB.Host")
-	dbPort := viper.GetUint("DB.Port")
-	dbName := viper.GetString("DB.Name")
-	dbUsername := viper.GetString("DB.Username")
-
-	db, err := database.NewPsqlDB(dbHost, uint64(dbPort), dbUsername, dbName)
+	db, err := database.NewPsqlDBCITest()
 	if err != nil {
 		log.Fatalln(err.Error())
 	}

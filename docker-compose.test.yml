@@ -17,7 +17,7 @@ services:
       "
     depends_on:
       - minioConf
-      - psql
+      - cockroach
   minio:
     image: minio/minio
     command: server /data
@@ -39,10 +39,10 @@ services:
       /usr/bin/mc mb myminio/test-bucket;
       exit 0;
       "
-  psql:
-    image: postgres
+  cockroach:
+    image: cockroachdb/cockroach
+    entrypoint: >
+      /bin/sh -c "
+      cockroach start-single-node --insecure --accept-sql-without-tls;
+      "
     restart: always
-    environment:
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: test123
-        POSTGRES_DB: core-server-test-db

@@ -78,7 +78,7 @@ func TestDataset(t *testing.T) {
 	assert.ElementsMatch(t, createDatasetRequest.Metadata, datasetGetResponse.Dataset.Metadata)
 
 	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &services.DeleteDatasetRequest{
-		Id: createResponse.GetId(),
+		Id: datasetCreateResponse.GetId(),
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
