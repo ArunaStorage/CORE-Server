@@ -26,6 +26,11 @@ func NewProjectEndpoints(endpoints *Endpoints) (*ProjectEndpoints, error) {
 func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *services.CreateProjectRequest) (*services.CreateProjectResponse, error) {
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
+	if err := endpoint.AuthzHandler.AuthorizeCreateProject(metadata); err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
 	userID, err := endpoint.AuthzHandler.GetUserID(metadata)
 	if err != nil {
 		log.Println(err.Error())

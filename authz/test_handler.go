@@ -15,3 +15,7 @@ func (projectHandler *TestHandler) GetUserID(metadata metadata.MD) (string, erro
 func (projectHandler *TestHandler) Authorize(projectID uint, requestedRight protoModels.Right, metadata metadata.MD) error {
 	return nil
 }
+
+func (projectHandler *TestHandler) AuthorizeCreateProject(metadata metadata.MD) error {
+	return nil
+}

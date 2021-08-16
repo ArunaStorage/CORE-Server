@@ -64,3 +64,32 @@ func (projectHandler *ProjectHandler) Authorize(projectID uint, requestedRight p
 
 	return fmt.Errorf("could not authorize requested action")
 }
+
+func (projectHandler *ProjectHandler) AuthorizeCreateProject(metadata metadata.MD) error {
+	if len(metadata.Get(USER_TOKEN_ENTRY_KEY)) != 1 {
+		return fmt.Errorf("could not authorize requested action")
+	}
+
+	token := metadata.Get(USER_TOKEN_ENTRY_KEY)[0]
+
+	parsedToken, err := projectHandler.OAuth2Handler.ParseUser(token)
+	if err != nil {
+		log.Println(err.Error())
+		return fmt.Errorf("could not authorize requested action")
+	}
+
+	hasGroup := false
+	for _, group := range parsedToken.groups {
+		if group == "/sciobjsdb-test" {
+			hasGroup = true
+			break
+		}
+	}
+
+	if !hasGroup {
+		return fmt.Errorf("user not part of group sciobjsdb-test")
+	}
+
+	return nil
+
+}

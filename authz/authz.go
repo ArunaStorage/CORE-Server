@@ -8,4 +8,5 @@ import (
 type AuthInterface interface {
 	GetUserID(metadata metadata.MD) (string, error)
 	Authorize(projectID uint, requestedRight protoModels.Right, metadata metadata.MD) error
+	AuthorizeCreateProject(metadata metadata.MD) error
 }
