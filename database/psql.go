@@ -14,7 +14,7 @@ import (
 func NewPsqlDB(host string, port uint64, username string, dbName string) (*gorm.DB, error) {
 	psqlPW := os.Getenv("PSQL_PASSWORD")
 
-	dsn := fmt.Sprintf("host=%v user=%v password=%v dbname=%v port=%v sslmode=required TimeZone=Europe/Berlin", host, username, psqlPW, dbName, port)
+	dsn := fmt.Sprintf("host=%v user=%v password=%v dbname=%v port=%v sslmode=prefer TimeZone=Europe/Berlin", host, username, psqlPW, dbName, port)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
