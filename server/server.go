@@ -107,7 +107,13 @@ func createGenericEndpoint() (*Endpoints, error) {
 		S3Handler: objectHandler,
 	}
 
-	oauth2Handler, err := authz.NewOAuth2Authz(db)
+	jwtHandler, err := authz.NewJWTHandler()
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	oauth2Handler, err := authz.NewOAuth2Authz(db, jwtHandler)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -115,12 +121,6 @@ func createGenericEndpoint() (*Endpoints, error) {
 
 	apiTokenHandler := &authz.APITokenHandler{
 		DB: db,
-	}
-
-	jwtHandler, err := authz.NewJWTHandler()
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
 	}
 
 	authzHandler := &authz.ProjectHandler{

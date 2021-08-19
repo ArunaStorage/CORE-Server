@@ -20,7 +20,7 @@ type OAuth2Authz struct {
 	JwtHandler          *JWTHandler
 }
 
-func NewOAuth2Authz(db *gorm.DB) (*OAuth2Authz, error) {
+func NewOAuth2Authz(db *gorm.DB, authz *JWTHandler) (*OAuth2Authz, error) {
 	endpointURL := viper.GetString("OAuth2.UserInfoEndpoint")
 	if endpointURL == "" {
 		err := errors.New("endpoint URL has to be provided in config as 'OAuth2.UserInfoEndpoint'")
@@ -31,6 +31,7 @@ func NewOAuth2Authz(db *gorm.DB) (*OAuth2Authz, error) {
 	handler := OAuth2Authz{
 		UserInfoEndpointURL: endpointURL,
 		DB:                  db,
+		JwtHandler:          authz,
 	}
 
 	return &handler, nil
