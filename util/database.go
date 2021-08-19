@@ -10,7 +10,7 @@ import (
 )
 
 func MakeMigrations(db *gorm.DB) error {
-	err := db.AutoMigrate(&models.Project{}, &models.Dataset{}, &models.User{}, &models.UserRight{}, &models.APITokenRight{}, &models.ObjectGroup{}, &models.ObjectGroupRevision{}, &models.Object{}, &models.Location{}, &models.APIToken{}, &models.DatasetVersion{})
+	err := db.AutoMigrate(&models.Project{}, &models.Dataset{}, &models.User{}, &models.UserRight{}, &models.APITokenRight{}, &models.ObjectGroup{}, &models.Object{}, &models.Location{}, &models.APIToken{}, &models.DatasetVersion{})
 	if err != nil {
 		log.Println(err.Error())
 		return err

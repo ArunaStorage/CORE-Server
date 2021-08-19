@@ -2,13 +2,15 @@ package database
 
 import (
 	"encoding/base64"
+	"fmt"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	"github.com/ScienceObjectsDB/CORE-Server/util"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
-	"gorm.io/gorm"
 )
 
 type Create struct {
@@ -80,14 +82,14 @@ func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (uin
 	return dataset.ID, nil
 }
 
-func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupRequest) (uint, uint, error) {
+func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupRequest) (uint, error) {
 	dataset := models.Dataset{}
 
 	dataset.ID = uint(request.GetDatasetId())
 	result := create.DB.Find(&dataset)
 	if result.Error != nil {
 		log.Println(result.Error.Error())
-		return 0, 0, result.Error
+		return 0, result.Error
 	}
 
 	labels := []models.Label{}
@@ -102,135 +104,70 @@ func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupReque
 		metadataList = append(metadataList, *metadata.FromProtoModel(protoMetadata))
 	}
 
-	objectGroupModel := models.ObjectGroup{
-		DatasetID:       dataset.ID,
-		ProjectID:       dataset.ProjectID,
-		RevisionCounter: 0,
-		Name:            request.Name,
-		Description:     request.Description,
-		Metadata:        metadataList,
-		Labels:          labels,
+	objectGroupModel := &models.ObjectGroup{
+		DatasetID:   dataset.ID,
+		ProjectID:   dataset.ProjectID,
+		Name:        request.Name,
+		Description: request.Description,
+		Metadata:    metadataList,
+		Labels:      labels,
+		Generated:   request.Generated.AsTime(),
 	}
 
-	if err := create.DB.Save(&objectGroupModel).Error; err != nil {
-		log.Println(err.Error())
-		return 0, 0, err
-	}
+	objects := make([]models.Object, 0)
 
-	revision_id := uint(0)
-	var err error
+	for _, protoObject := range request.GetObjects() {
+		uuid := uuid.New().String()
+		location := create.S3Handler.CreateLocation(dataset.ProjectID, dataset.ID, uuid, protoObject.Filename)
 
-	if request.ObjectGroupRevision != nil {
-		revision_id, err = create.CreateObjectGroupRevision(request.ObjectGroupRevision, objectGroupModel.ID)
-		if err != nil {
-			log.Println(err.Error())
-			return 0, 0, err
-		}
-	}
-
-	return objectGroupModel.ID, revision_id, nil
-}
-
-func (create *Create) AddObjectGroupRevision(request *services.AddRevisionToObjectGroupRequest) (uint, error) {
-	createReq := services.CreateObjectGroupRevisionRequest{
-		Objects:  request.GetGroupRevison().Objects,
-		Labels:   request.GroupRevison.GetLabels(),
-		Metadata: request.GroupRevison.GetMetadata(),
-	}
-
-	revisionId, err := create.CreateObjectGroupRevision(&createReq, uint(request.GetObjectGroupId()))
-	if err != nil {
-		log.Println(err.Error())
-	}
-
-	return revisionId, nil
-}
-
-func (create *Create) CreateObjectGroupRevision(request *services.CreateObjectGroupRevisionRequest, objectGroupID uint) (uint, error) {
-	var revision uint64
-	var objectGroup models.ObjectGroup
-	objectGroup.ID = objectGroupID
-
-	if err := create.DB.Transaction(func(tx *gorm.DB) error {
-		objectGroup.ID = objectGroupID
-		if err := tx.First(&objectGroup).Error; err != nil {
-			log.Println(err.Error())
-			return err
-		}
-
-		objectGroup.RevisionCounter++
-		revision = objectGroup.RevisionCounter
-
-		if err := tx.Model(&objectGroup).Update("revision_counter", revision).Error; err != nil {
-			log.Println(err.Error())
-			return err
-		}
-
-		return nil
-	}); err != nil {
-		log.Println(err.Error())
-		return 0, err
-	}
-
-	labels := []models.Label{}
-	for _, protoLabel := range request.Labels {
-		label := models.Label{}
-		labels = append(labels, *label.FromProtoModel(protoLabel))
-	}
-
-	metadataList := []models.Metadata{}
-	for _, protoMetadata := range request.Metadata {
-		metadata := &models.Metadata{}
-		metadataList = append(metadataList, *metadata.FromProtoModel(protoMetadata))
-	}
-
-	revision_model := models.ObjectGroupRevision{
-		DatasetID:     objectGroup.DatasetID,
-		ProjectID:     objectGroup.ProjectID,
-		ObjectGroupID: objectGroupID,
-		Labels:        labels,
-		Metadata:      metadataList,
-		ObjectsCount:  int64(len(request.Objects)),
-		Revision:      revision,
-		Objects:       []models.Object{},
-	}
-
-	for _, objectRequest := range request.Objects {
 		labels := []models.Label{}
-		for _, protoLabel := range objectRequest.Labels {
+		for _, protoLabel := range protoObject.Labels {
 			label := models.Label{}
 			labels = append(labels, *label.FromProtoModel(protoLabel))
 		}
 
 		metadataList := []models.Metadata{}
-		for _, protoMetadata := range objectRequest.Metadata {
+		for _, protoMetadata := range protoObject.Metadata {
 			metadata := &models.Metadata{}
 			metadataList = append(metadataList, *metadata.FromProtoModel(protoMetadata))
 		}
 
-		location := create.S3Handler.CreateLocation(objectGroup.ProjectID, objectGroup.DatasetID, revision, objectRequest.Filename)
-
 		object := models.Object{
-			Filename:      objectRequest.Filename,
-			Filetype:      objectRequest.Filetype,
-			ContentLen:    objectRequest.ContentLen,
-			Labels:        labels,
-			Metadata:      metadataList,
-			Location:      *location,
-			ProjectID:     objectGroup.ProjectID,
-			DatasetID:     objectGroup.DatasetID,
-			ObjectGroupID: objectGroup.ID,
+			Filename:   protoObject.Filename,
+			Filetype:   protoObject.Filetype,
+			ContentLen: protoObject.ContentLen,
+			Location:   location,
+			Labels:     labels,
+			Metadata:   metadataList,
+			ObjectUUID: uuid,
+			ProjectID:  dataset.ProjectID,
+			DatasetID:  dataset.ID,
 		}
 
-		revision_model.Objects = append(revision_model.Objects, object)
+		objects = append(objects, object)
 	}
 
-	insertedRevision := create.DB.Create(&revision_model)
-	if insertedRevision.Error != nil {
-		return 0, insertedRevision.Error
-	}
+	create.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(objectGroupModel).Error; err != nil {
+			log.Println(err.Error())
+			return fmt.Errorf("could not create object group")
+		}
 
-	return revision_model.ID, nil
+		for _, object := range objects {
+			object.ObjectGroupID = objectGroupModel.ID
+		}
+
+		objectGroupModel.Objects = objects
+
+		if err := tx.Save(objectGroupModel).Error; err != nil {
+			log.Println(err.Error())
+			return fmt.Errorf("could not create object group")
+		}
+
+		return nil
+	})
+
+	return objectGroupModel.ID, nil
 }
 
 func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersionRequest, projectID uint) (uint, error) {
@@ -246,27 +183,27 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 		metadataList = append(metadataList, *metadata.FromProtoModel(protoMetadata))
 	}
 
-	revisions := make([]models.ObjectGroupRevision, 0)
-	for _, revision := range request.RevisionIds {
-		modelRevision := models.ObjectGroupRevision{}
-		modelRevision.ID = uint(revision)
+	objectGroups := make([]models.ObjectGroup, 0)
+	for _, objectGroupID := range request.ObjectGroupIds {
+		objectGroup := models.ObjectGroup{}
+		objectGroup.ID = uint(objectGroupID)
 
-		revisions = append(revisions, modelRevision)
+		objectGroups = append(objectGroups, objectGroup)
 	}
 
 	version := &models.DatasetVersion{
-		Name:                 request.Name,
-		Labels:               labels,
-		Metadata:             metadataList,
-		Description:          request.Description,
-		DatasetID:            uint(request.DatasetId),
-		ObjectGroupRevisions: revisions,
-		MajorVersion:         uint(request.Version.Major),
-		MinorVersion:         uint(request.Version.Minor),
-		PatchVersion:         uint(request.Version.Patch),
-		Stage:                request.Version.GetStage().String(),
-		RevisionVersion:      uint(request.GetVersion().Revision),
-		ProjectID:            projectID,
+		Name:            request.Name,
+		Labels:          labels,
+		Metadata:        metadataList,
+		Description:     request.Description,
+		DatasetID:       uint(request.DatasetId),
+		MajorVersion:    uint(request.Version.Major),
+		MinorVersion:    uint(request.Version.Minor),
+		PatchVersion:    uint(request.Version.Patch),
+		Stage:           request.Version.GetStage().String(),
+		RevisionVersion: uint(request.GetVersion().Revision),
+		ProjectID:       projectID,
+		ObjectGroups:    objectGroups,
 	}
 
 	if err := create.DB.Create(&version).Error; err != nil {

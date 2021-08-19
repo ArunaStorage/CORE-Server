@@ -9,18 +9,6 @@ type Delete struct {
 	*Common
 }
 
-func (handler *Delete) DeleteObjectGroupRevision(revisionID uint) error {
-	revision := &models.ObjectGroupRevision{}
-	revision.ID = revisionID
-
-	if err := handler.DB.Select("Labels", "Metadata", "Objects", "Objects.Labels", "Objects.Metadata").Unscoped().Delete(revision).Error; err != nil {
-		log.Println(err.Error())
-		return err
-	}
-
-	return nil
-}
-
 func (handler *Delete) DeleteObjectGroup(objectGroupID uint) error {
 	objectGroup := &models.ObjectGroup{}
 	objectGroup.ID = objectGroupID

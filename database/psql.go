@@ -47,7 +47,6 @@ func makeMigrations(db *gorm.DB) *gorm.DB {
 		&models.Dataset{},
 		&models.DatasetVersion{},
 		&models.ObjectGroup{},
-		&models.ObjectGroupRevision{},
 		&models.Object{},
 		&models.Location{},
 		&models.Metadata{},

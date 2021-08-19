@@ -45,20 +45,20 @@ func (dataset *Dataset) ToProtoModel() protomodels.Dataset {
 
 type DatasetVersion struct {
 	gorm.Model
-	Name                 string
-	Description          string
-	Labels               []Label               `gorm:"many2many:dataset_version_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Metadata             []Metadata            `gorm:"many2many:dataset_version_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	ObjectGroupRevisions []ObjectGroupRevision `gorm:"many2many:dataset_version_object_group_revisions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	MajorVersion         uint
-	MinorVersion         uint
-	PatchVersion         uint
-	RevisionVersion      uint
-	Stage                string
-	ProjectID            uint
-	Project              Project
-	DatasetID            uint
-	Dataset              Dataset
+	Name            string
+	Description     string
+	Labels          []Label       `gorm:"many2many:dataset_version_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Metadata        []Metadata    `gorm:"many2many:dataset_version_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ObjectGroups    []ObjectGroup `gorm:"many2many:dataset_version_object_groups;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	MajorVersion    uint
+	MinorVersion    uint
+	PatchVersion    uint
+	RevisionVersion uint
+	Stage           string
+	ProjectID       uint
+	Project         Project
+	DatasetID       uint
+	Dataset         Dataset
 }
 
 func (version *DatasetVersion) ToProtoModel() *protomodels.DatasetVersion {
@@ -73,7 +73,7 @@ func (version *DatasetVersion) ToProtoModel() *protomodels.DatasetVersion {
 	}
 
 	var objectGroupIDs []uint64
-	for _, id := range version.ObjectGroupRevisions {
+	for _, id := range version.ObjectGroups {
 		objectGroupIDs = append(objectGroupIDs, uint64(id.ID))
 	}
 

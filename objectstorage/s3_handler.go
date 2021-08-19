@@ -59,17 +59,15 @@ func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageH
 	return s3Handler, nil
 }
 
-func (s3Handler *S3ObjectStorageHandler) CreateLocation(projectID uint, datasetID uint, revision uint64, filename string) *models.Location {
-	revision_name := fmt.Sprintf("revision-%v", revision)
-
-	objectKey := fmt.Sprintf("%v/%v/%v/%v", projectID, datasetID, revision_name, filename)
+func (s3Handler *S3ObjectStorageHandler) CreateLocation(projectID uint, datasetID uint, objectUUID string, filename string) models.Location {
+	objectKey := fmt.Sprintf("%v/%v/%v/%v", projectID, datasetID, objectUUID, filename)
 	location := models.Location{
 		Endpoint: s3Handler.S3Endpoint,
 		Bucket:   s3Handler.S3Bucket,
 		Key:      objectKey,
 	}
 
-	return &location
+	return location
 }
 
 func (s3Handler *S3ObjectStorageHandler) CreateDownloadLink(object *models.Object) (string, error) {

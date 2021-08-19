@@ -152,46 +152,13 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 	return &response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetCurrentObjectGroupRevisions(ctx context.Context, request *services.GetCurrentObjectGroupRevisionsRequest) (*services.GetCurrentObjectGroupRevisionsResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetId()))
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
-
-	metadata, _ := metadata.FromIncomingContext(ctx)
-
-	err = endpoint.AuthzHandler.Authorize(
-		uint(dataset.ProjectID),
-		protoModels.Right_READ,
-		metadata)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
-
-	revisions, err := endpoint.ReadHandler.GetCurrentObjectGroupRevisions(uint(request.GetId()))
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
-
-	var protoRevisions []*protoModels.ObjectGroupRevision
-	for _, revision := range revisions {
-		protoRevision := revision.ToProtoModel()
-		protoRevisions = append(protoRevisions, protoRevision)
-	}
-
-	response := services.GetCurrentObjectGroupRevisionsResponse{
-		ObjectGroupRevisions: protoRevisions,
-	}
-
-	return &response, nil
+func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(context.Context, *services.GetObjectGroupsInDateRangeRequest) (*services.GetObjectGroupsInDateRangeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "unimplemented")
 }
 
 // Updates a field of a dataset
 func (endpoint *DatasetEndpoints) UpdateDatasetField(_ context.Context, _ *services.UpdateDatasetFieldRequest) (*services.UpdateDatasetFieldResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	return nil, status.Error(codes.Unimplemented, "unimplemented")
 }
 
 // DeleteDataset Delete a dataset
@@ -293,8 +260,8 @@ func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request
 	return response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetDatasetVersionRevisions(ctx context.Context, request *services.GetDatasetVersionRevisionsRequest) (*services.GetDatasetVersionRevisionsResponse, error) {
-	version, err := endpoint.ReadHandler.GetDatasetVersionWithRevisions(uint(request.GetId()))
+func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Context, request *services.GetDatasetVersionObjectGroupsRequest) (*services.GetDatasetVersionObjectGroupsResponse, error) {
+	version, err := endpoint.ReadHandler.GetDatasetVersionWithObjectGroups(uint(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -311,14 +278,13 @@ func (endpoint *DatasetEndpoints) GetDatasetVersionRevisions(ctx context.Context
 		return nil, err
 	}
 
-	var protoRevisions []*protoModels.ObjectGroupRevision
-	for _, revision := range version.ObjectGroupRevisions {
-		protoRevision := revision.ToProtoModel()
-		protoRevisions = append(protoRevisions, protoRevision)
+	var protoObjectGroups []*protoModels.ObjectGroup
+	for _, objectGroup := range version.ObjectGroups {
+		protoObjectGroups = append(protoObjectGroups, objectGroup.ToProtoModel())
 	}
 
-	response := &services.GetDatasetVersionRevisionsResponse{
-		ObjectGroupRevision: protoRevisions,
+	response := &services.GetDatasetVersionObjectGroupsResponse{
+		ObjectGroup: protoObjectGroups,
 	}
 
 	return response, nil

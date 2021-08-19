@@ -46,18 +46,6 @@ func (read *Read) GetObjectGroup(objectGroupID uint) (*models.ObjectGroup, error
 	return objectGroup, nil
 }
 
-func (read *Read) GetObjectGroupRevision(objectGroupRevisionID uint) (*models.ObjectGroupRevision, error) {
-	revision := &models.ObjectGroupRevision{}
-	revision.ID = objectGroupRevisionID
-
-	if err := read.DB.Preload("Metadata").Preload("Labels").First(revision).Error; err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
-
-	return revision, nil
-}
-
 func (read *Read) GetObjectGroupRevisionsObjects(objectGroupRevisionID uint) ([]*models.Object, error) {
 	objects := make([]*models.Object, 0)
 
@@ -102,29 +90,6 @@ func (read *Read) GetObject(objectID uint) (*models.Object, error) {
 	return &object, nil
 }
 
-func (read *Read) GetCurrentObjectGroupRevisions(dataset_id uint) ([]*models.ObjectGroupRevision, error) {
-	var revisions []*models.ObjectGroupRevision
-
-	if err := read.DB.Preload("Metadata").Preload("Labels").Raw(
-		"SELECT * FROM ( SELECT object_group_id, MAX(revision) as revision FROM object_group_revisions WHERE dataset_id = ? GROUP BY object_group_id) t JOIN object_group_revisions m USING(object_group_id, revision)", dataset_id,
-	).Scan(&revisions).Error; err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
-
-	return revisions, nil
-}
-
-func (read *Read) GetObjectGroupRevisions(objectGroupID uint) ([]*models.ObjectGroupRevision, error) {
-	var revisions []*models.ObjectGroupRevision
-	if err := read.DB.Preload("Metadata").Preload("Labels").Where("object_group_id = ?", objectGroupID).Find(&revisions).Error; err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
-
-	return revisions, nil
-}
-
 func (read *Read) GetDatasetVersion(versionID uint) (*models.DatasetVersion, error) {
 	datasetVersion := &models.DatasetVersion{}
 	datasetVersion.ID = versionID
@@ -164,11 +129,11 @@ func (read *Read) GetAPIToken(userOAuth2ID string) ([]models.APIToken, error) {
 	return token, nil
 }
 
-func (read *Read) GetDatasetVersionWithRevisions(datasetVersionID uint) (*models.DatasetVersion, error) {
+func (read *Read) GetDatasetVersionWithObjectGroups(datasetVersionID uint) (*models.DatasetVersion, error) {
 	version := &models.DatasetVersion{}
 	version.ID = datasetVersionID
 
-	if err := read.DB.Preload("ObjectGroupRevisions").First(version).Error; err != nil {
+	if err := read.DB.Preload("ObjectGroups").First(version).Error; err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
@@ -189,15 +154,6 @@ func (read *Read) GetUserProjects(userIDOauth2 string) ([]*models.Project, error
 	}
 
 	return projects, nil
-}
-
-func (read *Read) GetCurrentObjectGroupRevision(objectGroupID uint) (*models.ObjectGroupRevision, error) {
-	revision := &models.ObjectGroupRevision{}
-	if err := read.DB.Preload("Objects").Raw("select * from object_group_revisions where revision =(select MAX(revision) from object_group_revisions) AND object_group_id = ?", objectGroupID).First(revision).Error; err != nil {
-		return nil, err
-	}
-
-	return revision, nil
 }
 
 func (read *Read) GetAllDatasetObjects(datasetID uint) ([]*models.Object, error) {

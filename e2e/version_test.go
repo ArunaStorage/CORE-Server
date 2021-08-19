@@ -136,22 +136,20 @@ func TestDatasetVersion(t *testing.T) {
 		DatasetId: datasetCreateResponse.GetId(),
 		Labels:    objectGroupLabel,
 		Metadata:  objectGroupMetadata,
-		ObjectGroupRevision: &services.CreateObjectGroupRevisionRequest{
-			Objects: []*services.CreateObjectRequest{
-				{
-					Filename:   "testfile1",
-					Filetype:   "bin",
-					Labels:     object1Label,
-					Metadata:   object1Metadata,
-					ContentLen: 3,
-				},
-				{
-					Filename:   "testfile2",
-					Filetype:   "bin",
-					Labels:     object2Label,
-					Metadata:   object2Metadata,
-					ContentLen: 3,
-				},
+		Objects: []*services.CreateObjectRequest{
+			{
+				Filename:   "testfile1",
+				Filetype:   "bin",
+				Labels:     object1Label,
+				Metadata:   object1Metadata,
+				ContentLen: 3,
+			},
+			{
+				Filename:   "testfile2",
+				Filetype:   "bin",
+				Labels:     object2Label,
+				Metadata:   object2Metadata,
+				ContentLen: 3,
 			},
 		},
 	}
@@ -162,37 +160,9 @@ func TestDatasetVersion(t *testing.T) {
 	}
 
 	assert.NotEqual(t, createObjectGroupResponse.ObjectGroupId, 0)
-	assert.NotEqual(t, createObjectGroupResponse.RevisionId, 0)
 
 	getObjectGroupResponse, err := ServerEndpoints.object.GetObjectGroup(context.Background(), &services.GetObjectGroupRequest{
 		Id: createObjectGroupResponse.ObjectGroupId,
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	secondRevision := &services.CreateObjectGroupRevisionRequest{
-		Objects: []*services.CreateObjectRequest{
-			{
-				Filename:   "testfile3",
-				Filetype:   "bin",
-				Labels:     object1Label,
-				Metadata:   object1Metadata,
-				ContentLen: 3,
-			},
-		},
-	}
-
-	_, err = ServerEndpoints.object.AddRevisionToObjectGroup(context.Background(), &services.AddRevisionToObjectGroupRequest{
-		ObjectGroupId: getObjectGroupResponse.ObjectGroup.Id,
-		GroupRevison:  secondRevision,
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	currentRevisionResponse, err := ServerEndpoints.object.GetCurrentObjectGroupRevision(context.Background(), &services.GetCurrentObjectGroupRevisionRequest{
-		Id: getObjectGroupResponse.ObjectGroup.Id,
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
@@ -230,10 +200,10 @@ func TestDatasetVersion(t *testing.T) {
 			Revision: 1,
 			Stage:    v1.Version_STABLE,
 		},
-		Description: "testrelease",
-		RevisionIds: []uint64{currentRevisionResponse.ObjectGroupRevision.Id},
-		Labels:      versionLabel,
-		Metadata:    versionMetadata,
+		Description:    "testrelease",
+		ObjectGroupIds: []uint64{getObjectGroupResponse.ObjectGroup.Id},
+		Labels:         versionLabel,
+		Metadata:       versionMetadata,
 	}
 
 	versionResponse, err := ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest)
@@ -250,14 +220,14 @@ func TestDatasetVersion(t *testing.T) {
 
 	assert.Equal(t, len(response.GetDatasetVersions()), 1)
 
-	versionRevisions, err := ServerEndpoints.dataset.GetDatasetVersionRevisions(context.Background(), &services.GetDatasetVersionRevisionsRequest{
-		Id: versionResponse.GetId(),
+	versionRevisions, err := ServerEndpoints.dataset.GetDatasetVersionObjectGroups(context.Background(), &services.GetDatasetVersionObjectGroupsRequest{
+		Id: versionResponse.Id,
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, len(versionRevisions.GetObjectGroupRevision()), 1)
+	assert.Equal(t, len(versionRevisions.GetObjectGroup()), 1)
 
 	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &services.DeleteDatasetRequest{
 		Id: datasetCreateResponse.GetId(),

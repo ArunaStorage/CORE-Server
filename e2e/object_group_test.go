@@ -139,22 +139,20 @@ func TestObjectGroup(t *testing.T) {
 		DatasetId: datasetCreateResponse.GetId(),
 		Labels:    objectGroupLabel,
 		Metadata:  objectGroupMetadata,
-		ObjectGroupRevision: &services.CreateObjectGroupRevisionRequest{
-			Objects: []*services.CreateObjectRequest{
-				{
-					Filename:   "testfile1",
-					Filetype:   "bin",
-					Labels:     object1Label,
-					Metadata:   object1Metadata,
-					ContentLen: 3,
-				},
-				{
-					Filename:   "testfile2",
-					Filetype:   "bin",
-					Labels:     object2Label,
-					Metadata:   object2Metadata,
-					ContentLen: 3,
-				},
+		Objects: []*services.CreateObjectRequest{
+			{
+				Filename:   "testfile1",
+				Filetype:   "bin",
+				Labels:     object1Label,
+				Metadata:   object1Metadata,
+				ContentLen: 3,
+			},
+			{
+				Filename:   "testfile2",
+				Filetype:   "bin",
+				Labels:     object2Label,
+				Metadata:   object2Metadata,
+				ContentLen: 3,
 			},
 		},
 	}
@@ -165,7 +163,6 @@ func TestObjectGroup(t *testing.T) {
 	}
 
 	assert.NotEqual(t, createObjectGroupResponse.ObjectGroupId, 0)
-	assert.NotEqual(t, createObjectGroupResponse.RevisionId, 0)
 
 	getObjectGroupResponse, err := ServerEndpoints.object.GetObjectGroup(context.Background(), &services.GetObjectGroupRequest{
 		Id: createObjectGroupResponse.ObjectGroupId,
@@ -180,36 +177,9 @@ func TestObjectGroup(t *testing.T) {
 	assert.ElementsMatch(t, createObjectGroupRequest.Labels, getObjectGroupResponse.ObjectGroup.Labels)
 	assert.ElementsMatch(t, createObjectGroupRequest.Metadata, getObjectGroupResponse.ObjectGroup.Metadata)
 
-	secondRevision := &services.CreateObjectGroupRevisionRequest{
-		Objects: []*services.CreateObjectRequest{
-			{
-				Filename:   "testfile3",
-				Filetype:   "bin",
-				Labels:     object1Label,
-				Metadata:   object1Metadata,
-				ContentLen: 3,
-			},
-		},
-	}
+	assert.Equal(t, "testfile1", getObjectGroupResponse.ObjectGroup.Objects[0].Filename)
 
-	_, err = ServerEndpoints.object.AddRevisionToObjectGroup(context.Background(), &services.AddRevisionToObjectGroupRequest{
-		ObjectGroupId: getObjectGroupResponse.ObjectGroup.Id,
-		GroupRevison:  secondRevision,
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	currentRevisionResponse, err := ServerEndpoints.object.GetCurrentObjectGroupRevision(context.Background(), &services.GetCurrentObjectGroupRevisionRequest{
-		Id: getObjectGroupResponse.ObjectGroup.Id,
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	assert.Equal(t, "testfile3", currentRevisionResponse.ObjectGroupRevision.Objects[0].Filename)
-
-	object := currentRevisionResponse.ObjectGroupRevision.Objects[0]
+	object := getObjectGroupResponse.ObjectGroup.Objects[0]
 
 	uploadLink, err := ServerEndpoints.load.CreateUploadLink(context.Background(), &services.CreateUploadLinkRequest{
 		Id: object.GetId(),
