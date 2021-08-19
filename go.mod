@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.8.0
 	github.com/aws/aws-sdk-go-v2/config v1.6.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.12.0
+	github.com/golang-jwt/jwt/v4 v4.0.0 // indirect
 	github.com/jackc/pgx/v4 v4.13.0 // indirect
 	github.com/jcmturner/gokrb5/v8 v8.4.2 // indirect
 	github.com/sirupsen/logrus v1.8.1

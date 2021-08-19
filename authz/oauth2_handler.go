@@ -17,11 +17,7 @@ import (
 type OAuth2Authz struct {
 	UserInfoEndpointURL string
 	DB                  *gorm.DB
-}
-
-type Oauth2User struct {
-	sub    string
-	groups []string
+	JwtHandler          *JWTHandler
 }
 
 func NewOAuth2Authz(db *gorm.DB) (*OAuth2Authz, error) {
@@ -41,15 +37,21 @@ func NewOAuth2Authz(db *gorm.DB) (*OAuth2Authz, error) {
 }
 
 func (handler *OAuth2Authz) Authorize(token string, projectID uint) (bool, error) {
-	oauth2User, err := handler.ParseUser(token)
+	parsedToken, err := handler.JwtHandler.VerifyAndParseToken(token)
 	if err != nil {
 		log.Println(err.Error())
-		return false, err
+		return false, errors.New("could not verify token")
+	}
+
+	var ok bool
+	var claims *CustomClaim
+
+	if claims, ok = parsedToken.Claims.(*CustomClaim); !ok || !parsedToken.Valid {
+		return false, errors.New("could not verify token")
 	}
 
 	hasGroup := false
-	for _, group := range oauth2User.groups {
-		log.Println(group)
+	for _, group := range claims.UserGroups {
 		if group == "/sciobjsdb-test" {
 			hasGroup = true
 			break
@@ -61,7 +63,7 @@ func (handler *OAuth2Authz) Authorize(token string, projectID uint) (bool, error
 	}
 
 	user := &models.User{
-		UserOauth2ID: oauth2User.sub,
+		UserOauth2ID: claims.Subject,
 		ProjectID:    projectID,
 	}
 
@@ -75,46 +77,6 @@ func (handler *OAuth2Authz) Authorize(token string, projectID uint) (bool, error
 	}
 
 	return true, nil
-}
-
-func (handler *OAuth2Authz) ParseUser(token string) (*Oauth2User, error) {
-	req, err := http.NewRequest(
-		"GET",
-		handler.UserInfoEndpointURL,
-		http.NoBody,
-	)
-
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
-
-	req.Header.Add("Authorization", "Bearer "+token)
-
-	response, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed getting user info: %s", err.Error())
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		err := fmt.Errorf("bad reponse when requesting userinfo: %v", response.Status)
-		log.Println(err)
-		return nil, err
-	}
-
-	contents, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed reading response body: %s", err.Error())
-	}
-
-	parsedContents := &Oauth2User{}
-	err = json.Unmarshal(contents, &parsedContents)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
-
-	return parsedContents, nil
 }
 
 func (handler *OAuth2Authz) GetUserID(token string) (string, error) {

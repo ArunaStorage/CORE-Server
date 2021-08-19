@@ -117,10 +117,17 @@ func createGenericEndpoint() (*Endpoints, error) {
 		DB: db,
 	}
 
+	jwtHandler, err := authz.NewJWTHandler()
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
 	authzHandler := &authz.ProjectHandler{
 		OAuth2Handler:   oauth2Handler,
 		APITokenHandler: apiTokenHandler,
 		DB:              db,
+		JwtHandler:      jwtHandler,
 	}
 
 	endpoints := &Endpoints{

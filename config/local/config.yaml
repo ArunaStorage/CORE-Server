@@ -8,6 +8,7 @@ DB:
   Name: "sciobjsdbtest"
 OAuth2:
   UserInfoEndpoint: "https://keycloak.m1.k8s.computational.bio/auth/realms/SciObjsDB/protocol/openid-connect/userinfo"
+  RealmInfoEndpoint: "https://keycloak.m1.k8s.computational.bio/auth/realms/SciObjsDB"
 S3:
   Bucket: "ScienceObjectsDBDev"
 

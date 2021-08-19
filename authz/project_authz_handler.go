@@ -1,6 +1,7 @@
 package authz
 
 import (
+	"errors"
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
@@ -17,6 +18,7 @@ type ProjectHandler struct {
 	OAuth2Handler   *OAuth2Authz
 	APITokenHandler *APITokenHandler
 	DB              *gorm.DB
+	JwtHandler      *JWTHandler
 }
 
 func (projectHandler *ProjectHandler) GetUserID(metadata metadata.MD) (string, error) {
@@ -72,14 +74,21 @@ func (projectHandler *ProjectHandler) AuthorizeCreateProject(metadata metadata.M
 
 	token := metadata.Get(USER_TOKEN_ENTRY_KEY)[0]
 
-	parsedToken, err := projectHandler.OAuth2Handler.ParseUser(token)
+	parsedToken, err := projectHandler.JwtHandler.VerifyAndParseToken(token)
 	if err != nil {
 		log.Println(err.Error())
-		return fmt.Errorf("could not authorize requested action")
+		return errors.New("could not verify token")
+	}
+
+	var ok bool
+	var claims *CustomClaim
+
+	if claims, ok = parsedToken.Claims.(*CustomClaim); !ok || !parsedToken.Valid {
+		return errors.New("could not verify token")
 	}
 
 	hasGroup := false
-	for _, group := range parsedToken.groups {
+	for _, group := range claims.UserGroups {
 		if group == "/sciobjsdb-test" {
 			hasGroup = true
 			break
@@ -91,5 +100,4 @@ func (projectHandler *ProjectHandler) AuthorizeCreateProject(metadata metadata.M
 	}
 
 	return nil
-
 }
