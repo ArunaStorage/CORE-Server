@@ -1,6 +1,9 @@
 package database
 
 import (
+	"fmt"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ScienceObjectsDB/CORE-Server/models"
@@ -194,4 +197,15 @@ func (read *Read) GetAllObjectGroupRevisionObjects(revisionID uint) ([]*models.O
 	}
 
 	return objects, nil
+}
+
+func (read *Read) GetObjectGroupsInDateRange(datasetID uint, startDate time.Time, endDate time.Time) ([]*models.ObjectGroup, error) {
+	var objectGroups []*models.ObjectGroup
+	preloadConf := read.DB.Preload("Locations").Preload("Metadata").Preload("Objects").Preload("Objects.Location").Preload("Objects.Locations").Preload("Objects.Metadata")
+	if err := preloadConf.Where("dataset_id = ? AND generated  BETWEEN ? AND ?", datasetID, startDate, endDate).Find(&objectGroups).Error; err != nil {
+		log.Println(err.Error())
+		return nil, fmt.Errorf("could not read given date range")
+	}
+
+	return objectGroups, nil
 }

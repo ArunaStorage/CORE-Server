@@ -11,4 +11,6 @@ OAuth2:
   RealmInfoEndpoint: "https://keycloak.m1.k8s.computational.bio/auth/realms/SciObjsDB"
 S3:
   Bucket: "ScienceObjectsDBDev"
-
+Streaming:
+  Endpoint: http://localhost:9011
+  Port: 9011

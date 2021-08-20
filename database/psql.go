@@ -53,6 +53,7 @@ func makeMigrations(db *gorm.DB) *gorm.DB {
 		&models.Label{},
 		&models.APIToken{},
 		&models.User{},
+		&models.StreamingEntry{},
 	)
 
 	return db

@@ -152,7 +152,43 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 	return &response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(context.Context, *services.GetObjectGroupsInDateRangeRequest) (*services.GetObjectGroupsInDateRangeResponse, error) {
+func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context, request *services.GetObjectGroupsInDateRangeRequest) (*services.GetObjectGroupsInDateRangeResponse, error) {
+	dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetId()))
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	metadata, _ := metadata.FromIncomingContext(ctx)
+
+	err = endpoint.AuthzHandler.Authorize(
+		uint(dataset.ProjectID),
+		protoModels.Right_READ,
+		metadata)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	objectGroups, err := endpoint.ReadHandler.GetObjectGroupsInDateRange(dataset.ID, request.Start.AsTime(), request.End.AsTime())
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	var protoObjectGroups []*protoModels.ObjectGroup
+	for _, object := range objectGroups {
+		protoObjectGroups = append(protoObjectGroups, object.ToProtoModel())
+	}
+
+	response := &services.GetObjectGroupsInDateRangeResponse{
+		ObjectGroups: protoObjectGroups,
+	}
+
+	return response, nil
+}
+
+func (endpoint *DatasetEndpoints) GetObjectGroupsStream(context.Context, *services.GetObjectGroupsStreamRequest) (*services.GetObjectGroupsStreamResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "unimplemented")
 }
 
