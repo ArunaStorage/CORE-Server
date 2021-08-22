@@ -188,8 +188,47 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 	return response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetObjectGroupsStream(context.Context, *services.GetObjectGroupsStreamRequest) (*services.GetObjectGroupsStreamResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "unimplemented")
+func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, request *services.GetObjectGroupsStreamRequest) (*services.GetObjectGroupsStreamResponse, error) {
+	var projectID uint
+	switch request.QueryType {
+	case services.GetObjectGroupsStreamRequest_DATASETALL:
+		{
+			dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetDatasetId()))
+			if err != nil {
+				log.Println(err.Error())
+				return nil, err
+			}
+			projectID = dataset.ProjectID
+		}
+
+	default:
+		{
+			return nil, status.Error(codes.Unauthenticated, "could not authorize requested action")
+		}
+	}
+
+	metadata, _ := metadata.FromIncomingContext(ctx)
+
+	err := endpoint.AuthzHandler.Authorize(
+		uint(projectID),
+		protoModels.Right_READ,
+		metadata)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	link, err := endpoint.ObjectStreamhandler.CreateStreamingLink(request, projectID)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.Error(codes.Internal, "could not create link")
+	}
+
+	response := &services.GetObjectGroupsStreamResponse{
+		Url: link,
+	}
+
+	return response, nil
 }
 
 // Updates a field of a dataset

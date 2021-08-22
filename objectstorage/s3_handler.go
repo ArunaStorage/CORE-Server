@@ -10,15 +10,29 @@ import (
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
+const S3ChunkSize = 1024 * 1024 * 5
+
 type S3ObjectStorageHandler struct {
-	S3Client      *s3.Client
-	PresignClient *s3.PresignClient
-	S3Endpoint    string
-	S3Bucket      string
+	S3Client          *s3.Client
+	S3DownloadManager *manager.Downloader
+	PresignClient     *s3.PresignClient
+	S3Endpoint        string
+	S3Bucket          string
+}
+
+type DownloadedBytesInfo struct {
+	Object *models.Object
+	Data   []byte
+}
+
+type ObjectLoader struct {
+	S3Client          *s3.Client
+	S3DownloadManager *manager.Downloader
 }
 
 func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageHandler, error) {
@@ -51,10 +65,13 @@ func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageH
 	}
 	presignClient := s3.NewPresignClient(client)
 
+	downloader := manager.NewDownloader(client)
+
 	s3Handler.S3Endpoint = endpoint
 	s3Handler.S3Client = client
 	s3Handler.PresignClient = presignClient
 	s3Handler.S3Bucket = s3Bucket
+	s3Handler.S3DownloadManager = downloader
 
 	return s3Handler, nil
 }
@@ -168,4 +185,47 @@ func (s3Handler *S3ObjectStorageHandler) DeleteObjects(objects []*models.Object)
 	}
 
 	return nil
+}
+
+func (objectLoader *S3ObjectStorageHandler) ChunkedObjectDowload(object *models.Object, data chan []byte) error {
+	headObject, err := objectLoader.S3Client.HeadObject(context.Background(), &s3.HeadObjectInput{
+		Bucket: &object.Location.Bucket,
+		Key:    &object.Location.Key,
+	})
+	if err != nil {
+		log.Println(err.Error())
+		return nil
+	}
+
+	sumReadBytes := 0
+	toBeFinished := false
+	for {
+		readEndPos := sumReadBytes + S3ChunkSize
+		if readEndPos > int(headObject.ContentLength) {
+			readEndPos = (int(headObject.ContentLength) - 1) - sumReadBytes
+			toBeFinished = true
+		}
+
+		rangeToRead := fmt.Sprintf("Range: bytes=%v-%v", sumReadBytes, readEndPos)
+
+		buffer := make([]byte, readEndPos+sumReadBytes)
+		writerBuffer := manager.NewWriteAtBuffer(buffer)
+		readBytes, err := objectLoader.S3DownloadManager.Download(context.Background(), writerBuffer, &s3.GetObjectInput{
+			Bucket: &object.Location.Bucket,
+			Key:    &object.Location.Key,
+			Range:  aws.String(rangeToRead),
+		})
+		if err != nil {
+			log.Println(err.Error())
+			return nil
+		}
+
+		data <- writerBuffer.Bytes()
+
+		sumReadBytes = sumReadBytes + int(readBytes)
+
+		if toBeFinished {
+			return nil
+		}
+	}
 }

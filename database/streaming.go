@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"github.com/ScienceObjectsDB/CORE-Server/models"
+	"github.com/ScienceObjectsDB/CORE-Server/signing"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -20,7 +21,7 @@ type Streaming struct {
 	SigningSecret     string
 }
 
-func (handler *Streaming) CreateStreamingEntry(request *services.GetObjectGroupsStreamRequest, projectID uint) (string, error) {
+func (handler *Streaming) CreateStreamingLink(request *services.GetObjectGroupsStreamRequest, projectID uint) (string, error) {
 	var url string
 	var err error
 
@@ -31,6 +32,8 @@ func (handler *Streaming) CreateStreamingEntry(request *services.GetObjectGroups
 		url, err = handler.createResourceObjectGroupsURL(uint(request.GetDatasetId()), "/dataset")
 	case *services.GetObjectGroupsStreamRequest_DatasetVersion:
 		url, err = handler.createResourceObjectGroupsURL(uint(request.GetDatasetId()), "/datasetversion")
+	default:
+		return "", fmt.Errorf("could not find request type")
 	}
 
 	if err != nil {
@@ -41,7 +44,7 @@ func (handler *Streaming) CreateStreamingEntry(request *services.GetObjectGroups
 	return url, nil
 }
 
-func (handler *Streaming) createResourceObjectGroupsURL(datasetID uint, resourcePath string, queryParams ...string) (string, error) {
+func (handler *Streaming) createResourceObjectGroupsURL(resourceID uint, resourcePath string, queryParams ...string) (string, error) {
 	saltBytes := make([]byte, 64)
 	_, err := rand.Read(saltBytes)
 	if err != nil {
@@ -49,26 +52,17 @@ func (handler *Streaming) createResourceObjectGroupsURL(datasetID uint, resource
 		return "", err
 	}
 
+	parsedBaseURL, err := url.Parse(handler.StreamingEndpoint)
 	if err != nil {
 		log.Println(err.Error())
 		return "", err
 	}
 
-	escapedSalt := url.QueryEscape(string(saltBytes))
+	parsedBaseURL.Path = resourcePath
 
-	parseBaseURL, err := url.Parse(handler.StreamingEndpoint)
-	if err != nil {
-		log.Println(err.Error())
-		return "", err
-	}
+	q := parsedBaseURL.Query()
 
-	parseBaseURL.Path = resourcePath
-
-	q := parseBaseURL.Query()
-
-	q.Set("id", fmt.Sprintf("%v", datasetID))
-	q.Set("salt", escapedSalt)
-
+	q.Set("id", fmt.Sprintf("%v", resourceID))
 	var key string
 	var value string
 
@@ -82,20 +76,15 @@ func (handler *Streaming) createResourceObjectGroupsURL(datasetID uint, resource
 		}
 	}
 
-	parseBaseURL.RawQuery = q.Encode()
+	parsedBaseURL.RawQuery = q.Encode()
 
-	hmac, err := hmac_sha256([]byte(handler.SigningSecret), saltBytes, []byte(parseBaseURL.String()))
+	signedURL, err := signing.SignURL([]byte(handler.SigningSecret), parsedBaseURL)
 	if err != nil {
 		log.Println(err.Error())
 		return "", err
 	}
 
-	q = parseBaseURL.Query()
-	q.Set("sign", string(hmac))
-
-	parseBaseURL.RawQuery = q.Encode()
-
-	return parseBaseURL.String(), nil
+	return signedURL.String(), nil
 }
 
 func (handler *Streaming) createObjectGroupsRequest(objectGroupIDs []uint64, datasetID uint, projectID uint) (string, error) {

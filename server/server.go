@@ -3,10 +3,14 @@ package server
 import (
 	"fmt"
 	"net"
+	"os"
 
 	"github.com/ScienceObjectsDB/CORE-Server/authz"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
 	"github.com/ScienceObjectsDB/CORE-Server/objectstorage"
+	"github.com/ScienceObjectsDB/CORE-Server/streamingserver"
+	"golang.org/x/sync/errgroup"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
@@ -15,12 +19,13 @@ import (
 )
 
 type Endpoints struct {
-	ReadHandler   *database.Read
-	CreateHandler *database.Create
-	UpdateHandler *database.Update
-	DeleteHandler *database.Delete
-	AuthzHandler  authz.AuthInterface
-	ObjectHandler *objectstorage.S3ObjectStorageHandler
+	ReadHandler         *database.Read
+	CreateHandler       *database.Create
+	UpdateHandler       *database.Update
+	DeleteHandler       *database.Delete
+	AuthzHandler        authz.AuthInterface
+	ObjectHandler       *objectstorage.S3ObjectStorageHandler
+	ObjectStreamhandler *database.Streaming
 }
 
 type Server struct {
@@ -67,18 +72,29 @@ func Run(host string, port uint16) error {
 		return err
 	}
 
+	streamSigningSecret := os.Getenv("STREAMINGSIGNSECRET")
+
+	streamingServer := streamingserver.DataStreamingServer{
+		SigningSecret: streamSigningSecret,
+		ReadHandler:   datasetEndpoints.ReadHandler,
+		ObjectHandler: datasetEndpoints.ObjectHandler,
+	}
+
+	serverErrGrp := errgroup.Group{}
+	serverErrGrp.Go(func() error {
+		return streamingServer.Run()
+	})
+
 	services.RegisterProjectServiceServer(grpcServer, projectEndpoints)
 	services.RegisterDatasetServiceServer(grpcServer, datasetEndpoints)
 	services.RegisterDatasetObjectsServiceServer(grpcServer, objectEndpoints)
 	services.RegisterObjectLoadServiceServer(grpcServer, loadEndpoints)
 
-	err = grpcServer.Serve(listener)
-	if err != nil {
-		log.Println(err.Error())
-		return err
-	}
+	serverErrGrp.Go(func() error {
+		return grpcServer.Serve(listener)
+	})
 
-	return nil
+	return serverErrGrp.Wait()
 }
 
 func createGenericEndpoint() (*Endpoints, error) {
@@ -86,6 +102,9 @@ func createGenericEndpoint() (*Endpoints, error) {
 	dbPort := viper.GetUint("DB.Port")
 	dbName := viper.GetString("DB.Name")
 	dbUsername := viper.GetString("DB.Username")
+
+	streamingEndpoint := viper.GetString("Streaming.Endpoint")
+	streamSigningSecret := os.Getenv("STREAMINGSIGNSECRET")
 
 	db, err := database.NewPsqlDB(dbHost, uint64(dbPort), dbUsername, dbName)
 	if err != nil {
@@ -143,6 +162,11 @@ func createGenericEndpoint() (*Endpoints, error) {
 			Common: &commonHandler,
 		},
 		AuthzHandler: authzHandler,
+		ObjectStreamhandler: &database.Streaming{
+			Common:            &commonHandler,
+			StreamingEndpoint: streamingEndpoint,
+			SigningSecret:     streamSigningSecret,
+		},
 	}
 
 	return endpoints, nil

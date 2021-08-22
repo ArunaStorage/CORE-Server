@@ -73,7 +73,7 @@ func (read *Read) GetProjectDatasets(projectID uint) ([]*models.Dataset, error) 
 
 func (read *Read) GetDatasetObjectGroups(datasetID uint) ([]*models.ObjectGroup, error) {
 	objectGroups := make([]*models.ObjectGroup, 0)
-	if err := read.DB.Preload("Labels").Preload("Metadata").Where("dataset_id = ?", datasetID).Find(&objectGroups).Error; err != nil {
+	if err := read.DB.Preload("Objects.Location").Preload("Objects").Preload("Labels").Preload("Metadata").Where("dataset_id = ?", datasetID).Find(&objectGroups).Error; err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}

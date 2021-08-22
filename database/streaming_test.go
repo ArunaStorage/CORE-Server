@@ -86,10 +86,15 @@ func TestCreateDatasetObjectGroupsURL(t *testing.T) {
 	salt, err := url.QueryUnescape(parsedURL.Query().Get("salt"))
 	if err != nil {
 		log.Println(err.Error())
-		t.Failed()
+		t.Fatal()
 	}
 
 	sign := parsedURL.Query().Get("sign")
+	sign, err = url.QueryUnescape(sign)
+	if err != nil {
+		log.Println(err.Error())
+		t.Fatal()
+	}
 
 	q := parsedURL.Query()
 	q.Del("sign")
@@ -99,11 +104,10 @@ func TestCreateDatasetObjectGroupsURL(t *testing.T) {
 	hmacValue, err := hmac_sha256([]byte("signing-secret"), []byte(salt), []byte(parsedURL.String()))
 	if err != nil {
 		log.Println(err.Error())
-		t.Failed()
+		t.Fatal()
 	}
 
 	if !hmac.Equal([]byte(sign), hmacValue) {
-		t.Failed()
+		t.Fatal("computed and read message signatures did not match")
 	}
-
 }
