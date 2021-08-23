@@ -9,7 +9,7 @@ type Metadata struct {
 	gorm.Model
 	Name     string
 	Metadata string
-	ParentID uint
+	ParentID uint `gorm:"index"`
 }
 
 func (metadata *Metadata) ToProtoModel() *protomodels.Metadata {
@@ -48,7 +48,7 @@ func (label *Label) FromProtoModel(labelProto *protomodels.Label) *Label {
 
 type Location struct {
 	gorm.Model
-	ObjectID uint
+	ObjectID uint `gorm:"index"`
 	Endpoint string
 	Bucket   string
 	Key      string
