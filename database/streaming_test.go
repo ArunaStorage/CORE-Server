@@ -1,11 +1,11 @@
 package database
 
 import (
-	"crypto/hmac"
 	"net/url"
 	"testing"
 	"time"
 
+	"github.com/ScienceObjectsDB/CORE-Server/signing"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -83,31 +83,13 @@ func TestCreateDatasetObjectGroupsURL(t *testing.T) {
 	assert.Equal(t, string(startTimeString), string(queryStartTime))
 	assert.Equal(t, string(endTimeString), string(queryEndTime))
 
-	salt, err := url.QueryUnescape(parsedURL.Query().Get("salt"))
+	verified, err := signing.VerifyHMAC_sha256("signing-secret", parsedURL)
 	if err != nil {
 		log.Println(err.Error())
 		t.Fatal()
 	}
 
-	sign := parsedURL.Query().Get("sign")
-	sign, err = url.QueryUnescape(sign)
-	if err != nil {
-		log.Println(err.Error())
-		t.Fatal()
-	}
-
-	q := parsedURL.Query()
-	q.Del("sign")
-
-	parsedURL.RawQuery = q.Encode()
-
-	hmacValue, err := hmac_sha256([]byte("signing-secret"), []byte(salt), []byte(parsedURL.String()))
-	if err != nil {
-		log.Println(err.Error())
-		t.Fatal()
-	}
-
-	if !hmac.Equal([]byte(sign), hmacValue) {
-		t.Fatal("computed and read message signatures did not match")
+	if !verified {
+		t.Fatalf("could not verify signed link")
 	}
 }
