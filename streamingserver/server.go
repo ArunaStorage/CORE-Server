@@ -30,8 +30,12 @@ func (server *DataStreamingServer) Run() error {
 
 func (server *DataStreamingServer) datasetStream(c *gin.Context) {
 	c.Request.URL.Host = c.Request.Host
-	if c.Request.URL.Scheme == "" {
+	if c.Request.URL.Scheme == "" && c.Request.Host == "localhost" {
 		c.Request.URL.Scheme = "http"
+	}
+
+	if c.Request.URL.Scheme == "" && c.Request.Host != "localhost" {
+		c.Request.URL.Scheme = "https"
 	}
 
 	verified, err := signing.VerifyHMAC_sha256(server.SigningSecret, c.Request.URL)
