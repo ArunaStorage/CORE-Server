@@ -21,17 +21,17 @@ type Streaming struct {
 	SigningSecret     string
 }
 
-func (handler *Streaming) CreateStreamingLink(request *services.GetObjectGroupsStreamRequest, projectID uint) (string, error) {
+func (handler *Streaming) CreateStreamingLink(request *services.GetObjectGroupsStreamLinkRequest, projectID uint) (string, error) {
 	var url string
 	var err error
 
 	switch value := request.Query.(type) {
-	case *services.GetObjectGroupsStreamRequest_GroupIds:
-		url, err = handler.createObjectGroupsRequest(value.GroupIds.GetObjectGroups(), uint(request.GetDatasetId()), projectID)
-	case *services.GetObjectGroupsStreamRequest_Dataset:
-		url, err = handler.createResourceObjectGroupsURL(uint(request.GetDatasetId()), "/dataset")
-	case *services.GetObjectGroupsStreamRequest_DatasetVersion:
-		url, err = handler.createResourceObjectGroupsURL(uint(request.GetDatasetId()), "/datasetversion")
+	case *services.GetObjectGroupsStreamLinkRequest_GroupIds:
+		url, err = handler.createObjectGroupsRequest(value.GroupIds.GetObjectGroups(), uint(request.GetDataset().GetDatasetId()), projectID)
+	case *services.GetObjectGroupsStreamLinkRequest_Dataset:
+		url, err = handler.createResourceObjectGroupsURL(uint(request.GetDataset().GetDatasetId()), "/dataset")
+	case *services.GetObjectGroupsStreamLinkRequest_DatasetVersion:
+		url, err = handler.createResourceObjectGroupsURL(uint(request.GetDatasetVersion().GetDatasetVersion()), "/datasetversion")
 	default:
 		return "", fmt.Errorf("could not find request type")
 	}

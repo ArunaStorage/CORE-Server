@@ -188,23 +188,41 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 	return response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, request *services.GetObjectGroupsStreamRequest) (*services.GetObjectGroupsStreamResponse, error) {
+func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, request *services.GetObjectGroupsStreamLinkRequest) (*services.GetObjectGroupsStreamLinkResponse, error) {
 	var projectID uint
-	switch request.QueryType {
-	case services.GetObjectGroupsStreamRequest_DATASETALL:
+	switch value := request.Query.(type) {
+	case *services.GetObjectGroupsStreamLinkRequest_GroupIds:
 		{
-			dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetDatasetId()))
+			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.GroupIds.GetDatasetId()))
 			if err != nil {
 				log.Println(err.Error())
 				return nil, err
 			}
+
 			projectID = dataset.ProjectID
 		}
-
-	default:
+	case *services.GetObjectGroupsStreamLinkRequest_Dataset:
 		{
-			return nil, status.Error(codes.Unauthenticated, "could not authorize requested action")
+			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.Dataset.GetDatasetId()))
+			if err != nil {
+				log.Println(err.Error())
+				return nil, err
+			}
+
+			projectID = dataset.ProjectID
 		}
+	case *services.GetObjectGroupsStreamLinkRequest_DatasetVersion:
+		{
+			dataset, err := endpoint.ReadHandler.GetDatasetVersion(uint(value.DatasetVersion.GetDatasetVersion()))
+			if err != nil {
+				log.Println(err.Error())
+				return nil, err
+			}
+
+			projectID = dataset.ProjectID
+		}
+	default:
+		return nil, status.Error(codes.Unauthenticated, "could not authorize requested action")
 	}
 
 	metadata, _ := metadata.FromIncomingContext(ctx)
@@ -224,7 +242,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, req
 		return nil, status.Error(codes.Internal, "could not create link")
 	}
 
-	response := &services.GetObjectGroupsStreamResponse{
+	response := &services.GetObjectGroupsStreamLinkResponse{
 		Url: link,
 	}
 

@@ -65,7 +65,7 @@ func (server *DataStreamingServer) datasetStream(c *gin.Context) {
 	}
 
 	packer := ObjectsPacker{
-		StreamType:    v1.GetObjectGroupsStreamRequest_TARGZ,
+		StreamType:    v1.GetObjectGroupsStreamLinkRequest_TARGZ,
 		TargetWrite:   c.Writer,
 		ObjectHandler: server.ObjectHandler,
 	}

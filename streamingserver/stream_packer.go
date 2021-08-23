@@ -16,7 +16,7 @@ import (
 )
 
 type ObjectsPacker struct {
-	StreamType    services.GetObjectGroupsStreamRequest_StreamType
+	StreamType    services.GetObjectGroupsStreamLinkRequest_StreamType
 	TargetWrite   FlushingWriter
 	ObjectHandler *objectstorage.S3ObjectStorageHandler
 }
@@ -28,7 +28,7 @@ type FlushingWriter interface {
 
 func (packer *ObjectsPacker) PackageObjects(objectGroups chan *models.ObjectGroup) error {
 	switch packer.StreamType {
-	case services.GetObjectGroupsStreamRequest_TARGZ:
+	case services.GetObjectGroupsStreamLinkRequest_TARGZ:
 		return packer.handleTarGZStream(objectGroups)
 	default:
 		{
