@@ -221,6 +221,16 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, req
 
 			projectID = dataset.ProjectID
 		}
+	case *services.GetObjectGroupsStreamLinkRequest_DateRange:
+		{
+			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.DateRange.GetDatasetId()))
+			if err != nil {
+				log.Println(err.Error())
+				return nil, err
+			}
+
+			projectID = dataset.ProjectID
+		}
 	default:
 		return nil, status.Error(codes.Unauthenticated, "could not authorize requested action")
 	}
