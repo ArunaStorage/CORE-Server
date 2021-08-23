@@ -14,7 +14,7 @@ type Dataset struct {
 	Status          string
 	Labels          []Label    `gorm:"many2many:dataset_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata        []Metadata `gorm:"many2many:dataset_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	ProjectID       uint
+	ProjectID       uint       `gorm:"index"`
 	Project         Project
 	ObjectGroups    []ObjectGroup    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	DatasetVersions []DatasetVersion `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
@@ -55,9 +55,9 @@ type DatasetVersion struct {
 	PatchVersion    uint
 	RevisionVersion uint
 	Stage           string
-	ProjectID       uint
+	ProjectID       uint `gorm:"index"`
 	Project         Project
-	DatasetID       uint
+	DatasetID       uint `gorm:"index"`
 	Dataset         Dataset
 }
 

@@ -11,18 +11,18 @@ import (
 type Object struct {
 	gorm.Model
 	ObjectUUID    string `gorm:"index,unique"`
-	Filename      string
+	Filename      string `gorm:"index"`
 	Filetype      string
 	ContentLen    int64
 	Location      Location   `gorm:"foreignKey:ObjectID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Labels        []Label    `gorm:"many2many:object_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata      []Metadata `gorm:"many2many:object_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	UploadID      string
-	ProjectID     uint
+	ProjectID     uint `gorm:"index"`
 	Project       Project
-	DatasetID     uint
+	DatasetID     uint `gorm:"index"`
 	Dataset       Dataset
-	ObjectGroupID uint
+	ObjectGroupID uint `gorm:"index"`
 	ObjectGroup   ObjectGroup
 }
 
@@ -55,9 +55,9 @@ type ObjectGroup struct {
 	gorm.Model
 	Name        string
 	Description string
-	DatasetID   uint
+	DatasetID   uint `gorm:"index"`
 	Dataset     Dataset
-	ProjectID   uint
+	ProjectID   uint `gorm:"index"`
 	Project     Project
 	Labels      []Label    `gorm:"many2many:object_group_label;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata    []Metadata `gorm:"many2many:object_group_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
