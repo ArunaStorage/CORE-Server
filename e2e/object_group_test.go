@@ -271,4 +271,22 @@ func TestObjectGroupBNatch(t *testing.T) {
 	if len(result.Responses) != len(requests) {
 		t.Fatalf("wrong number of result found")
 	}
+
+	for _, objectgroup := range result.GetResponses() {
+		for _, object := range objectgroup.ObjectLinks {
+			uploadHttpRequest, err := http.NewRequest("PUT", object.Link, bytes.NewBufferString("foo"))
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+
+			response, err := http.DefaultClient.Do(uploadHttpRequest)
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+
+			if response.StatusCode != 200 {
+				log.Fatalln(response.Status)
+			}
+		}
+	}
 }
