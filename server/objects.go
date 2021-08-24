@@ -26,7 +26,7 @@ func NewObjectEndpoints(endpoints *Endpoints) (*ObjectServerEndpoints, error) {
 
 //CreateObjectGroup Creates a new object group
 func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, request *services.CreateObjectGroupRequest) (*services.CreateObjectGroupResponse, error) {
-	objectGroup, err := endpoint.ReadHandler.GetDataset(uint(request.GetDatasetId()))
+	dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetDatasetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -35,25 +35,108 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err = endpoint.AuthzHandler.Authorize(
-		objectGroup.ProjectID,
-		protoModels.Right_READ,
+		dataset.ProjectID,
+		protoModels.Right_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
 
-	id, err := endpoint.CreateHandler.CreateObjectGroup(request)
+	objectgroup, err := endpoint.CreateHandler.CreateObjectGroup(request)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
 
-	response := services.CreateObjectGroupResponse{
-		ObjectGroupId: uint64(id),
+	objectGroupResponse := &services.CreateObjectGroupResponse{
+		ObjectGroupId:   uint64(objectgroup.ID),
+		ObjectGroupName: objectgroup.Name,
+		ObjectLinks:     []*services.CreateObjectGroupResponse_ObjectLinks{},
+	}
+	if request.IncludeObjectLink {
+		for _, object := range objectgroup.Objects {
+			link, err := endpoint.ObjectHandler.CreateUploadLink(&object)
+			if err != nil {
+				log.Println(err.Error())
+				return nil, err
+			}
+			objectGroupResponse.ObjectLinks = append(objectGroupResponse.ObjectLinks, &services.CreateObjectGroupResponse_ObjectLinks{
+				Filename: object.Filename,
+				Link:     link,
+			})
+		}
 	}
 
-	return &response, nil
+	return objectGroupResponse, nil
+}
+
+func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Context, requests *services.CreateObjectGroupBatchRequest) (*services.CreateObjectGroupBatchResponse, error) {
+	if len(requests.GetRequests()) < 1 {
+		return nil, status.Error(codes.InvalidArgument, "at least one request in request batch is required")
+	}
+	datasetID := requests.GetRequests()[0].DatasetId
+	for _, request := range requests.GetRequests() {
+		if datasetID != request.GetDatasetId() {
+			return nil, status.Error(codes.InvalidArgument, "all requests have to have the same datasetid")
+		}
+	}
+
+	dataset, err := endpoint.ReadHandler.GetDataset(uint(datasetID))
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	metadata, _ := metadata.FromIncomingContext(ctx)
+
+	err = endpoint.AuthzHandler.Authorize(
+		dataset.ProjectID,
+		protoModels.Right_WRITE,
+		metadata)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	objectgroups, err := endpoint.CreateHandler.CreateObjectGroupBatch(requests)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	var objectgroupResponseList []*services.CreateObjectGroupResponse
+
+	for _, objectgroup := range objectgroups {
+		objectgroupResponse := &services.CreateObjectGroupResponse{
+			ObjectGroupId:   uint64(objectgroup.ID),
+			ObjectGroupName: objectgroup.Name,
+			ObjectLinks:     make([]*services.CreateObjectGroupResponse_ObjectLinks, 0),
+		}
+
+		if requests.IncludeObjectLink {
+			for _, object := range objectgroup.Objects {
+				link, err := endpoint.ObjectHandler.CreateUploadLink(&object)
+				if err != nil {
+					log.Println(err.Error())
+					return nil, err
+				}
+
+				objectgroupResponse.ObjectLinks = append(objectgroupResponse.ObjectLinks, &services.CreateObjectGroupResponse_ObjectLinks{
+					Filename: object.Filename,
+					Link:     link,
+				})
+			}
+		}
+
+		objectgroupResponseList = append(objectgroupResponseList, objectgroupResponse)
+	}
+
+	response := &services.CreateObjectGroupBatchResponse{
+		Responses: objectgroupResponseList,
+	}
+
+	return response, nil
 }
 
 //GetObjectGroup Returns the object group with the given ID

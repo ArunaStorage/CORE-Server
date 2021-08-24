@@ -225,3 +225,50 @@ func TestObjectGroup(t *testing.T) {
 
 	assert.Equal(t, string(data), "foo")
 }
+
+func TestObjectGroupBNatch(t *testing.T) {
+	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &services.CreateProjectRequest{
+		Name: "foo",
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	datasetID, err := ServerEndpoints.dataset.CreateDataset(context.Background(), &services.CreateDatasetRequest{
+		Name:      "foo",
+		ProjectId: projectID.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	var requests []*services.CreateObjectGroupRequest
+
+	for i := 0; i < 10; i++ {
+		createObjectGroupRequest := &services.CreateObjectGroupRequest{
+			Name:      "baa",
+			DatasetId: datasetID.GetId(),
+			Objects: []*services.CreateObjectRequest{
+				&services.CreateObjectRequest{
+					Filename: "ff.bin",
+				},
+				&services.CreateObjectRequest{
+					Filename: "fu.bin",
+				},
+			},
+		}
+		requests = append(requests, createObjectGroupRequest)
+	}
+
+	result, err := ServerEndpoints.object.CreateObjectGroupBatch(context.Background(), &services.CreateObjectGroupBatchRequest{
+		Requests:          requests,
+		IncludeObjectLink: true,
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	if len(result.Responses) != len(requests) {
+		t.Fatalf("wrong number of result found")
+	}
+}

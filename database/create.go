@@ -82,16 +82,95 @@ func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (uin
 	return dataset.ID, nil
 }
 
-func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupRequest) (uint, error) {
-	dataset := models.Dataset{}
+func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupRequest) (*models.ObjectGroup, error) {
+	dataset := &models.Dataset{}
 
 	dataset.ID = uint(request.GetDatasetId())
-	result := create.DB.Find(&dataset)
+	result := create.DB.Find(dataset)
 	if result.Error != nil {
 		log.Println(result.Error.Error())
-		return 0, result.Error
+		return nil, result.Error
 	}
 
+	objectGroupModel, objects, err := create.prepareObjectGroupForInsert(request, dataset)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	create.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&objectGroupModel).Error; err != nil {
+			log.Println(err.Error())
+			return fmt.Errorf("could not create object group")
+		}
+
+		for _, object := range objects {
+			object.ObjectGroupID = objectGroupModel.ID
+		}
+
+		objectGroupModel.Objects = objects
+
+		if err := tx.Save(objectGroupModel).Error; err != nil {
+			log.Println(err.Error())
+			return fmt.Errorf("could not create object group")
+		}
+
+		return nil
+	})
+
+	return &objectGroupModel, nil
+}
+
+func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObjectGroupBatchRequest) ([]models.ObjectGroup, error) {
+	var objectgroups []models.ObjectGroup
+	var objectgroupsObjects [][]models.Object
+
+	dataset := &models.Dataset{}
+
+	dataset.ID = uint(batchRequest.GetRequests()[0].GetDatasetId())
+	result := create.DB.Find(dataset)
+	if result.Error != nil {
+		log.Println(result.Error.Error())
+		return nil, result.Error
+	}
+
+	for _, request := range batchRequest.GetRequests() {
+		objectGroup, objects, err := create.prepareObjectGroupForInsert(request, dataset)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
+		objectgroups = append(objectgroups, objectGroup)
+		objectgroupsObjects = append(objectgroupsObjects, objects)
+	}
+
+	create.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&objectgroups).Error; err != nil {
+			log.Println(err.Error())
+			return fmt.Errorf("could not create object group")
+		}
+
+		for i, objectgroup := range objectgroups {
+			objectgroupObjects := objectgroupsObjects[i]
+			for _, object := range objectgroupObjects {
+				object.ObjectGroupID = objectgroup.ID
+			}
+			objectgroup.Objects = objectgroupObjects
+
+		}
+
+		if err := tx.Save(&objectgroups).Error; err != nil {
+			log.Println(err.Error())
+			return fmt.Errorf("could not create object group")
+		}
+
+		return nil
+	})
+
+	return objectgroups, nil
+}
+
+func (create *Create) prepareObjectGroupForInsert(request *services.CreateObjectGroupRequest, dataset *models.Dataset) (models.ObjectGroup, []models.Object, error) {
 	labels := []models.Label{}
 	for _, protoLabel := range request.Labels {
 		label := models.Label{}
@@ -104,7 +183,7 @@ func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupReque
 		metadataList = append(metadataList, *metadata.FromProtoModel(protoMetadata))
 	}
 
-	objectGroupModel := &models.ObjectGroup{
+	objectGroupModel := models.ObjectGroup{
 		DatasetID:   dataset.ID,
 		ProjectID:   dataset.ProjectID,
 		Name:        request.Name,
@@ -147,27 +226,7 @@ func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupReque
 		objects = append(objects, object)
 	}
 
-	create.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(objectGroupModel).Error; err != nil {
-			log.Println(err.Error())
-			return fmt.Errorf("could not create object group")
-		}
-
-		for _, object := range objects {
-			object.ObjectGroupID = objectGroupModel.ID
-		}
-
-		objectGroupModel.Objects = objects
-
-		if err := tx.Save(objectGroupModel).Error; err != nil {
-			log.Println(err.Error())
-			return fmt.Errorf("could not create object group")
-		}
-
-		return nil
-	})
-
-	return objectGroupModel.ID, nil
+	return objectGroupModel, objects, nil
 }
 
 func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersionRequest, projectID uint) (uint, error) {

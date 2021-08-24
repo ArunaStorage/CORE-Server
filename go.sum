@@ -77,6 +77,10 @@ github.com/ScienceObjectsDB/go-api v0.0.0-20210822110209-78cb6b0ebcc3 h1:ZhWwlNe
 github.com/ScienceObjectsDB/go-api v0.0.0-20210822110209-78cb6b0ebcc3/go.mod h1:dz9plYGE4ji/+H1mkASuIX0hQ4sndThwXHFu5cSC0ek=
 github.com/ScienceObjectsDB/go-api v0.0.0-20210823105144-923093789dce h1:qP2RPccn8XKi9oOyhAdGLzTynxhVsbE2EnehTEAIJOw=
 github.com/ScienceObjectsDB/go-api v0.0.0-20210823105144-923093789dce/go.mod h1:dz9plYGE4ji/+H1mkASuIX0hQ4sndThwXHFu5cSC0ek=
+github.com/ScienceObjectsDB/go-api v0.0.0-20210823212202-aaa5f10f9953 h1:tm9nSbvCI2sI23h80kwjOa1rwogdQcBS7Zsn/5p0idA=
+github.com/ScienceObjectsDB/go-api v0.0.0-20210823212202-aaa5f10f9953/go.mod h1:D2Bmk00TjBwwmjoa1YptIepQr+mr+2B22CqQgYM9q7s=
+github.com/ScienceObjectsDB/go-api v0.0.0-20210824092650-daf2cf9b48de h1:TD6Wo9xjnwWTNSQPVkdsQDIvziYFwqbGq6TScdncemA=
+github.com/ScienceObjectsDB/go-api v0.0.0-20210824092650-daf2cf9b48de/go.mod h1:D2Bmk00TjBwwmjoa1YptIepQr+mr+2B22CqQgYM9q7s=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
