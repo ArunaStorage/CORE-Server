@@ -113,7 +113,6 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 			ObjectGroupName: objectgroup.Name,
 			ObjectLinks:     make([]*services.CreateObjectGroupResponse_ObjectLinks, 0),
 		}
-
 		if requests.IncludeObjectLink {
 			for _, object := range objectgroup.Objects {
 				link, err := endpoint.ObjectHandler.CreateUploadLink(&object)
@@ -128,7 +127,6 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 				})
 			}
 		}
-
 		objectgroupResponseList = append(objectgroupResponseList, objectgroupResponse)
 	}
 

@@ -226,7 +226,7 @@ func TestObjectGroup(t *testing.T) {
 	assert.Equal(t, string(data), "foo")
 }
 
-func TestObjectGroupBNatch(t *testing.T) {
+func TestObjectGroupBatch(t *testing.T) {
 	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &services.CreateProjectRequest{
 		Name: "foo",
 	})
@@ -273,6 +273,9 @@ func TestObjectGroupBNatch(t *testing.T) {
 	}
 
 	for _, objectgroup := range result.GetResponses() {
+		if len(objectgroup.ObjectLinks) != 2 {
+			log.Fatalln("wrong number of upload links found")
+		}
 		for _, object := range objectgroup.ObjectLinks {
 			uploadHttpRequest, err := http.NewRequest("PUT", object.Link, bytes.NewBufferString("foo"))
 			if err != nil {

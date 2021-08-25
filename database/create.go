@@ -144,19 +144,19 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObject
 		objectgroupsObjects = append(objectgroupsObjects, objects)
 	}
 
-	create.DB.Transaction(func(tx *gorm.DB) error {
+	err := create.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&objectgroups).Error; err != nil {
 			log.Println(err.Error())
 			return fmt.Errorf("could not create object group")
 		}
 
 		for i, objectgroup := range objectgroups {
-			objectgroupObjects := objectgroupsObjects[i]
-			for _, object := range objectgroupObjects {
+			objects := objectgroupsObjects[i]
+			for _, object := range objects {
 				object.ObjectGroupID = objectgroup.ID
 			}
-			objectgroup.Objects = objectgroupObjects
 
+			objectgroups[i].Objects = objects
 		}
 
 		if err := tx.Save(&objectgroups).Error; err != nil {
@@ -166,6 +166,11 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObject
 
 		return nil
 	})
+
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
 
 	return objectgroups, nil
 }
