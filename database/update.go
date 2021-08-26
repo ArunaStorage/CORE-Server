@@ -17,3 +17,11 @@ func (update *Update) AddUploadID(objectID uint, uploadID string) error {
 
 	return nil
 }
+
+func (update *Update) UpdateMetadata() error {
+	return nil
+}
+
+func (update *Update) UpdateLabels() error {
+	return nil
+}
