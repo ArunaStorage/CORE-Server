@@ -55,3 +55,15 @@ func (handler *Delete) DeleteProject(projectID uint) error {
 
 	return nil
 }
+
+func (handler *Delete) DeleteAPIToken(tokenID uint) error {
+	token := &models.APIToken{}
+	token.ID = tokenID
+
+	if err := handler.DB.Delete(token).Error; err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	return nil
+}
