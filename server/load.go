@@ -15,6 +15,7 @@ type LoadEndpoints struct {
 	*Endpoints
 }
 
+// NewLoadEndpoints New load service
 func NewLoadEndpoints(endpoints *Endpoints) (*LoadEndpoints, error) {
 	loadEndpoint := &LoadEndpoints{
 		Endpoints: endpoints,

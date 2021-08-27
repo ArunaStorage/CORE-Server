@@ -10,10 +10,12 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// Implements the gRPC project serivce.
 type ProjectEndpoints struct {
 	*Endpoints
 }
 
+// NewProjectEndpoints Returns a new ProjectEndpoint service
 func NewProjectEndpoints(endpoints *Endpoints) (*ProjectEndpoints, error) {
 	projectEndpoint := &ProjectEndpoints{
 		Endpoints: endpoints,

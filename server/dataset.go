@@ -16,6 +16,7 @@ type DatasetEndpoints struct {
 	*Endpoints
 }
 
+//NewDatasetEndpoints New dataset service
 func NewDatasetEndpoints(endpoints *Endpoints) (*DatasetEndpoints, error) {
 	datasetEndpoint := &DatasetEndpoints{
 		Endpoints: endpoints,

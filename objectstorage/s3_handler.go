@@ -15,8 +15,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
+// Default chunk size for chunked downloads
 const S3ChunkSize = 1024 * 1024 * 5
 
+// S3ObjectStorageHandler Handles the interaction with the s3 based object storage data backends
 type S3ObjectStorageHandler struct {
 	S3Client          *s3.Client
 	S3DownloadManager *manager.Downloader
@@ -25,16 +27,13 @@ type S3ObjectStorageHandler struct {
 	S3Bucket          string
 }
 
+// Represents a downloaded byte chunk and its source object
 type DownloadedBytesInfo struct {
 	Object *models.Object
 	Data   []byte
 }
 
-type ObjectLoader struct {
-	S3Client          *s3.Client
-	S3DownloadManager *manager.Downloader
-}
-
+// Creates a new S3ObjectStorageHandler
 func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageHandler, error) {
 	endpoint := "https://s3.computational.bio.uni-giessen.de"
 	if configEndpoint := viper.GetString("S3.Endpoint"); configEndpoint != "" {
@@ -76,6 +75,7 @@ func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageH
 	return s3Handler, nil
 }
 
+// CreateLocation Creates a location in objectstorage that stores the object
 func (s3Handler *S3ObjectStorageHandler) CreateLocation(projectID uint, datasetID uint, objectUUID string, filename string) models.Location {
 	objectKey := fmt.Sprintf("%v/%v/%v/%v", projectID, datasetID, objectUUID, filename)
 	location := models.Location{
@@ -87,6 +87,7 @@ func (s3Handler *S3ObjectStorageHandler) CreateLocation(projectID uint, datasetI
 	return location
 }
 
+// CreateDownloadLink Generates a presigned download link for an object
 func (s3Handler *S3ObjectStorageHandler) CreateDownloadLink(object *models.Object) (string, error) {
 	ctx := context.Background()
 	presignReq, err := s3Handler.PresignClient.PresignGetObject(ctx, &s3.GetObjectInput{
@@ -101,6 +102,7 @@ func (s3Handler *S3ObjectStorageHandler) CreateDownloadLink(object *models.Objec
 	return presignReq.URL, nil
 }
 
+// CreateUploadLink Generates a presigned upload link for an object
 func (s3Handler *S3ObjectStorageHandler) CreateUploadLink(object *models.Object) (string, error) {
 	ctx := context.Background()
 	presignReq, err := s3Handler.PresignClient.PresignPutObject(ctx, &s3.PutObjectInput{
@@ -115,6 +117,9 @@ func (s3Handler *S3ObjectStorageHandler) CreateUploadLink(object *models.Object)
 	return presignReq.URL, nil
 }
 
+// InitMultipartUpload Initiates a multipart upload for an object
+// For details regarding multipart uploads please refer to the offical S3 documentation
+// In short multipart uploads are intended to upload larger files
 func (s3Handler *S3ObjectStorageHandler) InitMultipartUpload(object *models.Object) (string, error) {
 	ctx := context.Background()
 	out, err := s3Handler.S3Client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
@@ -129,6 +134,7 @@ func (s3Handler *S3ObjectStorageHandler) InitMultipartUpload(object *models.Obje
 	return *out.UploadId, nil
 }
 
+// CreateMultipartUploadRequest Generates a multipart upload link
 func (s3Handler *S3ObjectStorageHandler) CreateMultipartUploadRequest(object *models.Object, partnumber int32) (string, error) {
 	resp, err := s3Handler.PresignClient.PresignUploadPart(context.Background(), &s3.UploadPartInput{
 		Bucket:     &object.Location.Bucket,
@@ -144,6 +150,7 @@ func (s3Handler *S3ObjectStorageHandler) CreateMultipartUploadRequest(object *mo
 	return resp.URL, nil
 }
 
+// CompleteMultipartUpload Completes a multipart upload and tells the object storage to assemble the final object from the uploaded parts-
 func (s3Handler *S3ObjectStorageHandler) CompleteMultipartUpload(object *models.Object, completedParts []types.CompletedPart) error {
 	_, err := s3Handler.S3Client.CompleteMultipartUpload(context.Background(), &s3.CompleteMultipartUploadInput{
 		Bucket:   &object.Location.Bucket,

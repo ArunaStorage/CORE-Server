@@ -24,7 +24,7 @@ func NewObjectEndpoints(endpoints *Endpoints) (*ObjectServerEndpoints, error) {
 	return objectEndpoints, nil
 }
 
-//CreateObjectGroup Creates a new object group
+//CreateObjectGroup Creates a new object group endpoint service
 func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, request *services.CreateObjectGroupRequest) (*services.CreateObjectGroupResponse, error) {
 	dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetDatasetId()))
 	if err != nil {

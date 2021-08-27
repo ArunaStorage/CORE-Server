@@ -15,17 +15,24 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// ObjectsPacker packages a stream of stored objects into a single download link
+// This can be used to e.g. provide data to a cooperation partner
+// The provided link is secured using hmac
 type ObjectsPacker struct {
 	StreamType    services.GetObjectGroupsStreamLinkRequest_StreamType
 	TargetWrite   FlushingWriter
 	ObjectHandler *objectstorage.S3ObjectStorageHandler
 }
 
+// FlushingWriter Interface to represent a flushable writer
 type FlushingWriter interface {
 	io.Writer
 	http.Flusher
 }
 
+// PackageObjects takes all objects from the provided channel and packages them into a single bytes stream
+// and writes the stream into the provided TargetWrite writer
+// Packaging details depend on the configuration of the ObjectsPacker interface
 func (packer *ObjectsPacker) PackageObjects(objectGroups chan *models.ObjectGroup) error {
 	switch packer.StreamType {
 	case services.GetObjectGroupsStreamLinkRequest_TARGZ:
@@ -37,6 +44,8 @@ func (packer *ObjectsPacker) PackageObjects(objectGroups chan *models.ObjectGrou
 	}
 }
 
+// Packer implementation to bundle objects into a tar archive and compress the resulting bytestream with gunzip
+// The data is written and read in chunks
 func (packer *ObjectsPacker) handleTarGZStream(objectGroups chan *models.ObjectGroup) error {
 	gunzipWriter := gzip.NewWriter(packer.TargetWrite)
 	tarWriter := tar.NewWriter(gunzipWriter)
@@ -99,6 +108,7 @@ func (packer *ObjectsPacker) handleTarGZStream(objectGroups chan *models.ObjectG
 	return nil
 }
 
+// Writes the provided data buffer into the provided writter
 func (packer *ObjectsPacker) writeObjectsData(data chan []byte, writer io.Writer) error {
 	for chunk := range data {
 		_, err := writer.Write(chunk)

@@ -15,12 +15,15 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// DataStreamingServer Provides endpoint to stream a given set of objects via a presigned http get call
+// The used link has to be created via the regular gRPC endpoints and can be used by anyone who has the link
 type DataStreamingServer struct {
 	SigningSecret string
 	ReadHandler   *database.Read
 	ObjectHandler *objectstorage.S3ObjectStorageHandler
 }
 
+// Starts the server on port 9011
 func (server *DataStreamingServer) Run() error {
 	r := gin.Default()
 	r.GET("/dataset", server.datasetStream)
@@ -28,6 +31,7 @@ func (server *DataStreamingServer) Run() error {
 	return r.Run(":9011")
 }
 
+// Handles a stream that bundles all objectgroups of a dataset into a single byte stream
 func (server *DataStreamingServer) datasetStream(c *gin.Context) {
 	c.Request.URL.Host = c.Request.Host
 	if c.Request.URL.Scheme == "" && c.Request.Host == "localhost" {

@@ -18,6 +18,11 @@ import (
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
 )
 
+// A generic structs for the gRPC endpoint that contains all relevant database handler interfaces
+// This is meant to be reused in the individual gRPC service implementation
+// The implementation of the individual services is done in separate structs.
+// Usually endpoints functions of the services do only perform authorization. All further calls regarding data management with Objectstorage and DB
+// are delegated to separate function.
 type Endpoints struct {
 	ReadHandler         *database.Read
 	CreateHandler       *database.Create
@@ -31,8 +36,9 @@ type Endpoints struct {
 type Server struct {
 }
 
-func Run(host string, port uint16) error {
-	listener, err := net.Listen("tcp", fmt.Sprintf("%v:%v", host, port))
+// Starts the gRPC and the data streaming server.
+func Run(host string, gRPCPort uint16) error {
+	grpcListener, err := net.Listen("tcp", fmt.Sprintf("%v:%v", host, gRPCPort))
 	if err != nil {
 		log.Println(err.Error())
 		return err
@@ -91,12 +97,13 @@ func Run(host string, port uint16) error {
 	services.RegisterObjectLoadServiceServer(grpcServer, loadEndpoints)
 
 	serverErrGrp.Go(func() error {
-		return grpcServer.Serve(listener)
+		return grpcServer.Serve(grpcListener)
 	})
 
 	return serverErrGrp.Wait()
 }
 
+// Creates the endpoint config based on the provided config.
 func createGenericEndpoint() (*Endpoints, error) {
 	dbHost := viper.GetString("DB.Host")
 	dbPort := viper.GetUint("DB.Port")

@@ -13,6 +13,7 @@ import (
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
 )
 
+// Handles Create operations
 type Create struct {
 	*Common
 }

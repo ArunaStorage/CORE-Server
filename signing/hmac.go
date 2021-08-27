@@ -8,6 +8,9 @@ import (
 	"net/url"
 )
 
+// SignURL Signs a given url with a given key. The provided url is encoded in full length based on the generated string.
+// Before signing a random salt is added to the query parameters of the url. The Signature is added to the query parameters after calculating
+// the signature. The signature is calculated using Hmac with SHA256.
 func SignURL(key []byte, baseURL *url.URL) (*url.URL, error) {
 	q := baseURL.Query()
 	saltBytes := make([]byte, 64)
