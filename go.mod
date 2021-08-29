@@ -3,11 +3,11 @@ module github.com/ScienceObjectsDB/CORE-Server
 go 1.17
 
 require (
-	github.com/ScienceObjectsDB/go-api v0.0.0-20210824092650-daf2cf9b48de
-	github.com/aws/aws-sdk-go-v2 v1.8.1
-	github.com/aws/aws-sdk-go-v2/config v1.6.1
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.4.1
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.13.0
+	github.com/ScienceObjectsDB/go-api v0.0.0-20210829220612-d5a274604cc4
+	github.com/aws/aws-sdk-go-v2 v1.9.0
+	github.com/aws/aws-sdk-go-v2/config v1.7.0
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.5.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.14.0
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-playground/validator/v10 v10.9.0 // indirect
@@ -23,7 +23,7 @@ require (
 	golang.org/x/net v0.0.0-20210825183410-e898025ed96a // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20210825212027-de86158e7fda // indirect
+	google.golang.org/genproto v0.0.0-20210827211047-25e5f791fe06 // indirect
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
 	gorm.io/driver/postgres v1.1.0
@@ -31,20 +31,24 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2/credentials v1.3.3 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.4.1 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/ini v1.2.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.2.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.2.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.5.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.3.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.6.2 // indirect
-	github.com/aws/smithy-go v1.7.0 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.4.0 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.5.0 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.2.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.3.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.3.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.6.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.4.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.7.0 // indirect
+	github.com/aws/smithy-go v1.8.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
+	github.com/go-stack/stack v1.8.0 // indirect
+	github.com/golang/glog v0.0.0-20210429001901-424d2337a529 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/snappy v0.0.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
@@ -58,19 +62,27 @@ require (
 	github.com/jinzhu/now v1.1.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.11 // indirect
+	github.com/klauspost/compress v1.9.5 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/pelletier/go-toml v1.9.3 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
+	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
+	github.com/xdg-go/scram v1.0.2 // indirect
+	github.com/xdg-go/stringprep v1.0.2 // indirect
+	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
+	go.mongodb.org/mongo-driver v1.7.1 // indirect
 	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
