@@ -251,10 +251,10 @@ func TestObjectGroupBatch(t *testing.T) {
 			Name:      "baa",
 			DatasetId: datasetID.GetId(),
 			Objects: []*services.CreateObjectRequest{
-				&services.CreateObjectRequest{
+				{
 					Filename: "ff.bin",
 				},
-				&services.CreateObjectRequest{
+				{
 					Filename: "fu.bin",
 				},
 			},
