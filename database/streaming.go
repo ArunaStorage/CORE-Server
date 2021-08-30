@@ -130,18 +130,3 @@ func (handler *Streaming) createObjectGroupsRequest(objectGroupIDs []uint64, dat
 
 	return url, nil
 }
-
-func hmac_sha256(password, salt, msg []byte) ([]byte, error) {
-	mac := hmac.New(sha256.New, password)
-	_, err := mac.Write(salt)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = mac.Write(msg)
-	if err != nil {
-		return nil, err
-	}
-
-	return mac.Sum(nil), nil
-}
