@@ -7,10 +7,12 @@ import (
 	"log"
 	"net/http"
 	"testing"
+	"time"
 
 	v1 "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestObjectGroup(t *testing.T) {
@@ -292,4 +294,97 @@ func TestObjectGroupBatch(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestObjectGroupsDates(t *testing.T) {
+	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &services.CreateProjectRequest{
+		Name: "foo",
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	datasetID, err := ServerEndpoints.dataset.CreateDataset(context.Background(), &services.CreateDatasetRequest{
+		Name:      "foo",
+		ProjectId: projectID.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	objectGroupTooEarly1 := services.CreateObjectGroupRequest{
+		Name:      "early1",
+		DatasetId: datasetID.GetId(),
+		Generated: timestamppb.New(time.Date(1990, time.July, 27, 0, 0, 0, 0, time.Local)),
+	}
+
+	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooEarly1)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	objectGroupTooEarly2 := services.CreateObjectGroupRequest{
+		Name:      "early2",
+		DatasetId: datasetID.GetId(),
+		Generated: timestamppb.New(time.Date(1992, time.July, 27, 0, 0, 0, 0, time.Local)),
+	}
+
+	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooEarly2)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	objectGroupInTime1 := services.CreateObjectGroupRequest{
+		Name:      "intime1",
+		DatasetId: datasetID.GetId(),
+		Generated: timestamppb.New(time.Date(2000, time.July, 27, 0, 0, 0, 0, time.Local)),
+	}
+
+	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupInTime1)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	objectGroupInTime2 := services.CreateObjectGroupRequest{
+		Name:      "intime2",
+		DatasetId: datasetID.GetId(),
+		Generated: timestamppb.New(time.Date(2000, time.December, 27, 0, 0, 0, 0, time.Local)),
+	}
+
+	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupInTime2)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	objectGroupTooLate1 := services.CreateObjectGroupRequest{
+		Name:      "late1",
+		DatasetId: datasetID.GetId(),
+		Generated: timestamppb.Now(),
+	}
+
+	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooLate1)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	objectGroupTooLate2 := services.CreateObjectGroupRequest{
+		Name:      "late2",
+		DatasetId: datasetID.GetId(),
+		Generated: timestamppb.Now(),
+	}
+
+	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooLate2)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	objectGroups, err := ServerEndpoints.dataset.ReadHandler.GetObjectGroupsInDateRange(
+		uint(datasetID.GetId()),
+		time.Date(1995, time.December, 27, 0, 0, 0, 0, time.Local),
+		time.Date(2015, time.December, 27, 0, 0, 0, 0, time.Local))
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, len(objectGroups), 2)
 }
