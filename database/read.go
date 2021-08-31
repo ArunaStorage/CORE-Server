@@ -209,3 +209,19 @@ func (read *Read) GetObjectGroupsInDateRange(datasetID uint, startDate time.Time
 
 	return objectGroups, nil
 }
+
+func (read *Read) GetObjectsBatch(ids []uint) ([]*models.Object, error) {
+	objects := make([]*models.Object, len(ids))
+	for i, id := range ids {
+		object := &models.Object{}
+		object.ID = id
+		objects[i] = object
+	}
+
+	if err := read.DB.Preload("Metadata").Preload("Labels").Find(&objects).Error; err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	return objects, nil
+}

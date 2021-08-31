@@ -189,10 +189,11 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 	return response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, request *services.GetObjectGroupsStreamLinkRequest) (*services.GetObjectGroupsStreamLinkResponse, error) {
+func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, request *services.GetObjectGroupsStreamRequest) (*services.GetObjectGroupsStreamResponse, error) {
 	var projectID uint
+
 	switch value := request.Query.(type) {
-	case *services.GetObjectGroupsStreamLinkRequest_GroupIds:
+	case *services.GetObjectGroupsStreamRequest_GroupIds:
 		{
 			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.GroupIds.GetDatasetId()))
 			if err != nil {
@@ -202,7 +203,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, req
 
 			projectID = dataset.ProjectID
 		}
-	case *services.GetObjectGroupsStreamLinkRequest_Dataset:
+	case *services.GetObjectGroupsStreamRequest_Dataset:
 		{
 			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.Dataset.GetDatasetId()))
 			if err != nil {
@@ -212,7 +213,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, req
 
 			projectID = dataset.ProjectID
 		}
-	case *services.GetObjectGroupsStreamLinkRequest_DatasetVersion:
+	case *services.GetObjectGroupsStreamRequest_DatasetVersion:
 		{
 			dataset, err := endpoint.ReadHandler.GetDatasetVersion(uint(value.DatasetVersion.GetDatasetVersion()))
 			if err != nil {
@@ -222,7 +223,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, req
 
 			projectID = dataset.ProjectID
 		}
-	case *services.GetObjectGroupsStreamLinkRequest_DateRange:
+	case *services.GetObjectGroupsStreamRequest_DateRange:
 		{
 			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.DateRange.GetDatasetId()))
 			if err != nil {
@@ -253,7 +254,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, req
 		return nil, status.Error(codes.Internal, "could not create link")
 	}
 
-	response := &services.GetObjectGroupsStreamLinkResponse{
+	response := &services.GetObjectGroupsStreamResponse{
 		Url: link,
 	}
 

@@ -19,7 +19,7 @@ import (
 // This can be used to e.g. provide data to a cooperation partner
 // The provided link is secured using hmac
 type ObjectsPacker struct {
-	StreamType    services.GetObjectGroupsStreamLinkRequest_StreamType
+	StreamType    services.GetObjectGroupsStreamRequest_StreamType
 	TargetWrite   FlushingWriter
 	ObjectHandler *objectstorage.S3ObjectStorageHandler
 }
@@ -35,7 +35,7 @@ type FlushingWriter interface {
 // Packaging details depend on the configuration of the ObjectsPacker interface
 func (packer *ObjectsPacker) PackageObjects(objectGroups chan *models.ObjectGroup) error {
 	switch packer.StreamType {
-	case services.GetObjectGroupsStreamLinkRequest_TARGZ:
+	case services.GetObjectGroupsStreamRequest_STREAM_TYPE_TARGZ:
 		return packer.handleTarGZStream(objectGroups)
 	default:
 		{
