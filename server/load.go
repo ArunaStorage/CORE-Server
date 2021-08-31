@@ -86,6 +86,53 @@ func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *
 	return &response, nil
 }
 
+func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, request *services.CreateDownloadLinkBatchRequest) (*services.CreateDownloadLinkBatchResponse, error) {
+	metadata, _ := metadata.FromIncomingContext(ctx)
+	dlLinks := make([]*services.CreateDownloadLinkResponse, len(request.GetRequests()))
+	projectIDs := make(map[uint]interface{})
+	objectIDs := make([]uint, len(request.GetRequests()))
+	for i, request := range request.GetRequests() {
+		objectIDs[i] = uint(request.GetId())
+	}
+
+	objects, err := endpoint.ReadHandler.GetObjectsBatch(objectIDs)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	for _, object := range objects {
+		projectIDs[object.ProjectID] = struct{}{}
+	}
+
+	for projectID := range projectIDs {
+		err := endpoint.AuthzHandler.Authorize(projectID, protoModels.Right_READ, metadata)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
+	}
+
+	for i, object := range objects {
+		link, err := endpoint.ObjectHandler.CreateDownloadLink(object)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
+
+		dlLinks[i] = &services.CreateDownloadLinkResponse{
+			DownloadLink: link,
+			Object:       object.ToProtoModel(),
+		}
+	}
+
+	response := &services.CreateDownloadLinkBatchResponse{
+		Links: dlLinks,
+	}
+
+	return response, nil
+}
+
 func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request *services.StartMultipartUploadRequest) (*services.StartMultipartUploadResponse, error) {
 	object, err := endpoint.ReadHandler.GetObject(uint(request.GetId()))
 	if err != nil {
