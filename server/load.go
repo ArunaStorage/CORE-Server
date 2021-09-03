@@ -5,10 +5,14 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 
+	"github.com/ScienceObjectsDB/CORE-Server/models"
 	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type LoadEndpoints struct {
@@ -131,6 +135,114 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, requ
 	}
 
 	return response, nil
+}
+
+func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.CreateDownloadLinkStreamRequest, responseStream services.ObjectLoadService_CreateDownloadLinkStreamServer) error {
+	var projectID uint
+
+	switch value := request.Query.(type) {
+	case *services.CreateDownloadLinkStreamRequest_Dataset:
+		{
+			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.Dataset.GetDatasetId()))
+			if err != nil {
+				log.Println(err.Error())
+				return err
+			}
+
+			projectID = dataset.ProjectID
+		}
+	case *services.CreateDownloadLinkStreamRequest_DatasetVersion:
+		{
+			dataset, err := endpoint.ReadHandler.GetDatasetVersion(uint(value.DatasetVersion.GetDatasetVersionId()))
+			if err != nil {
+				log.Println(err.Error())
+				return err
+			}
+
+			projectID = dataset.ProjectID
+		}
+	case *services.CreateDownloadLinkStreamRequest_DateRange:
+		{
+			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.DateRange.GetDatasetId()))
+			if err != nil {
+				log.Println(err.Error())
+				return err
+			}
+
+			projectID = dataset.ProjectID
+		}
+	default:
+		return status.Error(codes.Unauthenticated, "could not authorize requested action")
+	}
+
+	metadata, _ := metadata.FromIncomingContext(responseStream.Context())
+
+	err := endpoint.AuthzHandler.Authorize(
+		uint(projectID),
+		protoModels.Right_READ,
+		metadata)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	readerErrGrp := errgroup.Group{}
+	objectGroupsChan := make(chan []*models.ObjectGroup, 5)
+
+	switch value := request.Query.(type) {
+	case *services.CreateDownloadLinkStreamRequest_Dataset:
+		{
+			readerErrGrp.Go(func() error {
+				defer close(objectGroupsChan)
+				return endpoint.ReadHandler.GetDatasetObjectGroupsBatches(uint(value.Dataset.GetDatasetId()), objectGroupsChan)
+			})
+
+		}
+	case *services.CreateDownloadLinkStreamRequest_DateRange:
+		{
+			readerErrGrp.Go(func() error {
+				defer close(objectGroupsChan)
+				return endpoint.ReadHandler.GetObjectGroupsInDateRangeBatches(uint(value.DateRange.GetDatasetId()), value.DateRange.Start.AsTime(), value.DateRange.End.AsTime(), objectGroupsChan)
+			})
+		}
+	default:
+		return status.Error(codes.Unimplemented, "unimplemented")
+	}
+
+	for objectGroupBatch := range objectGroupsChan {
+		objectGroups := make([]*protoModels.ObjectGroup, len(objectGroupBatch))
+		links := make([]*services.InnerLinksResponse, len(objectGroupBatch))
+		for i, objectGroup := range objectGroupBatch {
+			objectGroups = append(objectGroups, objectGroup.ToProtoModel())
+			objectLinks := make([]string, len(objectGroup.Objects))
+			for j, object := range objectGroup.Objects {
+				link, err := endpoint.ObjectHandler.CreateDownloadLink(&object)
+				if err != nil {
+					log.Println(err.Error())
+					return err
+				}
+				objectLinks[j] = link
+			}
+			links[i] = &services.InnerLinksResponse{
+				ObjectLinks: objectLinks,
+			}
+		}
+
+		batchResponse := &services.CreateDownloadLinkStreamResponse{
+			Links: &services.LinksResponse{
+				ObjectGroups:     objectGroups,
+				ObjectGroupLinks: links,
+			},
+		}
+
+		err := responseStream.Send(batchResponse)
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request *services.StartMultipartUploadRequest) (*services.StartMultipartUploadResponse, error) {

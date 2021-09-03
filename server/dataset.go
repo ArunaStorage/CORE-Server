@@ -189,11 +189,11 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 	return response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, request *services.GetObjectGroupsStreamRequest) (*services.GetObjectGroupsStreamResponse, error) {
+func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context, request *services.GetObjectGroupsStreamLinkRequest) (*services.GetObjectGroupsStreamLinkResponse, error) {
 	var projectID uint
 
 	switch value := request.Query.(type) {
-	case *services.GetObjectGroupsStreamRequest_GroupIds:
+	case *services.GetObjectGroupsStreamLinkRequest_GroupIds:
 		{
 			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.GroupIds.GetDatasetId()))
 			if err != nil {
@@ -203,7 +203,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, req
 
 			projectID = dataset.ProjectID
 		}
-	case *services.GetObjectGroupsStreamRequest_Dataset:
+	case *services.GetObjectGroupsStreamLinkRequest_Dataset:
 		{
 			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.Dataset.GetDatasetId()))
 			if err != nil {
@@ -213,9 +213,9 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, req
 
 			projectID = dataset.ProjectID
 		}
-	case *services.GetObjectGroupsStreamRequest_DatasetVersion:
+	case *services.GetObjectGroupsStreamLinkRequest_DatasetVersion:
 		{
-			dataset, err := endpoint.ReadHandler.GetDatasetVersion(uint(value.DatasetVersion.GetDatasetVersion()))
+			dataset, err := endpoint.ReadHandler.GetDatasetVersion(uint(value.DatasetVersion.GetDatasetVersionId()))
 			if err != nil {
 				log.Println(err.Error())
 				return nil, err
@@ -223,7 +223,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, req
 
 			projectID = dataset.ProjectID
 		}
-	case *services.GetObjectGroupsStreamRequest_DateRange:
+	case *services.GetObjectGroupsStreamLinkRequest_DateRange:
 		{
 			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.DateRange.GetDatasetId()))
 			if err != nil {
@@ -254,7 +254,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStream(ctx context.Context, req
 		return nil, status.Error(codes.Internal, "could not create link")
 	}
 
-	response := &services.GetObjectGroupsStreamResponse{
+	response := &services.GetObjectGroupsStreamLinkResponse{
 		Url: link,
 	}
 

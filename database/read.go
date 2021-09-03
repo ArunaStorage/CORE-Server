@@ -5,6 +5,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 )
@@ -224,4 +225,39 @@ func (read *Read) GetObjectsBatch(ids []uint) ([]*models.Object, error) {
 	}
 
 	return objects, nil
+}
+
+// BatchedReads
+
+func (read *Read) GetDatasetObjectGroupsBatches(datasetID uint, objectGroupsChan chan []*models.ObjectGroup) error {
+	objectGroups := make([]*models.ObjectGroup, 0)
+	if err := read.DB.Preload("Objects.Location").Preload("Objects").Preload("Labels").Preload("Metadata").Where("dataset_id = ?", datasetID).FindInBatches(&objectGroups, 10000, func(tx *gorm.DB, batch int) error {
+		var objectGroupsBatch []*models.ObjectGroup
+		objectGroupsBatch = append(objectGroupsBatch, objectGroups...)
+
+		objectGroupsChan <- objectGroupsBatch
+		return nil
+	}).Error; err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (read *Read) GetObjectGroupsInDateRangeBatches(datasetID uint, startDate time.Time, endDate time.Time, objectGroupsChan chan []*models.ObjectGroup) error {
+	var objectGroups []*models.ObjectGroup
+	preloadConf := read.DB.Preload("Metadata").Preload("Labels").Preload("Objects").Preload("Objects.Location").Preload("Objects.Metadata").Preload("Objects.Labels")
+	if err := preloadConf.Where("dataset_id = ? AND generated  BETWEEN ? AND ?", datasetID, startDate, endDate).FindInBatches(&objectGroups, 10000, func(tx *gorm.DB, batch int) error {
+		var objectGroupsBatch []*models.ObjectGroup
+		objectGroupsBatch = append(objectGroupsBatch, objectGroups...)
+
+		objectGroupsChan <- objectGroupsBatch
+		return nil
+	}).Error; err != nil {
+		log.Println(err.Error())
+		return fmt.Errorf("could not read given date range")
+	}
+
+	return nil
 }

@@ -11,6 +11,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// NewPsqlDB Regular Postgres database init.
+// Will check if database migrations are required.
 func NewPsqlDB(host string, port uint64, username string, dbName string) (*gorm.DB, error) {
 	psqlPW := os.Getenv("PSQL_PASSWORD")
 
@@ -27,6 +29,7 @@ func NewPsqlDB(host string, port uint64, username string, dbName string) (*gorm.
 	return db, nil
 }
 
+// NewPsqlDBCITest SQL connection for CI testing with a local database
 func NewPsqlDBCITest() (*gorm.DB, error) {
 	dsn := "postgres://root@cockroach:26257/defaultdb?sslmode=disable"
 
