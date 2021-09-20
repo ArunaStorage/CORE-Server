@@ -4,13 +4,10 @@ Server:
 DB:
   Host: "localhost"
   Port: 26257
-  Username: "sciobjsdb"
-  Name: "sciobjsdbtest"
-OAuth2:
-  UserInfoEndpoint: "https://keycloak.m1.k8s.computational.bio/auth/realms/SciObjsDB/protocol/openid-connect/userinfo"
-  RealmInfoEndpoint: "https://keycloak.m1.k8s.computational.bio/auth/realms/SciObjsDB"
+  Name: "defaultdb"
 S3:
-  Bucket: "ScienceObjectsDBDev"
+  Bucket: "sciobjsdbbucket"
 Streaming:
   Endpoint: http://localhost:9011
   Port: 9011
+Test: true

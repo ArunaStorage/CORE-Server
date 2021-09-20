@@ -30,6 +30,21 @@ func NewPsqlDB(host string, port uint64, username string, dbName string) (*gorm.
 }
 
 // NewPsqlDBCITest SQL connection for CI testing with a local database
+func NewPsqlDBLocalStandalone() (*gorm.DB, error) {
+	dsn := "postgres://root@localhost:26257/defaultdb?sslmode=disable"
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	db = makeMigrations(db)
+
+	return db, nil
+}
+
+// NewPsqlDBCITest SQL connection for CI testing with a local database
 func NewPsqlDBCITest() (*gorm.DB, error) {
 	dsn := "postgres://root@cockroach:26257/defaultdb?sslmode=disable"
 

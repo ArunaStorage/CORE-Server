@@ -10,6 +10,7 @@ import (
 	"github.com/ScienceObjectsDB/CORE-Server/objectstorage"
 	"github.com/ScienceObjectsDB/CORE-Server/streamingserver"
 	"golang.org/x/sync/errgroup"
+	"gorm.io/gorm"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -113,10 +114,21 @@ func createGenericEndpoint() (*Endpoints, error) {
 	streamingEndpoint := viper.GetString("Streaming.Endpoint")
 	streamSigningSecret := os.Getenv("STREAMINGSIGNSECRET")
 
-	db, err := database.NewPsqlDB(dbHost, uint64(dbPort), dbUsername, dbName)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
+	var db *gorm.DB
+	var err error
+
+	if viper.IsSet("Test") {
+		db, err = database.NewPsqlDBLocalStandalone()
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
+	} else {
+		db, err = database.NewPsqlDB(dbHost, uint64(dbPort), dbUsername, dbName)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
 	}
 
 	bucketName := viper.GetString("S3.Bucket")
@@ -128,32 +140,15 @@ func createGenericEndpoint() (*Endpoints, error) {
 		return nil, err
 	}
 
+	authzHandler, err := authz.InitAuthHandlerFromConf(db)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
 	commonHandler := database.Common{
 		DB:        db,
 		S3Handler: objectHandler,
-	}
-
-	jwtHandler, err := authz.NewJWTHandler()
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
-
-	oauth2Handler, err := authz.NewOAuth2Authz(db, jwtHandler)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
-
-	apiTokenHandler := &authz.APITokenHandler{
-		DB: db,
-	}
-
-	authzHandler := &authz.ProjectHandler{
-		OAuth2Handler:   oauth2Handler,
-		APITokenHandler: apiTokenHandler,
-		DB:              db,
-		JwtHandler:      jwtHandler,
 	}
 
 	endpoints := &Endpoints{
