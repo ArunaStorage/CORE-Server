@@ -19,3 +19,8 @@ docker run -d -p 9000:9000 -p 9001:9001 minio/minio server /data --console-addre
 ```
 
 3. Configure minio: Create a bucket in the UI from localhost:9000
+4. Create the config, an example can be found under config/local/config.yaml
+5. Start server:
+```
+docker run -d -p 50051:50051 -p 9011:9011 --mount type=bind,source=<path/to/configdir>,target=/config harbor.computational.bio.uni-giessen.de/scienceobjectsdb/core-server:latest
+```
