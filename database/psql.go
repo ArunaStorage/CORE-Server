@@ -18,20 +18,9 @@ func NewPsqlDB(host string, port uint64, username string, dbName string) (*gorm.
 
 	dsn := fmt.Sprintf("host=%v user=%v password=%v dbname=%v port=%v sslmode=prefer TimeZone=Europe/Berlin", host, username, psqlPW, dbName, port)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
+	if psqlPW == "" {
+		dsn = "postgres://root@localhost:26257/defaultdb?sslmode=disable"
 	}
-
-	db = makeMigrations(db)
-
-	return db, nil
-}
-
-// NewPsqlDBCITest SQL connection for CI testing with a local database
-func NewPsqlDBLocalStandalone() (*gorm.DB, error) {
-	dsn := "postgres://root@localhost:26257/defaultdb?sslmode=disable"
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

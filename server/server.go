@@ -117,18 +117,10 @@ func createGenericEndpoint() (*Endpoints, error) {
 	var db *gorm.DB
 	var err error
 
-	if viper.IsSet("Test") {
-		db, err = database.NewPsqlDBLocalStandalone()
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
-	} else {
-		db, err = database.NewPsqlDB(dbHost, uint64(dbPort), dbUsername, dbName)
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
+	db, err = database.NewPsqlDB(dbHost, uint64(dbPort), dbUsername, dbName)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
 	}
 
 	bucketName := viper.GetString("S3.Bucket")
