@@ -56,9 +56,9 @@ func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageH
 		return nil, err
 	}
 
-	client := s3.NewFromConfig(cfg)
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = false })
 
-	//Testing endpoint, minio kann kein bucket host style mit presigned keys
+	//Testing endpoint, minio cannot use bucket path style with presigned urls
 	if endpoint == "http://minio:9000" {
 		client = s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = true })
 	}
@@ -113,6 +113,8 @@ func (s3Handler *S3ObjectStorageHandler) CreateUploadLink(object *models.Object)
 		log.Println(err.Error())
 		return "", err
 	}
+
+	log.Println(presignReq.URL)
 
 	return presignReq.URL, nil
 }

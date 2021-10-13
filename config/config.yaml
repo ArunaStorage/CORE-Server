@@ -9,4 +9,4 @@ OAuth2:
   UserInfoEndpoint: "https://keycloak.m1.k8s.computational.bio/auth/realms/NFDI4Biodiversity/protocol/openid-connect/userinfo"
   RealmInfoEndpoint: "https://keycloak.m1.k8s.computational.bio/auth/realms/NFDI4Biodiversity"
 S3:
-  Bucket: "ScienceObjectsDBDev"
+  Bucket: "nfdi4biodivdevdata"
