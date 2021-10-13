@@ -114,8 +114,6 @@ func (s3Handler *S3ObjectStorageHandler) CreateUploadLink(object *models.Object)
 		return "", err
 	}
 
-	log.Println(presignReq.URL)
-
 	return presignReq.URL, nil
 }
 
