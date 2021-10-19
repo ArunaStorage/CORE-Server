@@ -22,6 +22,7 @@ type Object struct {
 	Labels        []Label    `gorm:"many2many:object_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata      []Metadata `gorm:"many2many:object_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	UploadID      string
+	Index         uint64
 	ProjectID     uuid.UUID `gorm:"index"`
 	Project       Project
 	DatasetID     uuid.UUID `gorm:"index"`
@@ -84,9 +85,9 @@ func (objectGroup *ObjectGroup) ToProtoModel() *protomodels.ObjectGroup {
 		metadataList = append(metadataList, metadata.ToProtoModel())
 	}
 
-	objectsList := []*protomodels.Object{}
+	objectsList := make([]*protomodels.Object, len(objectGroup.Objects))
 	for _, object := range objectGroup.Objects {
-		objectsList = append(objectsList, object.ToProtoModel())
+		objectsList[object.Index] = object.ToProtoModel()
 	}
 
 	return &protomodels.ObjectGroup{

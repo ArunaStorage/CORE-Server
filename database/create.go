@@ -201,7 +201,7 @@ func (create *Create) prepareObjectGroupForInsert(request *services.CreateObject
 
 	objects := make([]models.Object, 0)
 
-	for _, protoObject := range request.GetObjects() {
+	for i, protoObject := range request.GetObjects() {
 		uuid := uuid.New()
 		location := create.S3Handler.CreateLocation(dataset.ProjectID, dataset.ID, uuid, protoObject.Filename)
 
@@ -227,6 +227,7 @@ func (create *Create) prepareObjectGroupForInsert(request *services.CreateObject
 			ObjectUUID: uuid,
 			ProjectID:  dataset.ProjectID,
 			DatasetID:  dataset.ID,
+			Index:      uint64(i),
 		}
 
 		objects = append(objects, object)
