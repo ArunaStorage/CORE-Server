@@ -1,15 +1,21 @@
 package models
 
 import (
+	"time"
+
 	protomodels "github.com/ScienceObjectsDB/go-api/api/models/v1"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Metadata struct {
-	gorm.Model
-	Name     string
-	Metadata string
-	ParentID uint `gorm:"index"`
+	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+	Name      string
+	Metadata  string
+	ParentID  uint `gorm:"index"`
 }
 
 func (metadata *Metadata) ToProtoModel() *protomodels.Metadata {
@@ -27,9 +33,12 @@ func (metadata *Metadata) FromProtoModel(metadataProto *protomodels.Metadata) *M
 }
 
 type Label struct {
-	gorm.Model
-	Key   string
-	Value string
+	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+	Key       string
+	Value     string
 }
 
 func (label *Label) ToProtoModel() *protomodels.Label {
@@ -47,11 +56,14 @@ func (label *Label) FromProtoModel(labelProto *protomodels.Label) *Label {
 }
 
 type Location struct {
-	gorm.Model
-	ObjectID uint `gorm:"index"`
-	Endpoint string
-	Bucket   string
-	Key      string
+	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+	ObjectID  uint           `gorm:"index"`
+	Endpoint  string
+	Bucket    string
+	Key       string
 }
 
 func (location *Location) toProtoModel() *protomodels.Location {
