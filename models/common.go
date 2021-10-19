@@ -15,7 +15,7 @@ type Metadata struct {
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 	Name      string
 	Metadata  string
-	ParentID  uint `gorm:"index"`
+	ParentID  uuid.UUID `gorm:"index"`
 }
 
 func (metadata *Metadata) ToProtoModel() *protomodels.Metadata {
@@ -60,7 +60,7 @@ type Location struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
-	ObjectID  uint           `gorm:"index"`
+	ObjectID  uuid.UUID      `gorm:"index"`
 	Endpoint  string
 	Bucket    string
 	Key       string
