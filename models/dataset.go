@@ -1,20 +1,26 @@
 package models
 
 import (
+	"time"
+
 	protomodels "github.com/ScienceObjectsDB/go-api/api/models/v1"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 )
 
 type Dataset struct {
-	gorm.Model
+	ID              uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       gorm.DeletedAt `gorm:"index"`
 	Name            string
 	Description     string
 	IsPublic        bool
 	Status          string
 	Labels          []Label    `gorm:"many2many:dataset_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata        []Metadata `gorm:"many2many:dataset_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	ProjectID       uint       `gorm:"index"`
+	ProjectID       uuid.UUID  `gorm:"index"`
 	Project         Project
 	ObjectGroups    []ObjectGroup    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	DatasetVersions []DatasetVersion `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
@@ -32,19 +38,22 @@ func (dataset *Dataset) ToProtoModel() protomodels.Dataset {
 	}
 
 	return protomodels.Dataset{
-		Id:          uint64(dataset.ID),
+		Id:          dataset.ID.String(),
 		Name:        dataset.Name,
 		Description: dataset.Description,
 		Created:     timestamppb.New(dataset.CreatedAt),
 		Labels:      labels,
 		Metadata:    metadataList,
-		ProjectId:   uint64(dataset.ProjectID),
+		ProjectId:   dataset.ProjectID.String(),
 		IsPublic:    dataset.IsPublic,
 	}
 }
 
 type DatasetVersion struct {
-	gorm.Model
+	ID              uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       gorm.DeletedAt `gorm:"index"`
 	Name            string
 	Description     string
 	Labels          []Label       `gorm:"many2many:dataset_version_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
@@ -55,9 +64,9 @@ type DatasetVersion struct {
 	PatchVersion    uint
 	RevisionVersion uint
 	Stage           string
-	ProjectID       uint `gorm:"index"`
+	ProjectID       uuid.UUID `gorm:"index"`
 	Project         Project
-	DatasetID       uint `gorm:"index"`
+	DatasetID       uuid.UUID `gorm:"index"`
 	Dataset         Dataset
 }
 
@@ -72,16 +81,16 @@ func (version *DatasetVersion) ToProtoModel() *protomodels.DatasetVersion {
 		metadataList = append(metadataList, metadata.ToProtoModel())
 	}
 
-	var objectGroupIDs []uint64
+	var objectGroupIDs []string
 	for _, id := range version.ObjectGroups {
-		objectGroupIDs = append(objectGroupIDs, uint64(id.ID))
+		objectGroupIDs = append(objectGroupIDs, id.ID.String())
 	}
 
 	versionTag := protomodels.Version_VersionStage_value[version.Stage]
 
 	protoVersion := &protomodels.DatasetVersion{
-		Id:          uint64(version.ID),
-		DatasetId:   uint64(version.DatasetID),
+		Id:          version.ID.String(),
+		DatasetId:   version.DatasetID.String(),
 		Description: version.Description,
 		Labels:      labels,
 		Metadata:    metadataList,

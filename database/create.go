@@ -18,7 +18,7 @@ type Create struct {
 	*Common
 }
 
-func (create *Create) CreateProject(request *services.CreateProjectRequest, userID string) (uint, error) {
+func (create *Create) CreateProject(request *services.CreateProjectRequest, userID string) (string, error) {
 	labels := []models.Label{}
 	for _, protoLabel := range request.Labels {
 		label := models.Label{}
@@ -46,13 +46,13 @@ func (create *Create) CreateProject(request *services.CreateProjectRequest, user
 	result := create.DB.Create(&project)
 	if result.Error != nil {
 		log.Println(result.Error.Error())
-		return 0, result.Error
+		return "", result.Error
 	}
 
-	return project.ID, nil
+	return project.ID.String(), nil
 }
 
-func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (uint, error) {
+func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (string, error) {
 	labels := []models.Label{}
 	for _, protoLabel := range request.Labels {
 		label := models.Label{}
@@ -70,23 +70,23 @@ func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (uin
 		Description: request.Description,
 		Metadata:    metadataList,
 		Labels:      labels,
-		ProjectID:   uint(request.ProjectId),
+		ProjectID:   uuid.MustParse(request.GetProjectId()),
 		IsPublic:    false,
 	}
 
 	result := create.DB.Create(&dataset)
 	if result.Error != nil {
 		log.Println(result.Error.Error())
-		return 0, result.Error
+		return "", result.Error
 	}
 
-	return dataset.ID, nil
+	return dataset.ID.String(), nil
 }
 
 func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupRequest) (*models.ObjectGroup, error) {
 	dataset := &models.Dataset{}
 
-	dataset.ID = uint(request.GetDatasetId())
+	dataset.ID = uuid.MustParse(request.GetDatasetId())
 	result := create.DB.Find(dataset)
 	if result.Error != nil {
 		log.Println(result.Error.Error())
@@ -128,7 +128,7 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObject
 
 	dataset := &models.Dataset{}
 
-	dataset.ID = uint(batchRequest.GetRequests()[0].GetDatasetId())
+	dataset.ID = uuid.MustParse(batchRequest.GetRequests()[0].GetDatasetId())
 	result := create.DB.Find(dataset)
 	if result.Error != nil {
 		log.Println(result.Error.Error())
@@ -202,7 +202,7 @@ func (create *Create) prepareObjectGroupForInsert(request *services.CreateObject
 	objects := make([]models.Object, 0)
 
 	for _, protoObject := range request.GetObjects() {
-		uuid := uuid.New().String()
+		uuid := uuid.New()
 		location := create.S3Handler.CreateLocation(dataset.ProjectID, dataset.ID, uuid, protoObject.Filename)
 
 		labels := []models.Label{}
@@ -235,7 +235,7 @@ func (create *Create) prepareObjectGroupForInsert(request *services.CreateObject
 	return objectGroupModel, objects, nil
 }
 
-func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersionRequest, projectID uint) (uint, error) {
+func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersionRequest, projectID uuid.UUID) (uuid.UUID, error) {
 	labels := []models.Label{}
 	for _, protoLabel := range request.Labels {
 		label := models.Label{}
@@ -251,7 +251,7 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 	objectGroups := make([]models.ObjectGroup, 0)
 	for _, objectGroupID := range request.ObjectGroupIds {
 		objectGroup := models.ObjectGroup{}
-		objectGroup.ID = uint(objectGroupID)
+		objectGroup.ID = uuid.MustParse(objectGroupID)
 
 		objectGroups = append(objectGroups, objectGroup)
 	}
@@ -261,7 +261,7 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 		Labels:          labels,
 		Metadata:        metadataList,
 		Description:     request.Description,
-		DatasetID:       uint(request.DatasetId),
+		DatasetID:       uuid.MustParse(request.DatasetId),
 		MajorVersion:    uint(request.Version.Major),
 		MinorVersion:    uint(request.Version.Minor),
 		PatchVersion:    uint(request.Version.Patch),
@@ -273,7 +273,7 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 
 	if err := create.DB.Create(&version).Error; err != nil {
 		log.Println(err.Error())
-		return 0, err
+		return uuid.UUID{}, err
 	}
 
 	return version.ID, nil
@@ -282,7 +282,7 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 func (create *Create) AddUserToProject(request *services.AddUserToProjectRequest) error {
 	user := &models.User{
 		UserOauth2ID: request.GetUserId(),
-		ProjectID:    uint(request.GetProjectId()),
+		ProjectID:    uuid.MustParse(request.GetProjectId()),
 	}
 
 	if err := create.DB.Create(user).Error; err != nil {
@@ -304,8 +304,8 @@ func (create *Create) CreateAPIToken(request *services.CreateAPITokenRequest, us
 
 	apiToken := &models.APIToken{
 		Token:     base64String,
-		ProjectID: uint(request.GetId()),
-		UserUUID:  userOauth2ID,
+		ProjectID: uuid.MustParse(request.GetId()),
+		UserUUID:  uuid.MustParse(userOauth2ID),
 	}
 
 	if err := create.DB.Create(apiToken).Error; err != nil {

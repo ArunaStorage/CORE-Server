@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
@@ -30,7 +31,7 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *se
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err := endpoint.AuthzHandler.Authorize(
-		uint(request.GetProjectId()),
+		uuid.MustParse(request.GetProjectId()),
 		protoModels.Right_WRITE,
 		metadata)
 	if err != nil {
@@ -45,7 +46,7 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *se
 	}
 
 	response := services.CreateDatasetResponse{
-		Id: uint64(id),
+		Id: id,
 	}
 
 	return &response, nil
@@ -53,7 +54,7 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *se
 
 // Dataset Returns a specific dataset
 func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *services.GetDatasetRequest) (*services.GetDatasetResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetId()))
+	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -62,7 +63,7 @@ func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *servi
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err = endpoint.AuthzHandler.Authorize(
-		uint(dataset.ProjectID),
+		dataset.ProjectID,
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -80,7 +81,7 @@ func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *servi
 
 // Lists Versions of a dataset
 func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, request *services.GetDatasetVersionsRequest) (*services.GetDatasetVersionsResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetId()))
+	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -89,7 +90,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, reques
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err = endpoint.AuthzHandler.Authorize(
-		uint(dataset.ProjectID),
+		dataset.ProjectID,
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -97,7 +98,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, reques
 		return nil, err
 	}
 
-	versions, err := endpoint.ReadHandler.GetDatasetVersions(uint(request.GetId()))
+	versions, err := endpoint.ReadHandler.GetDatasetVersions(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -117,7 +118,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, reques
 }
 
 func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, request *services.GetDatasetObjectGroupsRequest) (*services.GetDatasetObjectGroupsResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetId()))
+	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -126,7 +127,7 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err = endpoint.AuthzHandler.Authorize(
-		uint(dataset.ProjectID),
+		dataset.ProjectID,
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -134,7 +135,7 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 		return nil, err
 	}
 
-	objectGroups, err := endpoint.ReadHandler.GetDatasetObjectGroups(uint(request.GetId()))
+	objectGroups, err := endpoint.ReadHandler.GetDatasetObjectGroups(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -154,7 +155,7 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 }
 
 func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context, request *services.GetObjectGroupsInDateRangeRequest) (*services.GetObjectGroupsInDateRangeResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetId()))
+	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -163,7 +164,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err = endpoint.AuthzHandler.Authorize(
-		uint(dataset.ProjectID),
+		dataset.ProjectID,
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -190,12 +191,12 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 }
 
 func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context, request *services.GetObjectGroupsStreamLinkRequest) (*services.GetObjectGroupsStreamLinkResponse, error) {
-	var projectID uint
+	var projectID uuid.UUID
 
 	switch value := request.Query.(type) {
 	case *services.GetObjectGroupsStreamLinkRequest_GroupIds:
 		{
-			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.GroupIds.GetDatasetId()))
+			dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(value.GroupIds.GetDatasetId()))
 			if err != nil {
 				log.Println(err.Error())
 				return nil, err
@@ -205,7 +206,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 		}
 	case *services.GetObjectGroupsStreamLinkRequest_Dataset:
 		{
-			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.Dataset.GetDatasetId()))
+			dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(value.Dataset.GetDatasetId()))
 			if err != nil {
 				log.Println(err.Error())
 				return nil, err
@@ -215,7 +216,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 		}
 	case *services.GetObjectGroupsStreamLinkRequest_DatasetVersion:
 		{
-			dataset, err := endpoint.ReadHandler.GetDatasetVersion(uint(value.DatasetVersion.GetDatasetVersionId()))
+			dataset, err := endpoint.ReadHandler.GetDatasetVersion(uuid.MustParse(value.DatasetVersion.GetDatasetVersionId()))
 			if err != nil {
 				log.Println(err.Error())
 				return nil, err
@@ -225,7 +226,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 		}
 	case *services.GetObjectGroupsStreamLinkRequest_DateRange:
 		{
-			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.DateRange.GetDatasetId()))
+			dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(value.DateRange.GetDatasetId()))
 			if err != nil {
 				log.Println(err.Error())
 				return nil, err
@@ -240,7 +241,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err := endpoint.AuthzHandler.Authorize(
-		uint(projectID),
+		projectID,
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -268,7 +269,7 @@ func (endpoint *DatasetEndpoints) UpdateDatasetField(_ context.Context, _ *servi
 
 // DeleteDataset Delete a dataset
 func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *services.DeleteDatasetRequest) (*services.DeleteDatasetResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetId()))
+	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -277,7 +278,7 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *se
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err = endpoint.AuthzHandler.Authorize(
-		uint(dataset.ProjectID),
+		dataset.ProjectID,
 		protoModels.Right_WRITE,
 		metadata)
 	if err != nil {
@@ -285,7 +286,7 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *se
 		return nil, err
 	}
 
-	objects, err := endpoint.ReadHandler.GetAllDatasetObjects(uint(request.GetId()))
+	objects, err := endpoint.ReadHandler.GetAllDatasetObjects(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -297,7 +298,7 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *se
 		return nil, err
 	}
 
-	err = endpoint.DeleteHandler.DeleteDataset(uint(request.GetId()))
+	err = endpoint.DeleteHandler.DeleteDataset(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -308,7 +309,7 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *se
 
 //ReleaseDatasetVersion Release a new dataset version
 func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, request *services.ReleaseDatasetVersionRequest) (*services.ReleaseDatasetVersionResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetDatasetId()))
+	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetDatasetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -317,7 +318,7 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err = endpoint.AuthzHandler.Authorize(
-		uint(dataset.ProjectID),
+		dataset.ProjectID,
 		protoModels.Right_WRITE,
 		metadata)
 	if err != nil {
@@ -332,14 +333,14 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 	}
 
 	response := &services.ReleaseDatasetVersionResponse{
-		Id: uint64(id),
+		Id: id.String(),
 	}
 
 	return response, nil
 }
 
 func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request *services.GetDatasetVersionRequest) (*services.GetDatasetVersionResponse, error) {
-	version, err := endpoint.ReadHandler.GetDatasetVersion(uint(request.GetId()))
+	version, err := endpoint.ReadHandler.GetDatasetVersion(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -348,7 +349,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err = endpoint.AuthzHandler.Authorize(
-		uint(version.ProjectID),
+		version.ProjectID,
 		protoModels.Right_WRITE,
 		metadata)
 	if err != nil {
@@ -366,7 +367,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request
 }
 
 func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Context, request *services.GetDatasetVersionObjectGroupsRequest) (*services.GetDatasetVersionObjectGroupsResponse, error) {
-	version, err := endpoint.ReadHandler.GetDatasetVersionWithObjectGroups(uint(request.GetId()))
+	version, err := endpoint.ReadHandler.GetDatasetVersionWithObjectGroups(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -375,7 +376,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Cont
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err = endpoint.AuthzHandler.Authorize(
-		uint(version.ProjectID),
+		version.ProjectID,
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -396,7 +397,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Cont
 }
 
 func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, request *services.DeleteDatasetVersionRequest) (*services.DeleteDatasetVersionResponse, error) {
-	version, err := endpoint.ReadHandler.GetDatasetVersion(uint(request.GetId()))
+	version, err := endpoint.ReadHandler.GetDatasetVersion(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -405,7 +406,7 @@ func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, requ
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err = endpoint.AuthzHandler.Authorize(
-		uint(version.ProjectID),
+		version.ProjectID,
 		protoModels.Right_WRITE,
 		metadata)
 	if err != nil {
@@ -413,7 +414,7 @@ func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, requ
 		return nil, err
 	}
 
-	err = endpoint.DeleteHandler.DeleteDatasetVersion(uint(request.GetId()))
+	err = endpoint.DeleteHandler.DeleteDatasetVersion(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

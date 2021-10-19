@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
@@ -39,14 +40,14 @@ func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *se
 		return nil, err
 	}
 
-	projectID, err := endpoint.CreateHandler.CreateProject(request, userID)
+	projectID, err := endpoint.CreateHandler.CreateProject(request, userID.String())
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
 
 	response := &services.CreateProjectResponse{
-		Id: uint64(projectID),
+		Id: projectID,
 	}
 
 	return response, nil
@@ -57,7 +58,7 @@ func (endpoint *ProjectEndpoints) AddUserToProject(ctx context.Context, request 
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err := endpoint.AuthzHandler.Authorize(
-		uint(request.GetProjectId()),
+		uuid.MustParse(request.GetProjectId()),
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -80,7 +81,7 @@ func (endpoint *ProjectEndpoints) CreateAPIToken(ctx context.Context, request *s
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err := endpoint.AuthzHandler.Authorize(
-		uint(request.GetId()),
+		uuid.MustParse(request.GetId()),
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -94,7 +95,7 @@ func (endpoint *ProjectEndpoints) CreateAPIToken(ctx context.Context, request *s
 		return nil, err
 	}
 
-	token, err := endpoint.CreateHandler.CreateAPIToken(request, userID)
+	token, err := endpoint.CreateHandler.CreateAPIToken(request, userID.String())
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -119,7 +120,7 @@ func (endpoint *ProjectEndpoints) GetProjectDatasets(ctx context.Context, reques
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err := endpoint.AuthzHandler.Authorize(
-		uint(request.GetId()),
+		uuid.MustParse(request.GetId()),
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -127,7 +128,7 @@ func (endpoint *ProjectEndpoints) GetProjectDatasets(ctx context.Context, reques
 		return nil, err
 	}
 
-	datasets, err := endpoint.ReadHandler.GetProjectDatasets(uint(request.GetId()))
+	datasets, err := endpoint.ReadHandler.GetProjectDatasets(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -156,7 +157,7 @@ func (endpoint *ProjectEndpoints) GetUserProjects(ctx context.Context, request *
 		return nil, err
 	}
 
-	projects, err := endpoint.ReadHandler.GetUserProjects(userOauth2ID)
+	projects, err := endpoint.ReadHandler.GetUserProjects(userOauth2ID.String())
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -179,7 +180,7 @@ func (endpoint *ProjectEndpoints) GetProject(ctx context.Context, request *servi
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err := endpoint.AuthzHandler.Authorize(
-		uint(request.GetId()),
+		uuid.MustParse(request.GetId()),
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -187,7 +188,7 @@ func (endpoint *ProjectEndpoints) GetProject(ctx context.Context, request *servi
 		return nil, err
 	}
 
-	project, err := endpoint.ReadHandler.GetProject(uint(request.GetId()))
+	project, err := endpoint.ReadHandler.GetProject(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -235,7 +236,7 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *se
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err := endpoint.AuthzHandler.Authorize(
-		uint(request.GetId()),
+		uuid.MustParse(request.GetId()),
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -243,7 +244,7 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *se
 		return nil, err
 	}
 
-	objects, err := endpoint.ReadHandler.GetAllProjectObjects(uint(request.GetId()))
+	objects, err := endpoint.ReadHandler.GetAllProjectObjects(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -255,7 +256,7 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *se
 		return nil, err
 	}
 
-	err = endpoint.DeleteHandler.DeleteProject(uint(request.GetId()))
+	err = endpoint.DeleteHandler.DeleteProject(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

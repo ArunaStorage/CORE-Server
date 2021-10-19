@@ -21,17 +21,17 @@ type Streaming struct {
 	SigningSecret     string
 }
 
-func (handler *Streaming) CreateStreamingLink(request *services.GetObjectGroupsStreamLinkRequest, projectID uint) (string, error) {
+func (handler *Streaming) CreateStreamingLink(request *services.GetObjectGroupsStreamLinkRequest, projectID uuid.UUID) (string, error) {
 	var url string
 	var err error
 
 	switch value := request.Query.(type) {
 	case *services.GetObjectGroupsStreamLinkRequest_GroupIds:
-		url, err = handler.createObjectGroupsRequest(value.GroupIds.GetObjectGroups(), uint(request.GetDataset().GetDatasetId()), projectID)
+		url, err = handler.createObjectGroupsRequest(value.GroupIds.GetObjectGroups(), uuid.MustParse(request.GetDataset().GetDatasetId()), projectID)
 	case *services.GetObjectGroupsStreamLinkRequest_Dataset:
-		url, err = handler.createResourceObjectGroupsURL(uint(request.GetDataset().GetDatasetId()), "/dataset")
+		url, err = handler.createResourceObjectGroupsURL(uuid.MustParse(request.GetDataset().GetDatasetId()), "/dataset")
 	case *services.GetObjectGroupsStreamLinkRequest_DatasetVersion:
-		url, err = handler.createResourceObjectGroupsURL(uint(request.GetDatasetVersion().GetDatasetVersionId()), "/datasetversion")
+		url, err = handler.createResourceObjectGroupsURL(uuid.MustParse(request.GetDatasetVersion().GetDatasetVersionId()), "/datasetversion")
 	default:
 		return "", fmt.Errorf("could not find request type")
 	}
@@ -44,7 +44,7 @@ func (handler *Streaming) CreateStreamingLink(request *services.GetObjectGroupsS
 	return url, nil
 }
 
-func (handler *Streaming) createResourceObjectGroupsURL(resourceID uint, resourcePath string, queryParams ...string) (string, error) {
+func (handler *Streaming) createResourceObjectGroupsURL(resourceID uuid.UUID, resourcePath string, queryParams ...string) (string, error) {
 	saltBytes := make([]byte, 64)
 	_, err := rand.Read(saltBytes)
 	if err != nil {
@@ -87,7 +87,7 @@ func (handler *Streaming) createResourceObjectGroupsURL(resourceID uint, resourc
 	return signedURL.String(), nil
 }
 
-func (handler *Streaming) createObjectGroupsRequest(objectGroupIDs []uint64, datasetID uint, projectID uint) (string, error) {
+func (handler *Streaming) createObjectGroupsRequest(objectGroupIDs []string, datasetID uuid.UUID, projectID uuid.UUID) (string, error) {
 	rndBytes := make([]byte, 64)
 	_, err := rand.Read(rndBytes)
 	if err != nil {
@@ -97,11 +97,11 @@ func (handler *Streaming) createObjectGroupsRequest(objectGroupIDs []uint64, dat
 
 	base64Secret := base64.StdEncoding.EncodeToString(rndBytes)
 
-	var objectGroups []models.ObjectGroup
-	for _, objectGroupID := range objectGroupIDs {
+	objectGroups := make([]models.ObjectGroup, len(objectGroupIDs))
+	for i, objectGroupID := range objectGroupIDs {
 		objectGroup := models.ObjectGroup{}
-		objectGroup.ID = uint(objectGroupID)
-		objectGroups = append(objectGroups, objectGroup)
+		objectGroup.ID = uuid.MustParse(objectGroupID)
+		objectGroups[i] = objectGroup
 	}
 
 	uuid := uuid.NewString()

@@ -4,25 +4,29 @@ import (
 	"time"
 
 	protomodels "github.com/ScienceObjectsDB/go-api/api/models/v1"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 )
 
 type Object struct {
-	gorm.Model
-	ObjectUUID    string `gorm:"index,unique"`
-	Filename      string `gorm:"index"`
+	ID            uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	DeletedAt     gorm.DeletedAt `gorm:"index"`
+	ObjectUUID    uuid.UUID      `gorm:"index,unique"`
+	Filename      string         `gorm:"index"`
 	Filetype      string
 	ContentLen    int64
 	Location      Location   `gorm:"foreignKey:ObjectID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Labels        []Label    `gorm:"many2many:object_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata      []Metadata `gorm:"many2many:object_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	UploadID      string
-	ProjectID     uint `gorm:"index"`
+	ProjectID     uuid.UUID `gorm:"index"`
 	Project       Project
-	DatasetID     uint `gorm:"index"`
+	DatasetID     uuid.UUID `gorm:"index"`
 	Dataset       Dataset
-	ObjectGroupID uint `gorm:"index"`
+	ObjectGroupID uuid.UUID `gorm:"index"`
 	ObjectGroup   ObjectGroup
 }
 
@@ -38,7 +42,7 @@ func (object *Object) ToProtoModel() *protomodels.Object {
 	}
 
 	return &protomodels.Object{
-		Id:         uint64(object.ID),
+		Id:         object.ID.String(),
 		Filename:   object.Filename,
 		Filetype:   object.Filetype,
 		Labels:     labels,
@@ -52,12 +56,15 @@ func (object *Object) ToProtoModel() *protomodels.Object {
 }
 
 type ObjectGroup struct {
-	gorm.Model
+	ID          uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
 	Name        string
 	Description string
-	DatasetID   uint `gorm:"index"`
+	DatasetID   uuid.UUID `gorm:"index"`
 	Dataset     Dataset
-	ProjectID   uint `gorm:"index"`
+	ProjectID   uuid.UUID `gorm:"index"`
 	Project     Project
 	Labels      []Label    `gorm:"many2many:object_group_label;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata    []Metadata `gorm:"many2many:object_group_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
@@ -83,10 +90,10 @@ func (objectGroup *ObjectGroup) ToProtoModel() *protomodels.ObjectGroup {
 	}
 
 	return &protomodels.ObjectGroup{
-		Id:          uint64(objectGroup.ID),
+		Id:          objectGroup.ID.String(),
 		Name:        objectGroup.Name,
 		Description: objectGroup.Description,
-		DatasetId:   uint64(objectGroup.DatasetID),
+		DatasetId:   objectGroup.DatasetID.String(),
 		Labels:      labels,
 		Metadata:    metadataList,
 		Objects:     objectsList,

@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/ScienceObjectsDB/CORE-Server/models"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 
@@ -37,7 +38,7 @@ func NewOAuth2Authz(db *gorm.DB, authz *JWTHandler) (*OAuth2Authz, error) {
 	return &handler, nil
 }
 
-func (handler *OAuth2Authz) Authorize(token string, projectID uint) (bool, error) {
+func (handler *OAuth2Authz) Authorize(token string, projectID uuid.UUID) (bool, error) {
 	parsedToken, err := handler.JwtHandler.VerifyAndParseToken(token)
 	if err != nil {
 		log.Println(err.Error())
@@ -80,7 +81,7 @@ func (handler *OAuth2Authz) Authorize(token string, projectID uint) (bool, error
 	return true, nil
 }
 
-func (handler *OAuth2Authz) GetUserID(token string) (string, error) {
+func (handler *OAuth2Authz) GetUserID(token string) (uuid.UUID, error) {
 	req, err := http.NewRequest(
 		"GET",
 		handler.UserInfoEndpointURL,
@@ -89,40 +90,40 @@ func (handler *OAuth2Authz) GetUserID(token string) (string, error) {
 
 	if err != nil {
 		log.Println(err.Error())
-		return "", err
+		return uuid.UUID{}, err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+token)
 
 	response, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("failed getting user info: %s", err.Error())
+		return uuid.UUID{}, fmt.Errorf("failed getting user info: %s", err.Error())
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		err := fmt.Errorf("bad reponse when requesting userinfo: %v", response.Status)
 		log.Println(err)
-		return "", err
+		return uuid.UUID{}, err
 	}
 
 	contents, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed reading response body: %s", err.Error())
+		return uuid.UUID{}, fmt.Errorf("failed reading response body: %s", err.Error())
 	}
 
 	parsedContents := make(map[string]interface{})
 	err = json.Unmarshal(contents, &parsedContents)
 	if err != nil {
 		log.Println(err.Error())
-		return "", err
+		return uuid.UUID{}, err
 	}
 
 	var ok bool
 	var userID interface{}
 	if userID, ok = parsedContents["sub"]; !ok {
-		return "", fmt.Errorf("could not read sub claim from userinfo response")
+		return uuid.UUID{}, fmt.Errorf("could not read sub claim from userinfo response")
 	}
 
-	userIDString := userID.(string)
+	userIDString := uuid.MustParse(userID.(string))
 	return userIDString, nil
 }

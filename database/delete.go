@@ -2,6 +2,7 @@ package database
 
 import (
 	"github.com/ScienceObjectsDB/CORE-Server/models"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -9,7 +10,7 @@ type Delete struct {
 	*Common
 }
 
-func (handler *Delete) DeleteObjectGroup(objectGroupID uint) error {
+func (handler *Delete) DeleteObjectGroup(objectGroupID uuid.UUID) error {
 	objectGroup := &models.ObjectGroup{}
 	objectGroup.ID = objectGroupID
 
@@ -20,7 +21,7 @@ func (handler *Delete) DeleteObjectGroup(objectGroupID uint) error {
 	return nil
 }
 
-func (handler *Delete) DeleteDataset(datasetID uint) error {
+func (handler *Delete) DeleteDataset(datasetID uuid.UUID) error {
 	dataset := &models.Dataset{}
 	dataset.ID = datasetID
 
@@ -32,7 +33,7 @@ func (handler *Delete) DeleteDataset(datasetID uint) error {
 	return nil
 }
 
-func (handler *Delete) DeleteDatasetVersion(datasetVersionID uint) error {
+func (handler *Delete) DeleteDatasetVersion(datasetVersionID uuid.UUID) error {
 	version := &models.DatasetVersion{}
 	version.ID = datasetVersionID
 
@@ -44,7 +45,7 @@ func (handler *Delete) DeleteDatasetVersion(datasetVersionID uint) error {
 	return nil
 }
 
-func (handler *Delete) DeleteProject(projectID uint) error {
+func (handler *Delete) DeleteProject(projectID uuid.UUID) error {
 	project := &models.Project{}
 	project.ID = projectID
 
@@ -56,7 +57,7 @@ func (handler *Delete) DeleteProject(projectID uint) error {
 	return nil
 }
 
-func (handler *Delete) DeleteAPIToken(tokenID uint) error {
+func (handler *Delete) DeleteAPIToken(tokenID uuid.UUID) error {
 	token := &models.APIToken{}
 	token.ID = tokenID
 

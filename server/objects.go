@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
@@ -26,7 +27,7 @@ func NewObjectEndpoints(endpoints *Endpoints) (*ObjectServerEndpoints, error) {
 
 //CreateObjectGroup Creates a new object group endpoint service
 func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, request *services.CreateObjectGroupRequest) (*services.CreateObjectGroupResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uint(request.GetDatasetId()))
+	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetDatasetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -50,7 +51,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 	}
 
 	objectGroupResponse := &services.CreateObjectGroupResponse{
-		ObjectGroupId:   uint64(objectgroup.ID),
+		ObjectGroupId:   objectgroup.ID.String(),
 		ObjectGroupName: objectgroup.Name,
 		ObjectLinks:     []*services.CreateObjectGroupResponse_ObjectLinks{},
 	}
@@ -82,7 +83,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 		}
 	}
 
-	dataset, err := endpoint.ReadHandler.GetDataset(uint(datasetID))
+	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(datasetID))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -109,7 +110,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 
 	for _, objectgroup := range objectgroups {
 		objectgroupResponse := &services.CreateObjectGroupResponse{
-			ObjectGroupId:   uint64(objectgroup.ID),
+			ObjectGroupId:   objectgroup.ID.String(),
 			ObjectGroupName: objectgroup.Name,
 			ObjectLinks:     make([]*services.CreateObjectGroupResponse_ObjectLinks, 0),
 		}
@@ -139,7 +140,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 
 //GetObjectGroup Returns the object group with the given ID
 func (endpoint *ObjectServerEndpoints) GetObjectGroup(ctx context.Context, request *services.GetObjectGroupRequest) (*services.GetObjectGroupResponse, error) {
-	objectGroup, err := endpoint.ReadHandler.GetObjectGroup(uint(request.GetId()))
+	objectGroup, err := endpoint.ReadHandler.GetObjectGroup(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -170,7 +171,7 @@ func (endpoint *ObjectServerEndpoints) FinishObjectUpload(_ context.Context, _ *
 }
 
 func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, request *services.DeleteObjectGroupRequest) (*services.DeleteObjectGroupResponse, error) {
-	objectGroup, err := endpoint.ReadHandler.GetObjectGroup(uint(request.GetId()))
+	objectGroup, err := endpoint.ReadHandler.GetObjectGroup(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -187,7 +188,7 @@ func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, re
 		return nil, err
 	}
 
-	objects, err := endpoint.ReadHandler.GetAllObjectGroupObjects(uint(request.GetId()))
+	objects, err := endpoint.ReadHandler.GetAllObjectGroupObjects(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -201,7 +202,7 @@ func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, re
 		}
 	}
 
-	err = endpoint.DeleteHandler.DeleteObjectGroup(uint(request.GetId()))
+	err = endpoint.DeleteHandler.DeleteObjectGroup(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

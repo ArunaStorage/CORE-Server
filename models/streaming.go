@@ -1,14 +1,17 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type StreamingEntry struct {
 	gorm.Model
 	UUID         string `gorm:"index"`
 	Secret       string
-	DatasetID    uint
+	DatasetID    uuid.UUID
 	Dataset      Dataset
-	ProjectID    uint
+	ProjectID    uuid.UUID
 	Project      Project
 	ObjectGroups []ObjectGroup `gorm:"many2many:streaming_entry_object_groups;"`
 }

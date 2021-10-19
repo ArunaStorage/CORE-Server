@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 
@@ -14,7 +15,7 @@ type Read struct {
 	*Common
 }
 
-func (read *Read) GetProject(projectID uint) (*models.Project, error) {
+func (read *Read) GetProject(projectID uuid.UUID) (*models.Project, error) {
 	project := &models.Project{}
 	project.ID = projectID
 
@@ -26,7 +27,7 @@ func (read *Read) GetProject(projectID uint) (*models.Project, error) {
 	return project, nil
 }
 
-func (read *Read) GetDataset(datasetID uint) (*models.Dataset, error) {
+func (read *Read) GetDataset(datasetID uuid.UUID) (*models.Dataset, error) {
 	dataset := &models.Dataset{}
 	dataset.ID = datasetID
 
@@ -38,7 +39,7 @@ func (read *Read) GetDataset(datasetID uint) (*models.Dataset, error) {
 	return dataset, nil
 }
 
-func (read *Read) GetObjectGroup(objectGroupID uint) (*models.ObjectGroup, error) {
+func (read *Read) GetObjectGroup(objectGroupID uuid.UUID) (*models.ObjectGroup, error) {
 	objectGroup := &models.ObjectGroup{}
 	objectGroup.ID = objectGroupID
 
@@ -50,7 +51,7 @@ func (read *Read) GetObjectGroup(objectGroupID uint) (*models.ObjectGroup, error
 	return objectGroup, nil
 }
 
-func (read *Read) GetObjectGroupRevisionsObjects(objectGroupRevisionID uint) ([]*models.Object, error) {
+func (read *Read) GetObjectGroupRevisionsObjects(objectGroupRevisionID uuid.UUID) ([]*models.Object, error) {
 	objects := make([]*models.Object, 0)
 
 	if err := read.DB.Preload("Labels").Preload("Metadata").Where("object_group_revision_id = ?", objectGroupRevisionID).Find(&objects).Error; err != nil {
@@ -61,7 +62,7 @@ func (read *Read) GetObjectGroupRevisionsObjects(objectGroupRevisionID uint) ([]
 	return objects, nil
 }
 
-func (read *Read) GetProjectDatasets(projectID uint) ([]*models.Dataset, error) {
+func (read *Read) GetProjectDatasets(projectID uuid.UUID) ([]*models.Dataset, error) {
 	objects := make([]*models.Dataset, 0)
 
 	if err := read.DB.Preload("Labels").Preload("Metadata").Where("project_id = ?", projectID).Find(&objects).Error; err != nil {
@@ -72,7 +73,7 @@ func (read *Read) GetProjectDatasets(projectID uint) ([]*models.Dataset, error) 
 	return objects, nil
 }
 
-func (read *Read) GetDatasetObjectGroups(datasetID uint) ([]*models.ObjectGroup, error) {
+func (read *Read) GetDatasetObjectGroups(datasetID uuid.UUID) ([]*models.ObjectGroup, error) {
 	objectGroups := make([]*models.ObjectGroup, 0)
 	if err := read.DB.Preload("Objects.Location").Preload("Objects").Preload("Labels").Preload("Metadata").Where("dataset_id = ?", datasetID).Find(&objectGroups).Error; err != nil {
 		log.Println(err.Error())
@@ -82,7 +83,7 @@ func (read *Read) GetDatasetObjectGroups(datasetID uint) ([]*models.ObjectGroup,
 	return objectGroups, nil
 }
 
-func (read *Read) GetObject(objectID uint) (*models.Object, error) {
+func (read *Read) GetObject(objectID uuid.UUID) (*models.Object, error) {
 	object := models.Object{}
 	object.ID = objectID
 
@@ -94,7 +95,7 @@ func (read *Read) GetObject(objectID uint) (*models.Object, error) {
 	return &object, nil
 }
 
-func (read *Read) GetDatasetVersion(versionID uint) (*models.DatasetVersion, error) {
+func (read *Read) GetDatasetVersion(versionID uuid.UUID) (*models.DatasetVersion, error) {
 	datasetVersion := &models.DatasetVersion{}
 	datasetVersion.ID = versionID
 
@@ -106,7 +107,7 @@ func (read *Read) GetDatasetVersion(versionID uint) (*models.DatasetVersion, err
 	return datasetVersion, nil
 }
 
-func (read *Read) GetDatasetVersions(datasetID uint) ([]models.DatasetVersion, error) {
+func (read *Read) GetDatasetVersions(datasetID uuid.UUID) ([]models.DatasetVersion, error) {
 	var datasetVersions []models.DatasetVersion
 	if err := read.DB.Preload("Metadata").Preload("Labels").Where("dataset_id = ?", datasetID).Find(&datasetVersions).Error; err != nil {
 		log.Println(err.Error())
@@ -116,7 +117,7 @@ func (read *Read) GetDatasetVersions(datasetID uint) ([]models.DatasetVersion, e
 	return datasetVersions, nil
 }
 
-func (read *Read) GetAPIToken(userOAuth2ID string) ([]models.APIToken, error) {
+func (read *Read) GetAPIToken(userOAuth2ID uuid.UUID) ([]models.APIToken, error) {
 	user := &models.User{}
 
 	if err := read.DB.Where("user_oauth2_id = ?", userOAuth2ID).Find(user).Error; err != nil {
@@ -133,7 +134,7 @@ func (read *Read) GetAPIToken(userOAuth2ID string) ([]models.APIToken, error) {
 	return token, nil
 }
 
-func (read *Read) GetDatasetVersionWithObjectGroups(datasetVersionID uint) (*models.DatasetVersion, error) {
+func (read *Read) GetDatasetVersionWithObjectGroups(datasetVersionID uuid.UUID) (*models.DatasetVersion, error) {
 	version := &models.DatasetVersion{}
 	version.ID = datasetVersionID
 
@@ -160,7 +161,7 @@ func (read *Read) GetUserProjects(userIDOauth2 string) ([]*models.Project, error
 	return projects, nil
 }
 
-func (read *Read) GetAllDatasetObjects(datasetID uint) ([]*models.Object, error) {
+func (read *Read) GetAllDatasetObjects(datasetID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 	if err := read.DB.Preload("Location").Where("dataset_id = ?", datasetID).Find(&objects).Error; err != nil {
 		log.Println(err.Error())
@@ -170,7 +171,7 @@ func (read *Read) GetAllDatasetObjects(datasetID uint) ([]*models.Object, error)
 	return objects, nil
 }
 
-func (read *Read) GetAllProjectObjects(projectID uint) ([]*models.Object, error) {
+func (read *Read) GetAllProjectObjects(projectID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 	if err := read.DB.Preload("Location").Where("project_id = ?", projectID).Find(&objects).Error; err != nil {
 		log.Println(err.Error())
@@ -180,7 +181,7 @@ func (read *Read) GetAllProjectObjects(projectID uint) ([]*models.Object, error)
 	return objects, nil
 }
 
-func (read *Read) GetAllObjectGroupObjects(objectGroupID uint) ([]*models.Object, error) {
+func (read *Read) GetAllObjectGroupObjects(objectGroupID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 	if err := read.DB.Preload("Location").Where("object_group_id = ?", objectGroupID).Find(&objects).Error; err != nil {
 		log.Println(err.Error())
@@ -190,7 +191,7 @@ func (read *Read) GetAllObjectGroupObjects(objectGroupID uint) ([]*models.Object
 	return objects, nil
 }
 
-func (read *Read) GetAllObjectGroupRevisionObjects(revisionID uint) ([]*models.Object, error) {
+func (read *Read) GetAllObjectGroupRevisionObjects(revisionID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 	if err := read.DB.Preload("Location").Where("object_group_revision_id = ?", revisionID).Find(&objects).Error; err != nil {
 		log.Println(err.Error())
@@ -200,7 +201,7 @@ func (read *Read) GetAllObjectGroupRevisionObjects(revisionID uint) ([]*models.O
 	return objects, nil
 }
 
-func (read *Read) GetObjectGroupsInDateRange(datasetID uint, startDate time.Time, endDate time.Time) ([]*models.ObjectGroup, error) {
+func (read *Read) GetObjectGroupsInDateRange(datasetID uuid.UUID, startDate time.Time, endDate time.Time) ([]*models.ObjectGroup, error) {
 	var objectGroups []*models.ObjectGroup
 	preloadConf := read.DB.Preload("Metadata").Preload("Labels").Preload("Objects").Preload("Objects.Location").Preload("Objects.Metadata").Preload("Objects.Labels")
 	if err := preloadConf.Where("dataset_id = ? AND generated  BETWEEN ? AND ?", datasetID, startDate, endDate).Find(&objectGroups).Error; err != nil {
@@ -211,7 +212,7 @@ func (read *Read) GetObjectGroupsInDateRange(datasetID uint, startDate time.Time
 	return objectGroups, nil
 }
 
-func (read *Read) GetObjectsBatch(ids []uint) ([]*models.Object, error) {
+func (read *Read) GetObjectsBatch(ids []uuid.UUID) ([]*models.Object, error) {
 	objects := make([]*models.Object, len(ids))
 	for i, id := range ids {
 		object := &models.Object{}
@@ -229,7 +230,7 @@ func (read *Read) GetObjectsBatch(ids []uint) ([]*models.Object, error) {
 
 // BatchedReads
 
-func (read *Read) GetDatasetObjectGroupsBatches(datasetID uint, objectGroupsChan chan []*models.ObjectGroup) error {
+func (read *Read) GetDatasetObjectGroupsBatches(datasetID uuid.UUID, objectGroupsChan chan []*models.ObjectGroup) error {
 	objectGroups := make([]*models.ObjectGroup, 0)
 	if err := read.DB.Preload("Objects.Location").Preload("Objects").Preload("Labels").Preload("Metadata").Where("dataset_id = ?", datasetID).FindInBatches(&objectGroups, 10000, func(tx *gorm.DB, batch int) error {
 		var objectGroupsBatch []*models.ObjectGroup
@@ -245,7 +246,7 @@ func (read *Read) GetDatasetObjectGroupsBatches(datasetID uint, objectGroupsChan
 	return nil
 }
 
-func (read *Read) GetObjectGroupsInDateRangeBatches(datasetID uint, startDate time.Time, endDate time.Time, objectGroupsChan chan []*models.ObjectGroup) error {
+func (read *Read) GetObjectGroupsInDateRangeBatches(datasetID uuid.UUID, startDate time.Time, endDate time.Time, objectGroupsChan chan []*models.ObjectGroup) error {
 	var objectGroups []*models.ObjectGroup
 	preloadConf := read.DB.Preload("Metadata").Preload("Labels").Preload("Objects").Preload("Objects.Location").Preload("Objects.Metadata").Preload("Objects.Labels")
 	if err := preloadConf.Where("dataset_id = ? AND generated  BETWEEN ? AND ?", datasetID, startDate, endDate).FindInBatches(&objectGroups, 10000, func(tx *gorm.DB, batch int) error {

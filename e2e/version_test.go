@@ -201,7 +201,7 @@ func TestDatasetVersion(t *testing.T) {
 			Stage:    v1.Version_STABLE,
 		},
 		Description:    "testrelease",
-		ObjectGroupIds: []uint64{getObjectGroupResponse.ObjectGroup.Id},
+		ObjectGroupIds: []string{getObjectGroupResponse.ObjectGroup.Id},
 		Labels:         versionLabel,
 		Metadata:       versionMetadata,
 	}

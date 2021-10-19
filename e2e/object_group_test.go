@@ -11,6 +11,7 @@ import (
 
 	v1 "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -379,7 +380,7 @@ func TestObjectGroupsDates(t *testing.T) {
 	}
 
 	objectGroups, err := ServerEndpoints.dataset.ReadHandler.GetObjectGroupsInDateRange(
-		uint(datasetID.GetId()),
+		uuid.MustParse(datasetID.GetId()),
 		time.Date(1995, time.December, 27, 0, 0, 0, 0, time.Local),
 		time.Date(2015, time.December, 27, 0, 0, 0, 0, time.Local))
 	if err != nil {

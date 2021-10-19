@@ -5,14 +5,15 @@ import (
 	"log"
 
 	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/metadata"
 	"gorm.io/gorm"
 )
 
 type AuthInterface interface {
-	GetUserID(metadata metadata.MD) (string, error)
-	Authorize(projectID uint, requestedRight protoModels.Right, metadata metadata.MD) error
+	GetUserID(metadata metadata.MD) (uuid.UUID, error)
+	Authorize(projectID uuid.UUID, requestedRight protoModels.Right, metadata metadata.MD) error
 	AuthorizeCreateProject(metadata metadata.MD) error
 }
 

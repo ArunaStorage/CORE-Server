@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
@@ -29,7 +30,7 @@ func NewLoadEndpoints(endpoints *Endpoints) (*LoadEndpoints, error) {
 }
 
 func (endpoint *LoadEndpoints) CreateUploadLink(ctx context.Context, request *services.CreateUploadLinkRequest) (*services.CreateUploadLinkResponse, error) {
-	object, err := endpoint.ReadHandler.GetObject(uint(request.GetId()))
+	object, err := endpoint.ReadHandler.GetObject(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -60,7 +61,7 @@ func (endpoint *LoadEndpoints) CreateUploadLink(ctx context.Context, request *se
 }
 
 func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *services.CreateDownloadLinkRequest) (*services.CreateDownloadLinkResponse, error) {
-	object, err := endpoint.ReadHandler.GetObject(uint(request.GetId()))
+	object, err := endpoint.ReadHandler.GetObject(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -93,10 +94,10 @@ func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *
 func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, request *services.CreateDownloadLinkBatchRequest) (*services.CreateDownloadLinkBatchResponse, error) {
 	metadata, _ := metadata.FromIncomingContext(ctx)
 	dlLinks := make([]*services.CreateDownloadLinkResponse, len(request.GetRequests()))
-	projectIDs := make(map[uint]interface{})
-	objectIDs := make([]uint, len(request.GetRequests()))
+	projectIDs := make(map[uuid.UUID]interface{})
+	objectIDs := make([]uuid.UUID, len(request.GetRequests()))
 	for i, request := range request.GetRequests() {
-		objectIDs[i] = uint(request.GetId())
+		objectIDs[i] = uuid.MustParse(request.GetId())
 	}
 
 	objects, err := endpoint.ReadHandler.GetObjectsBatch(objectIDs)
@@ -138,12 +139,12 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, requ
 }
 
 func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.CreateDownloadLinkStreamRequest, responseStream services.ObjectLoadService_CreateDownloadLinkStreamServer) error {
-	var projectID uint
+	var projectID uuid.UUID
 
 	switch value := request.Query.(type) {
 	case *services.CreateDownloadLinkStreamRequest_Dataset:
 		{
-			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.Dataset.GetDatasetId()))
+			dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(value.Dataset.GetDatasetId()))
 			if err != nil {
 				log.Println(err.Error())
 				return err
@@ -153,7 +154,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 		}
 	case *services.CreateDownloadLinkStreamRequest_DatasetVersion:
 		{
-			dataset, err := endpoint.ReadHandler.GetDatasetVersion(uint(value.DatasetVersion.GetDatasetVersionId()))
+			dataset, err := endpoint.ReadHandler.GetDatasetVersion(uuid.MustParse(value.DatasetVersion.GetDatasetVersionId()))
 			if err != nil {
 				log.Println(err.Error())
 				return err
@@ -163,7 +164,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 		}
 	case *services.CreateDownloadLinkStreamRequest_DateRange:
 		{
-			dataset, err := endpoint.ReadHandler.GetDataset(uint(value.DateRange.GetDatasetId()))
+			dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(value.DateRange.GetDatasetId()))
 			if err != nil {
 				log.Println(err.Error())
 				return err
@@ -178,7 +179,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 	metadata, _ := metadata.FromIncomingContext(responseStream.Context())
 
 	err := endpoint.AuthzHandler.Authorize(
-		uint(projectID),
+		projectID,
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -194,7 +195,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 		{
 			readerErrGrp.Go(func() error {
 				defer close(objectGroupsChan)
-				return endpoint.ReadHandler.GetDatasetObjectGroupsBatches(uint(value.Dataset.GetDatasetId()), objectGroupsChan)
+				return endpoint.ReadHandler.GetDatasetObjectGroupsBatches(uuid.MustParse(value.Dataset.GetDatasetId()), objectGroupsChan)
 			})
 
 		}
@@ -202,7 +203,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 		{
 			readerErrGrp.Go(func() error {
 				defer close(objectGroupsChan)
-				return endpoint.ReadHandler.GetObjectGroupsInDateRangeBatches(uint(value.DateRange.GetDatasetId()), value.DateRange.Start.AsTime(), value.DateRange.End.AsTime(), objectGroupsChan)
+				return endpoint.ReadHandler.GetObjectGroupsInDateRangeBatches(uuid.MustParse(value.DateRange.GetDatasetId()), value.DateRange.Start.AsTime(), value.DateRange.End.AsTime(), objectGroupsChan)
 			})
 		}
 	default:
@@ -246,7 +247,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 }
 
 func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request *services.StartMultipartUploadRequest) (*services.StartMultipartUploadResponse, error) {
-	object, err := endpoint.ReadHandler.GetObject(uint(request.GetId()))
+	object, err := endpoint.ReadHandler.GetObject(uuid.MustParse(request.GetId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -284,7 +285,7 @@ func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request
 }
 
 func (endpoint *LoadEndpoints) GetMultipartUploadLink(ctx context.Context, request *services.GetMultipartUploadLinkRequest) (*services.GetMultipartUploadLinkResponse, error) {
-	object, err := endpoint.ReadHandler.GetObject(uint(request.GetObjectId()))
+	object, err := endpoint.ReadHandler.GetObject(uuid.MustParse(request.GetObjectId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -315,7 +316,7 @@ func (endpoint *LoadEndpoints) GetMultipartUploadLink(ctx context.Context, reque
 }
 
 func (endpoint *LoadEndpoints) CompleteMultipartUpload(ctx context.Context, request *services.CompleteMultipartUploadRequest) (*services.CompleteMultipartUploadResponse, error) {
-	object, err := endpoint.ReadHandler.GetObject(uint(request.GetObjectId()))
+	object, err := endpoint.ReadHandler.GetObject(uuid.MustParse(request.GetObjectId()))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

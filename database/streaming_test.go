@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ScienceObjectsDB/CORE-Server/signing"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +31,13 @@ func TestCreateDatasetObjectGroupsURL(t *testing.T) {
 		t.Log(err.Error())
 	}
 
-	resultURL, err := streamingHandler.createResourceObjectGroupsURL(500, "/dataset", "starttime", string(startTimeString), "endtime", string(endTimeString))
+	resourceUUID, err := uuid.NewUUID()
+	if err != nil {
+		log.Println(err.Error())
+		t.Log(err.Error())
+	}
+
+	resultURL, err := streamingHandler.createResourceObjectGroupsURL(resourceUUID, "/dataset", "starttime", string(startTimeString), "endtime", string(endTimeString))
 	if err != nil {
 		log.Println(err.Error())
 		t.Log(err.Error())
@@ -79,7 +86,7 @@ func TestCreateDatasetObjectGroupsURL(t *testing.T) {
 	assert.Equal(t, parsedURL.Host, "testendpoint:9010")
 	assert.Equal(t, parsedURL.Scheme, "http")
 	assert.Equal(t, parsedURL.Path, "/dataset")
-	assert.Equal(t, parsedURL.Query().Get("id"), "500")
+	assert.Equal(t, parsedURL.Query().Get("id"), resourceUUID.String())
 	assert.Equal(t, string(startTimeString), string(queryStartTime))
 	assert.Equal(t, string(endTimeString), string(queryEndTime))
 

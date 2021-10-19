@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
@@ -76,7 +78,7 @@ func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageH
 }
 
 // CreateLocation Creates a location in objectstorage that stores the object
-func (s3Handler *S3ObjectStorageHandler) CreateLocation(projectID uint, datasetID uint, objectUUID string, filename string) models.Location {
+func (s3Handler *S3ObjectStorageHandler) CreateLocation(projectID uuid.UUID, datasetID uuid.UUID, objectUUID uuid.UUID, filename string) models.Location {
 	objectKey := fmt.Sprintf("%v/%v/%v/%v", projectID, datasetID, objectUUID, filename)
 	location := models.Location{
 		Endpoint: s3Handler.S3Endpoint,

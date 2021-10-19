@@ -2,8 +2,8 @@ package streamingserver
 
 import (
 	"fmt"
-	"strconv"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ScienceObjectsDB/CORE-Server/database"
@@ -55,7 +55,7 @@ func (server *DataStreamingServer) datasetStream(c *gin.Context) {
 	}
 
 	datasetIDString := c.Query("id")
-	datasetID, err := strconv.Atoi(datasetIDString)
+	datasetID := uuid.MustParse(datasetIDString)
 	if err != nil {
 		log.Println(err.Error())
 		c.AbortWithError(400, fmt.Errorf("could not parse id value"))
@@ -65,7 +65,7 @@ func (server *DataStreamingServer) datasetStream(c *gin.Context) {
 	c.Status(200)
 	c.Header("Content-Disposition", `attachment; filename="test.tar.gz"`)
 
-	objectGroups, err := server.ReadHandler.GetDatasetObjectGroups(uint(datasetID))
+	objectGroups, err := server.ReadHandler.GetDatasetObjectGroups(datasetID)
 	if err != nil {
 		log.Println(err.Error())
 		c.AbortWithStatus(503)

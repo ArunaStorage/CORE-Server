@@ -1,12 +1,18 @@
 package models
 
 import (
+	"time"
+
 	protomodels "github.com/ScienceObjectsDB/go-api/api/models/v1"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Project struct {
-	gorm.Model
+	ID          uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
 	Description string
 	Users       []User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Name        string
@@ -34,7 +40,7 @@ func (project *Project) ToProtoModel() *protomodels.Project {
 	}
 
 	return &protomodels.Project{
-		Id:          uint64(project.ID),
+		Id:          project.ID.String(),
 		Name:        project.Name,
 		Description: project.Description,
 		Users:       users,
@@ -44,9 +50,12 @@ func (project *Project) ToProtoModel() *protomodels.Project {
 }
 
 type User struct {
-	gorm.Model
+	ID           uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    gorm.DeletedAt `gorm:"index"`
 	UserOauth2ID string
-	ProjectID    uint
+	ProjectID    uuid.UUID
 	Project      Project
 }
 
@@ -59,9 +68,12 @@ func (user *User) ToProtoModel() *protomodels.User {
 }
 
 type UserRight struct {
-	gorm.Model
-	Right  string
-	UserID uint
+	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+	Right     string
+	UserID    uuid.UUID
 }
 
 func (right *UserRight) ToProtoModel() protomodels.Right {
@@ -69,9 +81,12 @@ func (right *UserRight) ToProtoModel() protomodels.Right {
 }
 
 type APITokenRight struct {
-	gorm.Model
+	ID         uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  gorm.DeletedAt `gorm:"index"`
 	Right      string
-	APITokenID uint
+	APITokenID uuid.UUID
 }
 
 func (right *APITokenRight) ToProtoModel() protomodels.Right {
@@ -79,18 +94,21 @@ func (right *APITokenRight) ToProtoModel() protomodels.Right {
 }
 
 type APIToken struct {
-	gorm.Model
-	Token     string `gorm:"index"`
-	ProjectID uint
+	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+	Token     string         `gorm:"index"`
+	ProjectID uuid.UUID      `gorm:"index"`
 	Project   Project
-	UserUUID  string `gorm:"index"`
+	UserUUID  uuid.UUID `gorm:"index"`
 }
 
 func (token *APIToken) ToProtoModel() *protomodels.APIToken {
 	apiToken := protomodels.APIToken{
-		Id:        uint64(token.ID),
+		Id:        token.ID.String(),
 		Token:     token.Token,
-		ProjectId: uint64(token.ProjectID),
+		ProjectId: token.ProjectID.String(),
 	}
 
 	return &apiToken
