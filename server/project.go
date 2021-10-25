@@ -265,6 +265,23 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *se
 	return &services.DeleteProjectResponse{}, nil
 }
 
-func (endpoint *ProjectEndpoints) DeleteAPIToken(_ context.Context, _ *services.DeleteAPITokenRequest) (*services.DeleteAPITokenResponse, error) {
-	panic("not implemented") // TODO: Implement
+func (endpoint *ProjectEndpoints) DeleteAPIToken(ctx context.Context, request *services.DeleteAPITokenRequest) (*services.DeleteAPITokenResponse, error) {
+	metadata, _ := metadata.FromIncomingContext(ctx)
+
+	err := endpoint.AuthzHandler.Authorize(
+		uuid.MustParse(request.GetId()),
+		protoModels.Right_WRITE,
+		metadata)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	err = endpoint.DeleteHandler.DeleteAPIToken(uuid.MustParse(request.GetId()))
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	return &services.DeleteAPITokenResponse{}, nil
 }
