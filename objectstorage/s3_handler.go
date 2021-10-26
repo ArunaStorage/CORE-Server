@@ -15,6 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+
+	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
 )
 
 // Default chunk size for chunked downloads
@@ -90,12 +92,20 @@ func (s3Handler *S3ObjectStorageHandler) CreateLocation(projectID uuid.UUID, dat
 }
 
 // CreateDownloadLink Generates a presigned download link for an object
-func (s3Handler *S3ObjectStorageHandler) CreateDownloadLink(object *models.Object) (string, error) {
+func (s3Handler *S3ObjectStorageHandler) CreateDownloadLink(object *models.Object, request *services.CreateDownloadLinkRequest) (string, error) {
 	ctx := context.Background()
-	presignReq, err := s3Handler.PresignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+
+	objectInputConf := &s3.GetObjectInput{
 		Bucket: &object.Location.Bucket,
 		Key:    &object.Location.Key,
-	})
+	}
+
+	if request.Range != nil {
+		rangeReq := fmt.Sprintf("bytes=%d-%d", request.Range.StartByte, request.Range.EndByte)
+		objectInputConf.Range = &rangeReq
+	}
+
+	presignReq, err := s3Handler.PresignClient.PresignGetObject(ctx, objectInputConf)
 	if err != nil {
 		log.Println(err.Error())
 		return "", err

@@ -78,7 +78,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *
 		return nil, err
 	}
 
-	downloadLink, err := endpoint.ObjectHandler.CreateDownloadLink(object)
+	downloadLink, err := endpoint.ObjectHandler.CreateDownloadLink(object, request)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -119,7 +119,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, requ
 	}
 
 	for i, object := range objects {
-		link, err := endpoint.ObjectHandler.CreateDownloadLink(object)
+		link, err := endpoint.ObjectHandler.CreateDownloadLink(object, request.GetRequests()[i])
 		if err != nil {
 			log.Println(err.Error())
 			return nil, err
@@ -217,7 +217,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 			objectGroups = append(objectGroups, objectGroup.ToProtoModel())
 			objectLinks := make([]string, len(objectGroup.Objects))
 			for j, object := range objectGroup.Objects {
-				link, err := endpoint.ObjectHandler.CreateDownloadLink(&object)
+				link, err := endpoint.ObjectHandler.CreateDownloadLink(&object, &services.CreateDownloadLinkRequest{})
 				if err != nil {
 					log.Println(err.Error())
 					return err

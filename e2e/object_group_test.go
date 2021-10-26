@@ -227,6 +227,40 @@ func TestObjectGroup(t *testing.T) {
 	}
 
 	assert.Equal(t, string(data), "foo")
+
+	downloadLinkRange, err := ServerEndpoints.load.CreateDownloadLink(context.Background(), &services.CreateDownloadLinkRequest{
+		Id: object.GetId(),
+		Range: &services.CreateDownloadLinkRequest_Range{
+			StartByte: 0,
+			EndByte:   1,
+		},
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	rangeDLRequest, err := http.NewRequest("GET", downloadLinkRange.GetDownloadLink(), &bytes.Reader{})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	rangeDLRequest.Header.Add("Range", "bytes=0-1")
+
+	dlResponseRange, err := http.DefaultClient.Do(rangeDLRequest)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	if response.StatusCode != 200 {
+		log.Fatalln(response.Status)
+	}
+
+	dataRange, err := ioutil.ReadAll(dlResponseRange.Body)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, string(dataRange), "fo")
 }
 
 func TestObjectGroupBatch(t *testing.T) {
