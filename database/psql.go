@@ -13,6 +13,7 @@ import (
 
 // NewPsqlDB Regular Postgres database init.
 // Will check if database migrations are required.
+// Also works for cockroachDB
 func NewPsqlDB(host string, port uint64, username string, dbName string) (*gorm.DB, error) {
 	psqlPW := os.Getenv("PSQL_PASSWORD")
 
@@ -22,7 +23,9 @@ func NewPsqlDB(host string, port uint64, username string, dbName string) (*gorm.
 		dsn = "postgres://root@localhost:26257/defaultdb?sslmode=disable"
 	}
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: NewGormLogger(),
+	})
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

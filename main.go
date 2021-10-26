@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-	log.SetFormatter(&log.JSONFormatter{})
 	log.SetReportCaller(true)
 
 	viper.SetConfigName("config") // name of config file (without extension)
