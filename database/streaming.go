@@ -27,11 +27,35 @@ func (handler *Streaming) CreateStreamingLink(request *services.GetObjectGroupsS
 
 	switch value := request.Query.(type) {
 	case *services.GetObjectGroupsStreamLinkRequest_GroupIds:
-		url, err = handler.createObjectGroupsRequest(value.GroupIds.GetObjectGroups(), uuid.MustParse(request.GetDataset().GetDatasetId()), projectID)
+		{
+			var datasetID uuid.UUID
+			datasetID, err = uuid.Parse(request.GetDataset().GetDatasetId())
+			if err != nil {
+				log.Debug(err.Error())
+				return "", err
+			}
+			url, err = handler.createObjectGroupsRequest(value.GroupIds.GetObjectGroups(), datasetID, projectID)
+		}
 	case *services.GetObjectGroupsStreamLinkRequest_Dataset:
-		url, err = handler.createResourceObjectGroupsURL(uuid.MustParse(request.GetDataset().GetDatasetId()), "/dataset")
+		{
+			var datasetID uuid.UUID
+			datasetID, err = uuid.Parse(request.GetDataset().GetDatasetId())
+			if err != nil {
+				log.Debug(err.Error())
+				return "", err
+			}
+			url, err = handler.createResourceObjectGroupsURL(datasetID, "/dataset")
+		}
 	case *services.GetObjectGroupsStreamLinkRequest_DatasetVersion:
-		url, err = handler.createResourceObjectGroupsURL(uuid.MustParse(request.GetDatasetVersion().GetDatasetVersionId()), "/datasetversion")
+		{
+			var datasetVersionID uuid.UUID
+			datasetVersionID, err = uuid.Parse(request.GetDatasetVersion().GetDatasetVersionId())
+			if err != nil {
+				log.Debug(err.Error())
+				return "", err
+			}
+			url, err = handler.createResourceObjectGroupsURL(datasetVersionID, "/datasetversion")
+		}
 	default:
 		return "", fmt.Errorf("could not find request type")
 	}
@@ -99,8 +123,14 @@ func (handler *Streaming) createObjectGroupsRequest(objectGroupIDs []string, dat
 
 	objectGroups := make([]models.ObjectGroup, len(objectGroupIDs))
 	for i, objectGroupID := range objectGroupIDs {
+		objectGroupIDParsed, err := uuid.Parse(objectGroupID)
+		if err != nil {
+			log.Debug(objectGroupIDParsed)
+			return "", err
+		}
+
 		objectGroup := models.ObjectGroup{}
-		objectGroup.ID = uuid.MustParse(objectGroupID)
+		objectGroup.ID = objectGroupIDParsed
 		objectGroups[i] = objectGroup
 	}
 

@@ -23,11 +23,11 @@ require (
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20211021150943-2b146023228c // indirect
+	google.golang.org/genproto v0.0.0-20211026145609-4688e4c4e024 // indirect
 	google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf v1.27.1
-	gorm.io/driver/postgres v1.1.2
-	gorm.io/gorm v1.21.16
+	gorm.io/driver/postgres v1.2.0
+	gorm.io/gorm v1.22.0
 )
 
 require (

@@ -124,6 +124,11 @@ func (handler *OAuth2Authz) GetUserID(token string) (uuid.UUID, error) {
 		return uuid.UUID{}, fmt.Errorf("could not read sub claim from userinfo response")
 	}
 
-	userIDString := uuid.MustParse(userID.(string))
+	userIDString, err := uuid.Parse(userID.(string))
+	if err != nil {
+		log.Debug(err.Error())
+		return uuid.UUID{}, err
+	}
+
 	return userIDString, nil
 }

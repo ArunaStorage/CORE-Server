@@ -8,7 +8,9 @@ import (
 
 	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 // Implements the gRPC project serivce.
@@ -55,10 +57,16 @@ func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *se
 
 //AddUserToProject Adds a new user to a given project
 func (endpoint *ProjectEndpoints) AddUserToProject(ctx context.Context, request *services.AddUserToProjectRequest) (*services.AddUserToProjectResponse, error) {
+	projectID, err := uuid.Parse(request.GetProjectId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse ID")
+	}
+
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
-	err := endpoint.AuthzHandler.Authorize(
-		uuid.MustParse(request.GetProjectId()),
+	err = endpoint.AuthzHandler.Authorize(
+		projectID,
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -78,11 +86,17 @@ func (endpoint *ProjectEndpoints) AddUserToProject(ctx context.Context, request 
 }
 
 func (endpoint *ProjectEndpoints) CreateAPIToken(ctx context.Context, request *services.CreateAPITokenRequest) (*services.CreateAPITokenResponse, error) {
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse ID")
+	}
+
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
-	err := endpoint.AuthzHandler.Authorize(
-		uuid.MustParse(request.GetId()),
-		protoModels.Right_READ,
+	err = endpoint.AuthzHandler.Authorize(
+		requestID,
+		protoModels.Right_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -117,10 +131,16 @@ func (endpoint *ProjectEndpoints) CreateAPIToken(ctx context.Context, request *s
 
 //GetProjectDatasets Returns all datasets that belong to a certain project
 func (endpoint *ProjectEndpoints) GetProjectDatasets(ctx context.Context, request *services.GetProjectDatasetsRequest) (*services.GetProjectDatasetsResponse, error) {
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse ID")
+	}
+
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
-	err := endpoint.AuthzHandler.Authorize(
-		uuid.MustParse(request.GetId()),
+	err = endpoint.AuthzHandler.Authorize(
+		requestID,
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -128,7 +148,7 @@ func (endpoint *ProjectEndpoints) GetProjectDatasets(ctx context.Context, reques
 		return nil, err
 	}
 
-	datasets, err := endpoint.ReadHandler.GetProjectDatasets(uuid.MustParse(request.GetId()))
+	datasets, err := endpoint.ReadHandler.GetProjectDatasets(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -177,10 +197,16 @@ func (endpoint *ProjectEndpoints) GetUserProjects(ctx context.Context, request *
 }
 
 func (endpoint *ProjectEndpoints) GetProject(ctx context.Context, request *services.GetProjectRequest) (*services.GetProjectResponse, error) {
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse ID")
+	}
+
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
-	err := endpoint.AuthzHandler.Authorize(
-		uuid.MustParse(request.GetId()),
+	err = endpoint.AuthzHandler.Authorize(
+		requestID,
 		protoModels.Right_READ,
 		metadata)
 	if err != nil {
@@ -188,7 +214,7 @@ func (endpoint *ProjectEndpoints) GetProject(ctx context.Context, request *servi
 		return nil, err
 	}
 
-	project, err := endpoint.ReadHandler.GetProject(uuid.MustParse(request.GetId()))
+	project, err := endpoint.ReadHandler.GetProject(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -233,18 +259,24 @@ func (endpoint *ProjectEndpoints) GetAPIToken(ctx context.Context, request *serv
 //DeleteProject Deletes a specific project
 //Will also delete all associated resources (Datasets/Objects/etc...) both from objects storage and the database
 func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *services.DeleteProjectRequest) (*services.DeleteProjectResponse, error) {
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse ID")
+	}
+
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
-	err := endpoint.AuthzHandler.Authorize(
-		uuid.MustParse(request.GetId()),
-		protoModels.Right_READ,
+	err = endpoint.AuthzHandler.Authorize(
+		requestID,
+		protoModels.Right_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
 
-	objects, err := endpoint.ReadHandler.GetAllProjectObjects(uuid.MustParse(request.GetId()))
+	objects, err := endpoint.ReadHandler.GetAllProjectObjects(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -256,7 +288,7 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *se
 		return nil, err
 	}
 
-	err = endpoint.DeleteHandler.DeleteProject(uuid.MustParse(request.GetId()))
+	err = endpoint.DeleteHandler.DeleteProject(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -266,10 +298,16 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *se
 }
 
 func (endpoint *ProjectEndpoints) DeleteAPIToken(ctx context.Context, request *services.DeleteAPITokenRequest) (*services.DeleteAPITokenResponse, error) {
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse ID")
+	}
+
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
-	err := endpoint.AuthzHandler.Authorize(
-		uuid.MustParse(request.GetId()),
+	err = endpoint.AuthzHandler.Authorize(
+		requestID,
 		protoModels.Right_WRITE,
 		metadata)
 	if err != nil {
@@ -277,7 +315,7 @@ func (endpoint *ProjectEndpoints) DeleteAPIToken(ctx context.Context, request *s
 		return nil, err
 	}
 
-	err = endpoint.DeleteHandler.DeleteAPIToken(uuid.MustParse(request.GetId()))
+	err = endpoint.DeleteHandler.DeleteAPIToken(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

@@ -30,7 +30,13 @@ func NewLoadEndpoints(endpoints *Endpoints) (*LoadEndpoints, error) {
 }
 
 func (endpoint *LoadEndpoints) CreateUploadLink(ctx context.Context, request *services.CreateUploadLinkRequest) (*services.CreateUploadLinkResponse, error) {
-	object, err := endpoint.ReadHandler.GetObject(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	object, err := endpoint.ReadHandler.GetObject(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -61,7 +67,13 @@ func (endpoint *LoadEndpoints) CreateUploadLink(ctx context.Context, request *se
 }
 
 func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *services.CreateDownloadLinkRequest) (*services.CreateDownloadLinkResponse, error) {
-	object, err := endpoint.ReadHandler.GetObject(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	object, err := endpoint.ReadHandler.GetObject(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -97,7 +109,13 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, requ
 	projectIDs := make(map[uuid.UUID]interface{})
 	objectIDs := make([]uuid.UUID, len(request.GetRequests()))
 	for i, request := range request.GetRequests() {
-		objectIDs[i] = uuid.MustParse(request.GetId())
+		requestID, err := uuid.Parse(request.GetId())
+		if err != nil {
+			log.Debug(err.Error())
+			return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+		}
+
+		objectIDs[i] = requestID
 	}
 
 	objects, err := endpoint.ReadHandler.GetObjectsBatch(objectIDs)
@@ -144,7 +162,12 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 	switch value := request.Query.(type) {
 	case *services.CreateDownloadLinkStreamRequest_Dataset:
 		{
-			dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(value.Dataset.GetDatasetId()))
+			datasetId, err := uuid.Parse(value.Dataset.GetDatasetId())
+			if err != nil {
+				log.Debug(err.Error())
+				return status.Error(codes.InvalidArgument, "could not parse dataset id")
+			}
+			dataset, err := endpoint.ReadHandler.GetDataset(datasetId)
 			if err != nil {
 				log.Println(err.Error())
 				return err
@@ -154,7 +177,12 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 		}
 	case *services.CreateDownloadLinkStreamRequest_DatasetVersion:
 		{
-			dataset, err := endpoint.ReadHandler.GetDatasetVersion(uuid.MustParse(value.DatasetVersion.GetDatasetVersionId()))
+			datasetVersionID, err := uuid.Parse(value.DatasetVersion.GetDatasetVersionId())
+			if err != nil {
+				log.Debug(err.Error())
+				return status.Error(codes.InvalidArgument, "could not parse dataset id")
+			}
+			dataset, err := endpoint.ReadHandler.GetDatasetVersion(datasetVersionID)
 			if err != nil {
 				log.Println(err.Error())
 				return err
@@ -164,7 +192,13 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 		}
 	case *services.CreateDownloadLinkStreamRequest_DateRange:
 		{
-			dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(value.DateRange.GetDatasetId()))
+			datasetID, err := uuid.Parse(value.DateRange.GetDatasetId())
+			if err != nil {
+				log.Debug(err.Error())
+				return status.Error(codes.InvalidArgument, "could not parse dataset id")
+			}
+
+			dataset, err := endpoint.ReadHandler.GetDataset(datasetID)
 			if err != nil {
 				log.Println(err.Error())
 				return err
@@ -195,7 +229,14 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 		{
 			readerErrGrp.Go(func() error {
 				defer close(objectGroupsChan)
-				return endpoint.ReadHandler.GetDatasetObjectGroupsBatches(uuid.MustParse(value.Dataset.GetDatasetId()), objectGroupsChan)
+
+				datasetID, err := uuid.Parse(request.GetDataset().GetDatasetId())
+				if err != nil {
+					log.Debug(err.Error())
+					return status.Error(codes.InvalidArgument, "could not parse dataset id")
+				}
+
+				return endpoint.ReadHandler.GetDatasetObjectGroupsBatches(datasetID, objectGroupsChan)
 			})
 
 		}
@@ -203,7 +244,13 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 		{
 			readerErrGrp.Go(func() error {
 				defer close(objectGroupsChan)
-				return endpoint.ReadHandler.GetObjectGroupsInDateRangeBatches(uuid.MustParse(value.DateRange.GetDatasetId()), value.DateRange.Start.AsTime(), value.DateRange.End.AsTime(), objectGroupsChan)
+
+				datasetID, err := uuid.Parse(request.GetDataset().GetDatasetId())
+				if err != nil {
+					log.Debug(err.Error())
+					return status.Error(codes.InvalidArgument, "could not parse dataset id")
+				}
+				return endpoint.ReadHandler.GetObjectGroupsInDateRangeBatches(datasetID, value.DateRange.Start.AsTime(), value.DateRange.End.AsTime(), objectGroupsChan)
 			})
 		}
 	default:
@@ -247,7 +294,13 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 }
 
 func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request *services.StartMultipartUploadRequest) (*services.StartMultipartUploadResponse, error) {
-	object, err := endpoint.ReadHandler.GetObject(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	object, err := endpoint.ReadHandler.GetObject(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -285,7 +338,13 @@ func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request
 }
 
 func (endpoint *LoadEndpoints) GetMultipartUploadLink(ctx context.Context, request *services.GetMultipartUploadLinkRequest) (*services.GetMultipartUploadLinkResponse, error) {
-	object, err := endpoint.ReadHandler.GetObject(uuid.MustParse(request.GetObjectId()))
+	objectID, err := uuid.Parse(request.GetObjectId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	object, err := endpoint.ReadHandler.GetObject(objectID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -316,7 +375,13 @@ func (endpoint *LoadEndpoints) GetMultipartUploadLink(ctx context.Context, reque
 }
 
 func (endpoint *LoadEndpoints) CompleteMultipartUpload(ctx context.Context, request *services.CompleteMultipartUploadRequest) (*services.CompleteMultipartUploadResponse, error) {
-	object, err := endpoint.ReadHandler.GetObject(uuid.MustParse(request.GetObjectId()))
+	objectID, err := uuid.Parse(request.GetObjectId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	object, err := endpoint.ReadHandler.GetObject(objectID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

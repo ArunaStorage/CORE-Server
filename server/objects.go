@@ -27,7 +27,13 @@ func NewObjectEndpoints(endpoints *Endpoints) (*ObjectServerEndpoints, error) {
 
 //CreateObjectGroup Creates a new object group endpoint service
 func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, request *services.CreateObjectGroupRequest) (*services.CreateObjectGroupResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetDatasetId()))
+	parsedDatasetID, err := uuid.Parse(request.DatasetId)
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	dataset, err := endpoint.ReadHandler.GetDataset(parsedDatasetID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -83,7 +89,13 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 		}
 	}
 
-	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(datasetID))
+	parsedDatasetID, err := uuid.Parse(datasetID)
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	dataset, err := endpoint.ReadHandler.GetDataset(parsedDatasetID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -140,7 +152,13 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 
 //GetObjectGroup Returns the object group with the given ID
 func (endpoint *ObjectServerEndpoints) GetObjectGroup(ctx context.Context, request *services.GetObjectGroupRequest) (*services.GetObjectGroupResponse, error) {
-	objectGroup, err := endpoint.ReadHandler.GetObjectGroup(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
+	}
+
+	objectGroup, err := endpoint.ReadHandler.GetObjectGroup(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -171,7 +189,13 @@ func (endpoint *ObjectServerEndpoints) FinishObjectUpload(_ context.Context, _ *
 }
 
 func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, request *services.DeleteObjectGroupRequest) (*services.DeleteObjectGroupResponse, error) {
-	objectGroup, err := endpoint.ReadHandler.GetObjectGroup(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
+	}
+
+	objectGroup, err := endpoint.ReadHandler.GetObjectGroup(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -188,7 +212,7 @@ func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, re
 		return nil, err
 	}
 
-	objects, err := endpoint.ReadHandler.GetAllObjectGroupObjects(uuid.MustParse(request.GetId()))
+	objects, err := endpoint.ReadHandler.GetAllObjectGroupObjects(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -202,7 +226,7 @@ func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, re
 		}
 	}
 
-	err = endpoint.DeleteHandler.DeleteObjectGroup(uuid.MustParse(request.GetId()))
+	err = endpoint.DeleteHandler.DeleteObjectGroup(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

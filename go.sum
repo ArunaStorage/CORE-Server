@@ -837,6 +837,8 @@ google.golang.org/genproto v0.0.0-20211018162055-cf77aa76bad2 h1:CUp93KYgL06Y/Pd
 google.golang.org/genproto v0.0.0-20211018162055-cf77aa76bad2/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/genproto v0.0.0-20211021150943-2b146023228c h1:FqrtZMB5Wr+/RecOM3uPJNPfWR8Upb5hAPnt7PU6i4k=
 google.golang.org/genproto v0.0.0-20211021150943-2b146023228c/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
+google.golang.org/genproto v0.0.0-20211026145609-4688e4c4e024 h1:aePO4E0x+Urj9V5NQHjqOpaNG4oMeHQq0l2ob05z5tI=
+google.golang.org/genproto v0.0.0-20211026145609-4688e4c4e024/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.20.1/go.mod h1:10oTOabMzJvdu6/UiuZezV6QK5dSlG84ov/aaiqXj38=
 google.golang.org/grpc v1.21.1/go.mod h1:oYelfM1adQP15Ek0mdvEgi9Df8B9CZIaU1084ijfRaM=
@@ -898,9 +900,13 @@ gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b h1:h8qDotaEPuJATrMmW04NCwg7v
 gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 gorm.io/driver/postgres v1.1.2 h1:Amy3hCvLqM+/ICzjCnQr8wKFLVJTeOTdlMT7kCP+J1Q=
 gorm.io/driver/postgres v1.1.2/go.mod h1:/AGV0zvqF3mt9ZtzLzQmXWQ/5vr+1V1TyHZGZVjzmwI=
+gorm.io/driver/postgres v1.2.0 h1:2k0EYyqii7sfWVM7yomw6a82Jt5wjuQUpWmD6fI9fGI=
+gorm.io/driver/postgres v1.2.0/go.mod h1:c/8rVZUl30/ZyaQtAobsLRbBTubskhCrkWZDwZe1KfI=
 gorm.io/gorm v1.21.15/go.mod h1:F+OptMscr0P2F2qU97WT1WimdH9GaQPoDW7AYd5i2Y0=
 gorm.io/gorm v1.21.16 h1:YBIQLtP5PLfZQz59qfrq7xbrK7KWQ+JsXXCH/THlMqs=
 gorm.io/gorm v1.21.16/go.mod h1:F+OptMscr0P2F2qU97WT1WimdH9GaQPoDW7AYd5i2Y0=
+gorm.io/gorm v1.22.0 h1:mTO7Im+aAEqixqnWfmb2Z9FCLnrdoaESc1tUAwM4GNE=
+gorm.io/gorm v1.22.0/go.mod h1:F+OptMscr0P2F2qU97WT1WimdH9GaQPoDW7AYd5i2Y0=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190106161140-3f1c8253044a/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190418001031-e561f6794a2a/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=

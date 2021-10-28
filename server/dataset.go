@@ -28,10 +28,16 @@ func NewDatasetEndpoints(endpoints *Endpoints) (*DatasetEndpoints, error) {
 
 // CreateNewDataset Creates a new dataset and associates it with a dataset
 func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *services.CreateDatasetRequest) (*services.CreateDatasetResponse, error) {
+	projectID, err := uuid.Parse(request.GetProjectId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
-	err := endpoint.AuthzHandler.Authorize(
-		uuid.MustParse(request.GetProjectId()),
+	err = endpoint.AuthzHandler.Authorize(
+		projectID,
 		protoModels.Right_WRITE,
 		metadata)
 	if err != nil {
@@ -54,7 +60,13 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *se
 
 // Dataset Returns a specific dataset
 func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *services.GetDatasetRequest) (*services.GetDatasetResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	dataset, err := endpoint.ReadHandler.GetDataset(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -81,7 +93,13 @@ func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *servi
 
 // Lists Versions of a dataset
 func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, request *services.GetDatasetVersionsRequest) (*services.GetDatasetVersionsResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	dataset, err := endpoint.ReadHandler.GetDataset(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -98,7 +116,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, reques
 		return nil, err
 	}
 
-	versions, err := endpoint.ReadHandler.GetDatasetVersions(uuid.MustParse(request.GetId()))
+	versions, err := endpoint.ReadHandler.GetDatasetVersions(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -118,7 +136,13 @@ func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, reques
 }
 
 func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, request *services.GetDatasetObjectGroupsRequest) (*services.GetDatasetObjectGroupsResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	dataset, err := endpoint.ReadHandler.GetDataset(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -135,7 +159,7 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 		return nil, err
 	}
 
-	objectGroups, err := endpoint.ReadHandler.GetDatasetObjectGroups(uuid.MustParse(request.GetId()))
+	objectGroups, err := endpoint.ReadHandler.GetDatasetObjectGroups(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -155,7 +179,13 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 }
 
 func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context, request *services.GetObjectGroupsInDateRangeRequest) (*services.GetObjectGroupsInDateRangeResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	dataset, err := endpoint.ReadHandler.GetDataset(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -196,7 +226,13 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 	switch value := request.Query.(type) {
 	case *services.GetObjectGroupsStreamLinkRequest_GroupIds:
 		{
-			dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(value.GroupIds.GetDatasetId()))
+			datasetID, err := uuid.Parse(value.GroupIds.GetDatasetId())
+			if err != nil {
+				log.Debug(err.Error())
+				return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+			}
+
+			dataset, err := endpoint.ReadHandler.GetDataset(datasetID)
 			if err != nil {
 				log.Println(err.Error())
 				return nil, err
@@ -206,7 +242,13 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 		}
 	case *services.GetObjectGroupsStreamLinkRequest_Dataset:
 		{
-			dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(value.Dataset.GetDatasetId()))
+			datasetID, err := uuid.Parse(value.Dataset.GetDatasetId())
+			if err != nil {
+				log.Debug(err.Error())
+				return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+			}
+
+			dataset, err := endpoint.ReadHandler.GetDataset(datasetID)
 			if err != nil {
 				log.Println(err.Error())
 				return nil, err
@@ -216,7 +258,13 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 		}
 	case *services.GetObjectGroupsStreamLinkRequest_DatasetVersion:
 		{
-			dataset, err := endpoint.ReadHandler.GetDatasetVersion(uuid.MustParse(value.DatasetVersion.GetDatasetVersionId()))
+			datasetVersionID, err := uuid.Parse(value.DatasetVersion.GetDatasetVersionId())
+			if err != nil {
+				log.Debug(err.Error())
+				return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+			}
+
+			dataset, err := endpoint.ReadHandler.GetDatasetVersion(datasetVersionID)
 			if err != nil {
 				log.Println(err.Error())
 				return nil, err
@@ -226,7 +274,13 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 		}
 	case *services.GetObjectGroupsStreamLinkRequest_DateRange:
 		{
-			dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(value.DateRange.GetDatasetId()))
+			datasetID, err := uuid.Parse(value.DateRange.GetDatasetId())
+			if err != nil {
+				log.Debug(err.Error())
+				return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+			}
+
+			dataset, err := endpoint.ReadHandler.GetDataset(datasetID)
 			if err != nil {
 				log.Println(err.Error())
 				return nil, err
@@ -269,7 +323,13 @@ func (endpoint *DatasetEndpoints) UpdateDatasetField(_ context.Context, _ *servi
 
 // DeleteDataset Delete a dataset
 func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *services.DeleteDatasetRequest) (*services.DeleteDatasetResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse id")
+	}
+
+	dataset, err := endpoint.ReadHandler.GetDataset(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -286,7 +346,7 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *se
 		return nil, err
 	}
 
-	objects, err := endpoint.ReadHandler.GetAllDatasetObjects(uuid.MustParse(request.GetId()))
+	objects, err := endpoint.ReadHandler.GetAllDatasetObjects(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -298,7 +358,7 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *se
 		return nil, err
 	}
 
-	err = endpoint.DeleteHandler.DeleteDataset(uuid.MustParse(request.GetId()))
+	err = endpoint.DeleteHandler.DeleteDataset(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -309,7 +369,13 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *se
 
 //ReleaseDatasetVersion Release a new dataset version
 func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, request *services.ReleaseDatasetVersionRequest) (*services.ReleaseDatasetVersionResponse, error) {
-	dataset, err := endpoint.ReadHandler.GetDataset(uuid.MustParse(request.GetDatasetId()))
+	datasetID, err := uuid.Parse(request.GetDatasetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse id")
+	}
+
+	dataset, err := endpoint.ReadHandler.GetDataset(datasetID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -340,7 +406,13 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 }
 
 func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request *services.GetDatasetVersionRequest) (*services.GetDatasetVersionResponse, error) {
-	version, err := endpoint.ReadHandler.GetDatasetVersion(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	version, err := endpoint.ReadHandler.GetDatasetVersion(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -367,7 +439,13 @@ func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request
 }
 
 func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Context, request *services.GetDatasetVersionObjectGroupsRequest) (*services.GetDatasetVersionObjectGroupsResponse, error) {
-	version, err := endpoint.ReadHandler.GetDatasetVersionWithObjectGroups(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	version, err := endpoint.ReadHandler.GetDatasetVersionWithObjectGroups(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -397,7 +475,13 @@ func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Cont
 }
 
 func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, request *services.DeleteDatasetVersionRequest) (*services.DeleteDatasetVersionResponse, error) {
-	version, err := endpoint.ReadHandler.GetDatasetVersion(uuid.MustParse(request.GetId()))
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	version, err := endpoint.ReadHandler.GetDatasetVersion(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -414,7 +498,7 @@ func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, requ
 		return nil, err
 	}
 
-	err = endpoint.DeleteHandler.DeleteDatasetVersion(uuid.MustParse(request.GetId()))
+	err = endpoint.DeleteHandler.DeleteDatasetVersion(requestID)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

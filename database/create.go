@@ -65,12 +65,18 @@ func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (str
 		metadataList = append(metadataList, *metadata.FromProtoModel(protoMetadata))
 	}
 
+	projectID, err := uuid.Parse(request.ProjectId)
+	if err != nil {
+		log.Debug(err.Error())
+		return "", err
+	}
+
 	dataset := models.Dataset{
 		Name:        request.Name,
 		Description: request.Description,
 		Metadata:    metadataList,
 		Labels:      labels,
-		ProjectID:   uuid.MustParse(request.GetProjectId()),
+		ProjectID:   projectID,
 		IsPublic:    false,
 	}
 
@@ -86,7 +92,13 @@ func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (str
 func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupRequest) (*models.ObjectGroup, error) {
 	dataset := &models.Dataset{}
 
-	dataset.ID = uuid.MustParse(request.GetDatasetId())
+	datasetID, err := uuid.Parse(request.GetDatasetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, err
+	}
+
+	dataset.ID = datasetID
 	result := create.DB.Find(dataset)
 	if result.Error != nil {
 		log.Println(result.Error.Error())
@@ -128,7 +140,13 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObject
 
 	dataset := &models.Dataset{}
 
-	dataset.ID = uuid.MustParse(batchRequest.GetRequests()[0].GetDatasetId())
+	datasetID, err := uuid.Parse(batchRequest.GetRequests()[0].GetDatasetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, err
+	}
+
+	dataset.ID = datasetID
 	result := create.DB.Find(dataset)
 	if result.Error != nil {
 		log.Println(result.Error.Error())
@@ -145,7 +163,7 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObject
 		objectgroupsObjects = append(objectgroupsObjects, objects)
 	}
 
-	err := create.DB.Transaction(func(tx *gorm.DB) error {
+	err = create.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&objectgroups).Error; err != nil {
 			log.Println(err.Error())
 			return fmt.Errorf("could not create object group")
@@ -250,11 +268,23 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 	}
 
 	objectGroups := make([]models.ObjectGroup, 0)
+	var err error
 	for _, objectGroupID := range request.ObjectGroupIds {
 		objectGroup := models.ObjectGroup{}
-		objectGroup.ID = uuid.MustParse(objectGroupID)
+
+		objectGroup.ID, err = uuid.Parse(objectGroupID)
+		if err != nil {
+			log.Debug(err.Error())
+			return uuid.UUID{}, err
+		}
 
 		objectGroups = append(objectGroups, objectGroup)
+	}
+
+	datasetID, err := uuid.Parse(request.DatasetId)
+	if err != nil {
+		log.Debug(err.Error())
+		return uuid.UUID{}, err
 	}
 
 	version := &models.DatasetVersion{
@@ -262,7 +292,7 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 		Labels:          labels,
 		Metadata:        metadataList,
 		Description:     request.Description,
-		DatasetID:       uuid.MustParse(request.DatasetId),
+		DatasetID:       datasetID,
 		MajorVersion:    uint(request.Version.Major),
 		MinorVersion:    uint(request.Version.Minor),
 		PatchVersion:    uint(request.Version.Patch),
@@ -281,9 +311,15 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 }
 
 func (create *Create) AddUserToProject(request *services.AddUserToProjectRequest) error {
+	projectID, err := uuid.Parse(request.GetProjectId())
+	if err != nil {
+		log.Debug(err.Error())
+		return err
+	}
+
 	user := &models.User{
 		UserOauth2ID: request.GetUserId(),
-		ProjectID:    uuid.MustParse(request.GetProjectId()),
+		ProjectID:    projectID,
 	}
 
 	if err := create.DB.Create(user).Error; err != nil {
@@ -303,10 +339,22 @@ func (create *Create) CreateAPIToken(request *services.CreateAPITokenRequest, us
 
 	base64String := base64.StdEncoding.EncodeToString(rndBytes)
 
+	projectID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return "", err
+	}
+
+	userUUID, err := uuid.Parse(userOauth2ID)
+	if err != nil {
+		log.Debug(err.Error())
+		return "", err
+	}
+
 	apiToken := &models.APIToken{
 		Token:     base64String,
-		ProjectID: uuid.MustParse(request.GetId()),
-		UserUUID:  uuid.MustParse(userOauth2ID),
+		ProjectID: projectID,
+		UserUUID:  userUUID,
 	}
 
 	if err := create.DB.Create(apiToken).Error; err != nil {
