@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -11,8 +12,10 @@ import (
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	"github.com/ScienceObjectsDB/CORE-Server/signing"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	"github.com/cockroachdb/cockroach-go/v2/crdb/crdbgorm"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type Streaming struct {
@@ -144,9 +147,13 @@ func (handler *Streaming) createObjectGroupsRequest(objectGroupIDs []string, dat
 		ObjectGroups: objectGroups,
 	}
 
-	if err := handler.DB.Save(&entry).Error; err != nil {
-		log.Println(err.Error())
-		return "", fmt.Errorf("could not save streaming config")
+	err = crdbgorm.ExecuteTx(context.Background(), handler.DB, nil, func(tx *gorm.DB) error {
+		return tx.Save(&entry).Error
+	})
+
+	if err != nil {
+		log.Error(err.Error())
+		return "", err
 	}
 
 	mac := hmac.New(sha256.New, []byte(base64Secret))
