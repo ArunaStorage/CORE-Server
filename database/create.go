@@ -1,9 +1,11 @@
 package database
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 
+	"github.com/cockroachdb/cockroach-go/v2/crdb/crdbgorm"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -43,10 +45,13 @@ func (create *Create) CreateProject(request *services.CreateProjectRequest, user
 		Metadata: metadataList,
 	}
 
-	result := create.DB.Create(&project)
-	if result.Error != nil {
-		log.Println(result.Error.Error())
-		return "", result.Error
+	err := crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
+		return create.DB.Create(&project).Error
+	})
+
+	if err != nil {
+		log.Println(err.Error())
+		return "", err
 	}
 
 	return project.ID.String(), nil
@@ -80,10 +85,13 @@ func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (str
 		IsPublic:    false,
 	}
 
-	result := create.DB.Create(&dataset)
-	if result.Error != nil {
-		log.Println(result.Error.Error())
-		return "", result.Error
+	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
+		return create.DB.Create(&dataset).Error
+	})
+
+	if err != nil {
+		log.Println(err.Error())
+		return "", err
 	}
 
 	return dataset.ID.String(), nil
@@ -99,10 +107,14 @@ func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupReque
 	}
 
 	dataset.ID = datasetID
-	result := create.DB.Find(dataset)
-	if result.Error != nil {
-		log.Println(result.Error.Error())
-		return nil, result.Error
+
+	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
+		return tx.Find(dataset).Error
+	})
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil, fmt.Errorf("could not read datasetID")
 	}
 
 	objectGroupModel, objects, err := create.prepareObjectGroupForInsert(request, dataset)
@@ -111,10 +123,9 @@ func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupReque
 		return nil, err
 	}
 
-	create.DB.Transaction(func(tx *gorm.DB) error {
+	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
 		if err := tx.Create(&objectGroupModel).Error; err != nil {
-			log.Println(err.Error())
-			return fmt.Errorf("could not create object group")
+			return err
 		}
 
 		for _, object := range objects {
@@ -124,12 +135,16 @@ func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupReque
 		objectGroupModel.Objects = objects
 
 		if err := tx.Save(objectGroupModel).Error; err != nil {
-			log.Println(err.Error())
-			return fmt.Errorf("could not create object group")
+			return err
 		}
 
 		return nil
 	})
+
+	if err != nil {
+		log.Println(err.Error())
+		return nil, fmt.Errorf("error while creating entries for object group")
+	}
 
 	return &objectGroupModel, nil
 }
@@ -163,10 +178,9 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObject
 		objectgroupsObjects = append(objectgroupsObjects, objects)
 	}
 
-	err = create.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&objectgroups).Error; err != nil {
-			log.Println(err.Error())
-			return fmt.Errorf("could not create object group")
+	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
+		if err = tx.Create(&objectgroups).Error; err != nil {
+			return err
 		}
 
 		for i, objectgroup := range objectgroups {
@@ -179,8 +193,7 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObject
 		}
 
 		if err := tx.Save(&objectgroups).Error; err != nil {
-			log.Println(err.Error())
-			return fmt.Errorf("could not create object group")
+			return err
 		}
 
 		return nil
@@ -188,7 +201,7 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObject
 
 	if err != nil {
 		log.Println(err.Error())
-		return nil, err
+		return nil, fmt.Errorf("could not create error group")
 	}
 
 	return objectgroups, nil
@@ -302,9 +315,13 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 		ObjectGroups:    objectGroups,
 	}
 
-	if err := create.DB.Create(&version).Error; err != nil {
-		log.Println(err.Error())
-		return uuid.UUID{}, err
+	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
+		return tx.Create(&version).Error
+	})
+
+	if err != nil {
+		log.Errorf(err.Error())
+		return uuid.UUID{}, fmt.Errorf("could not create dataset version database entry")
 	}
 
 	return version.ID, nil
@@ -313,7 +330,7 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 func (create *Create) AddUserToProject(request *services.AddUserToProjectRequest) error {
 	projectID, err := uuid.Parse(request.GetProjectId())
 	if err != nil {
-		log.Debug(err.Error())
+		log.Error(err.Error())
 		return err
 	}
 
@@ -322,9 +339,13 @@ func (create *Create) AddUserToProject(request *services.AddUserToProjectRequest
 		ProjectID:    projectID,
 	}
 
-	if err := create.DB.Create(user).Error; err != nil {
-		log.Println(err.Error())
-		return err
+	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
+		return tx.Create(user).Error
+	})
+
+	if err != nil {
+		log.Error(err.Error())
+		return fmt.Errorf("could not add user to project")
 	}
 
 	return nil
@@ -357,8 +378,13 @@ func (create *Create) CreateAPIToken(request *services.CreateAPITokenRequest, us
 		UserUUID:  userUUID,
 	}
 
-	if err := create.DB.Create(apiToken).Error; err != nil {
-		return "", err
+	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
+		return tx.Create(apiToken).Error
+	})
+
+	if err != nil {
+		log.Error(err.Error())
+		return "", fmt.Errorf("could not create api token")
 	}
 
 	return base64String, nil
