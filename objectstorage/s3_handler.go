@@ -219,6 +219,10 @@ func (objectLoader *S3ObjectStorageHandler) ChunkedObjectDowload(object *models.
 	sumReadBytes := 0
 	toBeFinished := false
 	for {
+		if headObject.ContentLength == 0 {
+			continue
+		}
+
 		readEndPos := sumReadBytes + S3ChunkSize
 		if readEndPos > int(headObject.ContentLength) {
 			readEndPos = (int(headObject.ContentLength) - 1) - sumReadBytes
