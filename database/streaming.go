@@ -32,7 +32,7 @@ func (handler *Streaming) CreateStreamingLink(request *services.GetObjectGroupsS
 	case *services.GetObjectGroupsStreamLinkRequest_GroupIds:
 		{
 			var datasetID uuid.UUID
-			datasetID, err = uuid.Parse(request.GetDataset().GetDatasetId())
+			datasetID, err = uuid.Parse(request.GetGroupIds().GetDatasetId())
 			if err != nil {
 				log.Debug(err.Error())
 				return "", err
