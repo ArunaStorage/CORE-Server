@@ -184,8 +184,33 @@ func (endpoint *ObjectServerEndpoints) GetObjectGroup(ctx context.Context, reque
 }
 
 //FinishObjectUpload Finishes the upload process for an object
-func (endpoint *ObjectServerEndpoints) FinishObjectUpload(_ context.Context, _ *services.FinishObjectUploadRequest) (*services.FinishObjectUploadResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+func (endpoint *ObjectServerEndpoints) FinishObjectUpload(ctx context.Context, request *services.FinishObjectUploadRequest) (*services.FinishObjectUploadResponse, error) {
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
+	}
+
+	object, err := endpoint.ReadHandler.GetObject(requestID)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	metadata, _ := metadata.FromIncomingContext(ctx)
+
+	err = endpoint.AuthzHandler.Authorize(
+		object.ProjectID,
+		protoModels.Right_WRITE,
+		metadata)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	finished := &services.FinishObjectUploadResponse{}
+
+	return finished, nil
 }
 
 func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, request *services.DeleteObjectGroupRequest) (*services.DeleteObjectGroupResponse, error) {
