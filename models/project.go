@@ -9,7 +9,7 @@ import (
 )
 
 type Project struct {
-	ID          uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	ID          uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
@@ -50,7 +50,7 @@ func (project *Project) ToProtoModel() *protomodels.Project {
 }
 
 type User struct {
-	ID           uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	ID           uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	DeletedAt    gorm.DeletedAt `gorm:"index"`
@@ -68,7 +68,7 @@ func (user *User) ToProtoModel() *protomodels.User {
 }
 
 type UserRight struct {
-	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	ID        uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
@@ -81,7 +81,7 @@ func (right *UserRight) ToProtoModel() protomodels.Right {
 }
 
 type APITokenRight struct {
-	ID         uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	ID         uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 	DeletedAt  gorm.DeletedAt `gorm:"index"`
@@ -94,7 +94,7 @@ func (right *APITokenRight) ToProtoModel() protomodels.Right {
 }
 
 type APIToken struct {
-	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	ID        uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`

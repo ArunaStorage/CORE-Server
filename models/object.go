@@ -10,7 +10,7 @@ import (
 )
 
 type Object struct {
-	ID            uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	ID            uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	DeletedAt     gorm.DeletedAt `gorm:"index"`
@@ -57,7 +57,7 @@ func (object *Object) ToProtoModel() *protomodels.Object {
 }
 
 type ObjectGroup struct {
-	ID          uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	ID          uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DeletedAt   gorm.DeletedAt `gorm:"index"`

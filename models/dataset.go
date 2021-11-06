@@ -10,7 +10,7 @@ import (
 )
 
 type Dataset struct {
-	ID              uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	ID              uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	DeletedAt       gorm.DeletedAt `gorm:"index"`
@@ -50,7 +50,7 @@ func (dataset *Dataset) ToProtoModel() protomodels.Dataset {
 }
 
 type DatasetVersion struct {
-	ID              uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+	ID              uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	DeletedAt       gorm.DeletedAt `gorm:"index"`
