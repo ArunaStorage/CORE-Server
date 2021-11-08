@@ -3,11 +3,12 @@ module github.com/ScienceObjectsDB/CORE-Server
 go 1.17
 
 require (
-	github.com/ScienceObjectsDB/go-api v0.1.1
-	github.com/aws/aws-sdk-go-v2 v1.10.0
-	github.com/aws/aws-sdk-go-v2/config v1.9.0
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.6.0
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.17.0
+	github.com/ScienceObjectsDB/go-api v0.1.2-0.20211107192700-9700e66b9031
+	github.com/aws/aws-sdk-go-v2 v1.11.0
+	github.com/aws/aws-sdk-go-v2/config v1.10.0
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.7.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.18.0
+	github.com/cockroachdb/cockroach-go/v2 v2.2.1
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-playground/validator/v10 v10.9.0 // indirect
@@ -20,27 +21,29 @@ require (
 	github.com/spf13/viper v1.9.0
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
+	golang.org/x/net v0.0.0-20211105192438-b53810dc28af // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20211028162531-8db9c33dc351 // indirect
-	google.golang.org/grpc v1.41.0
+	google.golang.org/genproto v0.0.0-20211104193956-4c6863e31247 // indirect
+	google.golang.org/grpc v1.42.0
 	google.golang.org/protobuf v1.27.1
 	gorm.io/driver/postgres v1.2.1
 	gorm.io/gorm v1.22.2
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2/credentials v1.5.0 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.7.0 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/ini v1.2.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.4.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.4.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.8.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.5.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.8.0 // indirect
-	github.com/aws/smithy-go v1.8.1 // indirect
-	github.com/cockroachdb/cockroach-go/v2 v2.2.1 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.0.0 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.6.0 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.8.0 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.0 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.0.0 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.5.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.5.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.9.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.6.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.9.0 // indirect
+	github.com/aws/smithy-go v1.9.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
@@ -66,14 +69,13 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
-	golang.org/x/sys v0.0.0-20211025201205-69cdffdb9359 // indirect
+	golang.org/x/sys v0.0.0-20211107104306-e0b2ad06fe42 // indirect
 	gopkg.in/ini.v1 v1.63.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect

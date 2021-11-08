@@ -28,6 +28,7 @@ func TestMain(m *testing.M) {
 	log.SetReportCaller(true)
 
 	init_test_endpoints()
+	//local_init_test_endpoints()
 	code := m.Run()
 	os.Exit(code)
 }

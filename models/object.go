@@ -57,21 +57,22 @@ func (object *Object) ToProtoModel() *protomodels.Object {
 }
 
 type ObjectGroup struct {
-	ID          uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	DeletedAt   gorm.DeletedAt `gorm:"index"`
-	Name        string
-	Description string
-	DatasetID   uuid.UUID `gorm:"index"`
-	Dataset     Dataset
-	ProjectID   uuid.UUID `gorm:"index"`
-	Project     Project
-	Labels      []Label    `gorm:"many2many:object_group_label;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Metadata    []Metadata `gorm:"many2many:object_group_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Status      string
-	Generated   time.Time
-	Objects     []Object `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ID              uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       gorm.DeletedAt `gorm:"index"`
+	Name            string
+	Description     string
+	DatasetID       uuid.UUID `gorm:"index"`
+	Dataset         Dataset
+	ProjectID       uuid.UUID `gorm:"index"`
+	Project         Project
+	Labels          []Label          `gorm:"many2many:object_group_label;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Metadata        []Metadata       `gorm:"many2many:object_group_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	DatasetVersions []DatasetVersion `gorm:"many2many:dataset_version_object_groups;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Status          string
+	Generated       time.Time
+	Objects         []Object `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (objectGroup *ObjectGroup) ToProtoModel() *protomodels.ObjectGroup {

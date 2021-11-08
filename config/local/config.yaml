@@ -5,6 +5,7 @@ DB:
   Host: "localhost"
   Port: 26257
   Name: "defaultdb"
+  Username: "root"
 S3:
   Bucket: "sciobjsdbbucket"
 Streaming:

@@ -65,7 +65,7 @@ func (server *DataStreamingServer) datasetStream(c *gin.Context) {
 	c.Status(200)
 	c.Header("Content-Disposition", `attachment; filename="test.tar.gz"`)
 
-	objectGroups, err := server.ReadHandler.GetDatasetObjectGroups(datasetID)
+	objectGroups, err := server.ReadHandler.GetDatasetObjectGroups(datasetID, nil)
 	if err != nil {
 		log.Println(err.Error())
 		c.AbortWithStatus(503)

@@ -159,7 +159,7 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 		return nil, err
 	}
 
-	objectGroups, err := endpoint.ReadHandler.GetDatasetObjectGroups(requestID)
+	objectGroups, err := endpoint.ReadHandler.GetDatasetObjectGroups(requestID, request.GetPageRequest())
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -445,7 +445,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Cont
 		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
 	}
 
-	version, err := endpoint.ReadHandler.GetDatasetVersionWithObjectGroups(requestID)
+	version, err := endpoint.ReadHandler.GetDatasetVersionWithObjectGroups(requestID, request.GetPageRequest())
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
