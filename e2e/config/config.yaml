@@ -7,6 +7,6 @@ DB:
   Username: "cockroach"
   Name: "coreservertestdb"
 S3:
-  Bucket: "test-bucket"
+  BucketPrefix: "test-bucket"
   Endpoint: "http://minio:9000"
 

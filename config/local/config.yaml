@@ -7,7 +7,7 @@ DB:
   Name: "defaultdb"
   Username: "root"
 S3:
-  Bucket: "sciobjsdbbucket"
+  BucketPrefix: "sciobjsdbbucket"
 Streaming:
   Endpoint: http://localhost:9011
   Port: 9011

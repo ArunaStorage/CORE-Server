@@ -24,7 +24,6 @@ type ServerEndpointsTest struct {
 var ServerEndpoints = &ServerEndpointsTest{}
 
 func TestMain(m *testing.M) {
-	log.SetFormatter(&log.JSONFormatter{})
 	log.SetReportCaller(true)
 
 	init_test_endpoints()
@@ -112,7 +111,7 @@ func init_test_endpoints() {
 		log.Fatalln(err.Error())
 	}
 
-	bucketName := viper.GetString("S3.Bucket")
+	bucketName := viper.GetString("S3.BucketPrefix")
 
 	objectHandler := &objectstorage.S3ObjectStorageHandler{}
 	objectHandler, err = objectHandler.New(bucketName)

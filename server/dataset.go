@@ -47,7 +47,7 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *se
 
 	id, err := endpoint.CreateHandler.CreateDataset(request)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error(err.Error())
 		return nil, err
 	}
 

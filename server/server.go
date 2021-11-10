@@ -123,7 +123,7 @@ func createGenericEndpoint() (*Endpoints, error) {
 		return nil, err
 	}
 
-	bucketName := viper.GetString("S3.Bucket")
+	bucketName := viper.GetString("S3.BucketPrefix")
 
 	objectHandler := &objectstorage.S3ObjectStorageHandler{}
 	objectHandler, err = objectHandler.New(bucketName)

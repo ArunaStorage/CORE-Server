@@ -2,8 +2,9 @@ package e2e
 
 import (
 	"context"
-	"log"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
 
 	v1 "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
