@@ -2,6 +2,7 @@ package objectstorage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -22,13 +23,16 @@ import (
 // Default chunk size for chunked downloads
 const S3ChunkSize = 1024 * 1024 * 5
 
+// Maximum number of retries when creating a new bucket
+const MAXCREATEBUCKETRETRY = 10
+
 // S3ObjectStorageHandler Handles the interaction with the s3 based object storage data backends
 type S3ObjectStorageHandler struct {
 	S3Client          *s3.Client
 	S3DownloadManager *manager.Downloader
 	PresignClient     *s3.PresignClient
 	S3Endpoint        string
-	S3Bucket          string
+	S3BucketPrefix    string
 }
 
 // Represents a downloaded byte chunk and its source object
@@ -38,7 +42,7 @@ type DownloadedBytesInfo struct {
 }
 
 // Creates a new S3ObjectStorageHandler
-func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageHandler, error) {
+func (s3Handler *S3ObjectStorageHandler) New(S3BucketPrefix string) (*S3ObjectStorageHandler, error) {
 	endpoint := "https://s3.computational.bio.uni-giessen.de"
 	if configEndpoint := viper.GetString("S3.Endpoint"); configEndpoint != "" {
 		endpoint = configEndpoint
@@ -73,18 +77,56 @@ func (s3Handler *S3ObjectStorageHandler) New(s3Bucket string) (*S3ObjectStorageH
 	s3Handler.S3Endpoint = endpoint
 	s3Handler.S3Client = client
 	s3Handler.PresignClient = presignClient
-	s3Handler.S3Bucket = s3Bucket
+	s3Handler.S3BucketPrefix = S3BucketPrefix
 	s3Handler.S3DownloadManager = downloader
 
 	return s3Handler, nil
 }
 
+func (s3Handler *S3ObjectStorageHandler) CreateBucket(projectID uuid.UUID) (string, error) {
+	i := 0
+
+	var bucketname string
+	for {
+		bucketname = fmt.Sprintf("%v-%v-%v", s3Handler.S3BucketPrefix, i, projectID.String())
+		_, err := s3Handler.S3Client.CreateBucket(context.Background(), &s3.CreateBucketInput{
+			Bucket: &bucketname,
+		})
+
+		if err == nil {
+			break
+		}
+
+		println(bucketname)
+
+		var bne *types.BucketAlreadyExists
+		if errors.As(err, &bne) {
+			log.Infof("bucket with name %v already exists", bucketname)
+			i++
+		}
+
+		if errors.As(err, &bne) && i >= MAXCREATEBUCKETRETRY {
+			err := fmt.Errorf("bucket with name %v already exists", bucketname)
+			log.Errorf(err.Error())
+			return "", err
+		}
+
+		if err != nil && !errors.As(err, &bne) {
+			log.Error(err.Error())
+			return "", err
+		}
+
+	}
+
+	return bucketname, nil
+}
+
 // CreateLocation Creates a location in objectstorage that stores the object
-func (s3Handler *S3ObjectStorageHandler) CreateLocation(projectID uuid.UUID, datasetID uuid.UUID, objectUUID uuid.UUID, filename string) models.Location {
+func (s3Handler *S3ObjectStorageHandler) CreateLocation(projectID uuid.UUID, datasetID uuid.UUID, objectUUID uuid.UUID, filename string, bucketname string) models.Location {
 	objectKey := fmt.Sprintf("%v/%v/%v/%v", projectID, datasetID, objectUUID, filename)
 	location := models.Location{
 		Endpoint: s3Handler.S3Endpoint,
-		Bucket:   s3Handler.S3Bucket,
+		Bucket:   bucketname,
 		Key:      objectKey,
 	}
 
@@ -185,15 +227,22 @@ func (s3Handler *S3ObjectStorageHandler) DeleteObjects(objects []*models.Object)
 		return nil
 	}
 
+	bucket := objects[0].Location.Bucket
 	var deleteObjects []types.ObjectIdentifier
 	for _, object := range objects {
+		if bucket != object.Location.Bucket && bucket != "" {
+			err := fmt.Errorf("objects in batch deletes need to have the same bucket")
+			log.Errorln(err.Error())
+			return err
+		}
+		bucket = object.Location.Bucket
 		deleteObjects = append(deleteObjects, types.ObjectIdentifier{
 			Key: &object.Location.Key,
 		})
 	}
 
 	_, err := s3Handler.S3Client.DeleteObjects(context.Background(), &s3.DeleteObjectsInput{
-		Bucket: &s3Handler.S3Bucket,
+		Bucket: aws.String(bucket),
 		Delete: &types.Delete{
 			Objects: deleteObjects,
 		},

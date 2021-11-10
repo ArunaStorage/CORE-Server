@@ -16,6 +16,7 @@ type Dataset struct {
 	DeletedAt       gorm.DeletedAt `gorm:"index"`
 	Name            string
 	Description     string
+	Bucket          string
 	IsPublic        bool
 	Status          string
 	Labels          []Label    `gorm:"many2many:dataset_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
@@ -46,6 +47,7 @@ func (dataset *Dataset) ToProtoModel() protomodels.Dataset {
 		Metadata:    metadataList,
 		ProjectId:   dataset.ProjectID.String(),
 		IsPublic:    dataset.IsPublic,
+		Bucket:      dataset.Bucket,
 	}
 }
 

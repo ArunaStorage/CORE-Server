@@ -46,11 +46,10 @@ func (create *Create) CreateProject(request *services.CreateProjectRequest, user
 	}
 
 	err := crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
-		return create.DB.Create(&project).Error
+		return tx.Create(&project).Error
 	})
-
 	if err != nil {
-		log.Println(err.Error())
+		log.Error(err.Error())
 		return "", err
 	}
 
@@ -94,10 +93,29 @@ func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (str
 		return "", err
 	}
 
+	bucket, err := create.S3Handler.CreateBucket(dataset.ID)
+	if err != nil {
+		log.Println(err.Error())
+		err = create.DB.Delete(&dataset).Error
+		if err != nil {
+			log.Error(err.Error())
+			return "", err
+		}
+		return "", err
+	}
+
+	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
+		return tx.Model(&dataset).Update("Bucket", bucket).Error
+	})
+	if err != nil {
+		log.Error(err.Error())
+		return "", err
+	}
+
 	return dataset.ID.String(), nil
 }
 
-func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupRequest) (*models.ObjectGroup, error) {
+func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupRequest, bucket string) (*models.ObjectGroup, error) {
 	dataset := &models.Dataset{}
 
 	datasetID, err := uuid.Parse(request.GetDatasetId())
@@ -117,7 +135,7 @@ func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupReque
 		return nil, fmt.Errorf("could not read datasetID")
 	}
 
-	objectGroupModel, objects, err := create.prepareObjectGroupForInsert(request, dataset)
+	objectGroupModel, objects, err := create.prepareObjectGroupForInsert(request, dataset, bucket)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -149,7 +167,7 @@ func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupReque
 	return &objectGroupModel, nil
 }
 
-func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObjectGroupBatchRequest) ([]models.ObjectGroup, error) {
+func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObjectGroupBatchRequest, bucket string) ([]models.ObjectGroup, error) {
 	var objectgroups []models.ObjectGroup
 	var objectgroupsObjects [][]models.Object
 
@@ -169,7 +187,7 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObject
 	}
 
 	for _, request := range batchRequest.GetRequests() {
-		objectGroup, objects, err := create.prepareObjectGroupForInsert(request, dataset)
+		objectGroup, objects, err := create.prepareObjectGroupForInsert(request, dataset, bucket)
 		if err != nil {
 			log.Println(err.Error())
 			return nil, err
@@ -207,7 +225,7 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObject
 	return objectgroups, nil
 }
 
-func (create *Create) prepareObjectGroupForInsert(request *services.CreateObjectGroupRequest, dataset *models.Dataset) (models.ObjectGroup, []models.Object, error) {
+func (create *Create) prepareObjectGroupForInsert(request *services.CreateObjectGroupRequest, dataset *models.Dataset, bucket string) (models.ObjectGroup, []models.Object, error) {
 	labels := []models.Label{}
 	for _, protoLabel := range request.Labels {
 		label := models.Label{}
@@ -234,7 +252,7 @@ func (create *Create) prepareObjectGroupForInsert(request *services.CreateObject
 
 	for i, protoObject := range request.GetObjects() {
 		uuid := uuid.New()
-		location := create.S3Handler.CreateLocation(dataset.ProjectID, dataset.ID, uuid, protoObject.Filename)
+		location := create.S3Handler.CreateLocation(dataset.ProjectID, dataset.ID, uuid, protoObject.Filename, bucket)
 
 		labels := []models.Label{}
 		for _, protoLabel := range protoObject.Labels {

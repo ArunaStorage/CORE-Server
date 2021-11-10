@@ -46,11 +46,11 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 		protoModels.Right_WRITE,
 		metadata)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error(err.Error())
 		return nil, err
 	}
 
-	objectgroup, err := endpoint.CreateHandler.CreateObjectGroup(request)
+	objectgroup, err := endpoint.CreateHandler.CreateObjectGroup(request, dataset.Bucket)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -112,7 +112,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 		return nil, err
 	}
 
-	objectgroups, err := endpoint.CreateHandler.CreateObjectGroupBatch(requests)
+	objectgroups, err := endpoint.CreateHandler.CreateObjectGroupBatch(requests, dataset.Bucket)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

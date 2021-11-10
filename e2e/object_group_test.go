@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"testing"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	v1 "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
@@ -201,6 +202,8 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
+	log.Println(uploadLink.UploadLink)
+
 	if response.StatusCode != 200 {
 		log.Fatalln(response.Status)
 	}
@@ -353,7 +356,14 @@ func TestObjectGroupsDates(t *testing.T) {
 		Generated: timestamppb.New(time.Date(1990, time.July, 27, 0, 0, 0, 0, time.Local)),
 	}
 
-	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooEarly1)
+	project, err := ServerEndpoints.project.GetProject(context.Background(), &services.GetProjectRequest{
+		Id: projectID.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooEarly1, project.Project.Bucket)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -364,7 +374,7 @@ func TestObjectGroupsDates(t *testing.T) {
 		Generated: timestamppb.New(time.Date(1992, time.July, 27, 0, 0, 0, 0, time.Local)),
 	}
 
-	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooEarly2)
+	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooEarly2, project.Project.Bucket)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -375,7 +385,7 @@ func TestObjectGroupsDates(t *testing.T) {
 		Generated: timestamppb.New(time.Date(2000, time.July, 27, 0, 0, 0, 0, time.Local)),
 	}
 
-	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupInTime1)
+	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupInTime1, project.Project.Bucket)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -386,7 +396,7 @@ func TestObjectGroupsDates(t *testing.T) {
 		Generated: timestamppb.New(time.Date(2000, time.December, 27, 0, 0, 0, 0, time.Local)),
 	}
 
-	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupInTime2)
+	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupInTime2, project.Project.Bucket)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -397,7 +407,7 @@ func TestObjectGroupsDates(t *testing.T) {
 		Generated: timestamppb.Now(),
 	}
 
-	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooLate1)
+	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooLate1, project.Project.Bucket)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -408,7 +418,7 @@ func TestObjectGroupsDates(t *testing.T) {
 		Generated: timestamppb.Now(),
 	}
 
-	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooLate2)
+	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooLate2, project.Project.Bucket)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
