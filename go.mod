@@ -5,10 +5,10 @@ go 1.17
 require (
 	github.com/ScienceObjectsDB/go-api v0.1.2-0.20211110091602-e4d24fd9b14c
 	github.com/aws/aws-sdk-go-v2 v1.11.0
-	github.com/aws/aws-sdk-go-v2/config v1.10.0
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.7.0
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.18.0
-	github.com/cockroachdb/cockroach-go/v2 v2.2.1
+	github.com/aws/aws-sdk-go-v2/config v1.10.1
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.7.1
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.19.0
+	github.com/cockroachdb/cockroach-go/v2 v2.2.3
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-playground/validator/v10 v10.9.0 // indirect
@@ -21,19 +21,19 @@ require (
 	github.com/spf13/viper v1.9.0
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa // indirect
-	golang.org/x/net v0.0.0-20211109214657-ef0fda0de508 // indirect
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20211104193956-4c6863e31247 // indirect
+	google.golang.org/genproto v0.0.0-20211112145013-271947fe86fd // indirect
 	google.golang.org/grpc v1.42.0
 	google.golang.org/protobuf v1.27.1
-	gorm.io/driver/postgres v1.2.1
-	gorm.io/gorm v1.22.2
+	gorm.io/driver/postgres v1.2.2
+	gorm.io/gorm v1.22.3
 )
 
 require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.0.0 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.6.0 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.6.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.0.0 // indirect
@@ -42,7 +42,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.5.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.9.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.6.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.9.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.10.0 // indirect
 	github.com/aws/smithy-go v1.9.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -75,8 +75,8 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
-	golang.org/x/sys v0.0.0-20211109184856-51b60fd695b3 // indirect
-	gopkg.in/ini.v1 v1.63.2 // indirect
+	golang.org/x/sys v0.0.0-20211113001501-0c823b97ae02 // indirect
+	gopkg.in/ini.v1 v1.64.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
