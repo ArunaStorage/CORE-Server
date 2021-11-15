@@ -16,10 +16,10 @@ import (
 // Also works for cockroachDB
 func NewPsqlDB(host string, port uint64, username string, dbName string) (*gorm.DB, error) {
 	psqlPW := os.Getenv("PSQL_PASSWORD")
-	dsn := fmt.Sprintf("host=%v user=%v password=%v dbname=%v port=%v sslmode=prefer TimeZone=Europe/Berlin", host, username, psqlPW, dbName, port)
+	dsn := fmt.Sprintf("postgres://%v:%v@%v:%v/%v?sslmode=prefer&TimeZone=Europe/Berlin", username, psqlPW, host, port, dbName)
 
 	if psqlPW == "" {
-		dsn = "postgres://root@localhost:26257/defaultdb?sslmode=disable"
+		dsn = "postgres://root@localhost:26257/test?sslmode=disable"
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
@@ -49,12 +49,9 @@ func NewPsqlDBCITest() (*gorm.DB, error) {
 	return db, nil
 }
 
-type Test struct {
-	gorm.Model
-	Foo int
-}
-
 func makeMigrations(db *gorm.DB) *gorm.DB {
+	log.Println(db.DB())
+
 	err := db.AutoMigrate(
 		&models.Project{},
 		&models.Dataset{},
