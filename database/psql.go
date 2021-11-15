@@ -16,7 +16,6 @@ import (
 // Also works for cockroachDB
 func NewPsqlDB(host string, port uint64, username string, dbName string) (*gorm.DB, error) {
 	psqlPW := os.Getenv("PSQL_PASSWORD")
-
 	dsn := fmt.Sprintf("host=%v user=%v password=%v dbname=%v port=%v sslmode=prefer TimeZone=Europe/Berlin", host, username, psqlPW, dbName, port)
 
 	if psqlPW == "" {
@@ -27,8 +26,7 @@ func NewPsqlDB(host string, port uint64, username string, dbName string) (*gorm.
 		Logger: NewGormLogger(),
 	})
 	if err != nil {
-		log.Println(err.Error())
-		return nil, err
+		log.Fatalln(err.Error())
 	}
 
 	db = makeMigrations(db)
@@ -51,8 +49,13 @@ func NewPsqlDBCITest() (*gorm.DB, error) {
 	return db, nil
 }
 
+type Test struct {
+	gorm.Model
+	Foo int
+}
+
 func makeMigrations(db *gorm.DB) *gorm.DB {
-	db.AutoMigrate(
+	err := db.AutoMigrate(
 		&models.Project{},
 		&models.Dataset{},
 		&models.DatasetVersion{},
@@ -65,6 +68,10 @@ func makeMigrations(db *gorm.DB) *gorm.DB {
 		&models.User{},
 		&models.StreamingEntry{},
 	)
+
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
 	return db
 }

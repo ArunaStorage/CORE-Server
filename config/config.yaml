@@ -4,7 +4,7 @@ Server:
 DB:
   Host: "localhost"
   Port: 26257
-  Name: "defaultdb"
+  Name: "corestoragedev"
 OAuth2:
   UserInfoEndpoint: "https://keycloak.m1.k8s.computational.bio/auth/realms/NFDI4Biodiversity/protocol/openid-connect/userinfo"
   RealmInfoEndpoint: "https://keycloak.m1.k8s.computational.bio/auth/realms/NFDI4Biodiversity"
