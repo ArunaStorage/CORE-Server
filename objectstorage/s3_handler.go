@@ -97,8 +97,6 @@ func (s3Handler *S3ObjectStorageHandler) CreateBucket(projectID uuid.UUID) (stri
 			break
 		}
 
-		println(bucketname)
-
 		var bne *types.BucketAlreadyExists
 		if errors.As(err, &bne) {
 			log.Infof("bucket with name %v already exists", bucketname)
@@ -115,7 +113,24 @@ func (s3Handler *S3ObjectStorageHandler) CreateBucket(projectID uuid.UUID) (stri
 			log.Error(err.Error())
 			return "", err
 		}
+	}
 
+	_, err := s3Handler.S3Client.PutBucketCors(context.Background(), &s3.PutBucketCorsInput{
+		Bucket: &bucketname,
+		CORSConfiguration: &types.CORSConfiguration{
+			CORSRules: []types.CORSRule{
+				{
+					AllowedMethods: []string{"GET", "PUT"},
+					AllowedOrigins: []string{"*"},
+					AllowedHeaders: []string{"*"},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		log.Println(err.Error())
+		return "", err
 	}
 
 	return bucketname, nil
