@@ -9,4 +9,5 @@ DB:
 S3:
   BucketPrefix: "test-bucket"
   Endpoint: "http://minio:9000"
+  SkipDefaultCORSConfig: true
 

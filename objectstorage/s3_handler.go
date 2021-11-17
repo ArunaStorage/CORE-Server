@@ -115,7 +115,7 @@ func (s3Handler *S3ObjectStorageHandler) CreateBucket(projectID uuid.UUID) (stri
 		}
 	}
 
-	if viper.GetBool("S3.SetDefaultCORS") {
+	if !viper.GetBool("S3.SkipDefaultCORSConfig") {
 		_, err := s3Handler.S3Client.PutBucketCors(context.Background(), &s3.PutBucketCorsInput{
 			Bucket: aws.String(bucketname),
 			CORSConfiguration: &types.CORSConfiguration{
@@ -123,6 +123,8 @@ func (s3Handler *S3ObjectStorageHandler) CreateBucket(projectID uuid.UUID) (stri
 					{
 						AllowedMethods: []string{"GET", "PUT"},
 						AllowedOrigins: []string{"*"},
+						AllowedHeaders: []string{"*"},
+						ExposeHeaders:  []string{"*"},
 					},
 				},
 			},
