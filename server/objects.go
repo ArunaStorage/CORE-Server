@@ -71,6 +71,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 			objectGroupResponse.ObjectLinks = append(objectGroupResponse.ObjectLinks, &services.CreateObjectGroupResponse_ObjectLinks{
 				Filename: object.Filename,
 				Link:     link,
+				ObjectId: object.ID.String(),
 			})
 		}
 	}
