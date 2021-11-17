@@ -50,8 +50,6 @@ func NewPsqlDBCITest() (*gorm.DB, error) {
 }
 
 func makeMigrations(db *gorm.DB) *gorm.DB {
-	log.Println(db.DB())
-
 	err := db.AutoMigrate(
 		&models.Project{},
 		&models.Dataset{},
