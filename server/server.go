@@ -58,10 +58,14 @@ func Run(host string, gRPCPort uint16) error {
 		return err
 	}
 
-	eventStreamMgmt, err := eventstreaming.NewNatsEventStreamMgmt(endpoints.ReadHandler)
-	if err != nil {
-		log.Errorln(err.Error())
-		return err
+	var eventStreamMgmt eventstreaming.EventStreamMgmt
+
+	if endpoints.UseEventStreaming {
+		eventStreamMgmt, err = eventstreaming.NewNatsEventStreamMgmt(endpoints.ReadHandler)
+		if err != nil {
+			log.Errorln(err.Error())
+			return err
+		}
 	}
 
 	projectEndpoints, err := NewProjectEndpoints(endpoints)
