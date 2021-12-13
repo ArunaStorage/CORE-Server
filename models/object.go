@@ -99,5 +99,7 @@ func (objectGroup *ObjectGroup) ToProtoModel() *protomodels.ObjectGroup {
 		Labels:      labels,
 		Metadata:    metadataList,
 		Objects:     objectsList,
+		Created:     timestamppb.New(objectGroup.CreatedAt),
+		Generated:   timestamppb.New(objectGroup.Generated),
 	}
 }
