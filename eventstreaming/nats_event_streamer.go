@@ -49,7 +49,7 @@ func NewNatsEventStreamMgmt(databaseReader *database.Read) (*NatsEventStreamMgmt
 
 	var options []nats.Option
 
-	if viper.IsSet("EventNotifications.NATS.NKeySeedEnvVarName") {
+	if viper.IsSet("EventNotifications.NATS.NKeySeedFileName") {
 		nkeySeedFile := viper.GetString("EventNotifications.NATS.NKeySeedFileName")
 		nkeyopts, err := nats.NkeyOptionFromSeed(nkeySeedFile)
 		if err != nil {
