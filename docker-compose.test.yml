@@ -18,6 +18,7 @@ services:
     depends_on:
       - minioConf
       - cockroach
+      - nats
   minio:
     image: minio/minio
     command: server /data
@@ -46,3 +47,8 @@ services:
       cockroach start-single-node --insecure --accept-sql-without-tls;
       "
     restart: always
+  nats:
+    image: nats:alpine
+    command: -js
+    ports:
+      - "4222:4222"

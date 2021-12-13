@@ -10,4 +10,9 @@ S3:
   BucketPrefix: "test-bucket"
   Endpoint: "http://minio:9000"
   SkipDefaultCORSConfig: true
+EventNotifications:
+  NATS:
+    URL: http://nats:4222
+
+
 

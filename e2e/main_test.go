@@ -5,10 +5,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/nats-io/nats.go"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ScienceObjectsDB/CORE-Server/authz"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
+	"github.com/ScienceObjectsDB/CORE-Server/eventstreaming"
 	"github.com/ScienceObjectsDB/CORE-Server/objectstorage"
 	"github.com/ScienceObjectsDB/CORE-Server/server"
 	"github.com/spf13/viper"
@@ -70,6 +72,18 @@ func local_init_test_endpoints() {
 
 	authzHandler := &authz.TestHandler{}
 
+	eventMgmt, err := eventstreaming.NewNatsEventStreamMgmt(&database.Read{
+		Common: &commonHandler,
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	_, err = eventMgmt.JetStreamManager.AddStream(&nats.StreamConfig{Name: "UPDATES", Description: "TEST", Subjects: []string{"UPDATES"}})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
 	endpoints := &server.Endpoints{
 		ReadHandler: &database.Read{
 			Common: &commonHandler,
@@ -82,7 +96,9 @@ func local_init_test_endpoints() {
 		DeleteHandler: &database.Delete{
 			Common: &commonHandler,
 		},
-		AuthzHandler: authzHandler,
+		AuthzHandler:      authzHandler,
+		EventStreamMgmt:   eventMgmt,
+		UseEventStreaming: true,
 	}
 
 	serverEndpoints := &ServerEndpointsTest{
@@ -126,6 +142,18 @@ func init_test_endpoints() {
 
 	authzHandler := &authz.TestHandler{}
 
+	eventMgmt, err := eventstreaming.NewNatsEventStreamMgmt(&database.Read{
+		Common: &commonHandler,
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	_, err = eventMgmt.JetStreamManager.AddStream(&nats.StreamConfig{Name: "UPDATES", Description: "TEST", Subjects: []string{"UPDATES.*", "UPDATES.*.*", "UPDATES.*.*.*"}})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
 	endpoints := &server.Endpoints{
 		ReadHandler: &database.Read{
 			Common: &commonHandler,
@@ -138,7 +166,9 @@ func init_test_endpoints() {
 		DeleteHandler: &database.Delete{
 			Common: &commonHandler,
 		},
-		AuthzHandler: authzHandler,
+		AuthzHandler:      authzHandler,
+		EventStreamMgmt:   eventMgmt,
+		UseEventStreaming: true,
 	}
 
 	serverEndpoints := &ServerEndpointsTest{

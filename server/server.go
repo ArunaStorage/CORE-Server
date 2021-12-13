@@ -7,6 +7,7 @@ import (
 
 	"github.com/ScienceObjectsDB/CORE-Server/authz"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
+	"github.com/ScienceObjectsDB/CORE-Server/eventstreaming"
 	"github.com/ScienceObjectsDB/CORE-Server/objectstorage"
 	"github.com/ScienceObjectsDB/CORE-Server/streamingserver"
 	"golang.org/x/sync/errgroup"
@@ -32,6 +33,8 @@ type Endpoints struct {
 	AuthzHandler        authz.AuthInterface
 	ObjectHandler       *objectstorage.S3ObjectStorageHandler
 	ObjectStreamhandler *database.Streaming
+	EventStreamMgmt     eventstreaming.EventStreamMgmt
+	UseEventStreaming   bool
 }
 
 type Server struct {
@@ -41,7 +44,7 @@ type Server struct {
 func Run(host string, gRPCPort uint16) error {
 	grpcListener, err := net.Listen("tcp", fmt.Sprintf("%v:%v", host, gRPCPort))
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return err
 	}
 
@@ -51,31 +54,43 @@ func Run(host string, gRPCPort uint16) error {
 
 	endpoints, err := createGenericEndpoint()
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
+		return err
+	}
+
+	eventStreamMgmt, err := eventstreaming.NewNatsEventStreamMgmt(endpoints.ReadHandler)
+	if err != nil {
+		log.Errorln(err.Error())
 		return err
 	}
 
 	projectEndpoints, err := NewProjectEndpoints(endpoints)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return err
 	}
 
 	datasetEndpoints, err := NewDatasetEndpoints(endpoints)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return err
 	}
 
 	objectEndpoints, err := NewObjectEndpoints(endpoints)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return err
 	}
 
 	loadEndpoints, err := NewLoadEndpoints(endpoints)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
+		return err
+	}
+
+	notificationEndpoints, err := NewNotificationEndpoints(endpoints, eventStreamMgmt)
+	if err != nil {
+		log.Errorln(err.Error())
 		return err
 	}
 
@@ -96,6 +111,7 @@ func Run(host string, gRPCPort uint16) error {
 	services.RegisterDatasetServiceServer(grpcServer, datasetEndpoints)
 	services.RegisterDatasetObjectsServiceServer(grpcServer, objectEndpoints)
 	services.RegisterObjectLoadServiceServer(grpcServer, loadEndpoints)
+	services.RegisterUpdateNotificationServiceServer(grpcServer, notificationEndpoints)
 
 	serverErrGrp.Go(func() error {
 		return grpcServer.Serve(grpcListener)
@@ -143,6 +159,14 @@ func createGenericEndpoint() (*Endpoints, error) {
 		S3Handler: objectHandler,
 	}
 
+	eventNotificationsMgmt, err := eventstreaming.NewNatsEventStreamMgmt(&database.Read{
+		Common: &commonHandler,
+	})
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
 	endpoints := &Endpoints{
 		ReadHandler: &database.Read{
 			Common: &commonHandler,
@@ -161,6 +185,7 @@ func createGenericEndpoint() (*Endpoints, error) {
 			StreamingEndpoint: streamingEndpoint,
 			SigningSecret:     streamSigningSecret,
 		},
+		EventStreamMgmt: eventNotificationsMgmt,
 	}
 
 	return endpoints, nil

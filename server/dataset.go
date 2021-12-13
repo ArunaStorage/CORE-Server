@@ -8,6 +8,7 @@ import (
 
 	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1 "github.com/ScienceObjectsDB/go-api/api/services/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -49,6 +50,19 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *se
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
+	}
+
+	if endpoint.UseEventStreaming {
+		msg := &v1.EventNotificationMessage{
+			ResourceId:  id,
+			Resource:    protoModels.Resource_DATASET_RESOURCE,
+			UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
+		}
+		err := endpoint.EventStreamMgmt.PublishMessage(msg, v1.NotificationStreamRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not publish notification event")
+		}
 	}
 
 	response := services.CreateDatasetResponse{

@@ -72,6 +72,20 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
+	streamHandler, err := ServerEndpoints.object.EventStreamMgmt.CreateMessageStreamHandler(
+		&services.NotificationStreamRequest{
+			Resource:           services.NotificationStreamRequest_EVENT_RESOURCES_DATASET_RESOURCE,
+			ResourceId:         datasetCreateResponse.GetId(),
+			IncludeSubresource: true,
+			StreamType:         &services.NotificationStreamRequest_StreamAll{},
+		},
+	)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	go streamHandler.StartMessageTransformation()
+
 	objectGroupMetadata := []*v1.Metadata{
 		{
 			Key:      "Key1OG",
@@ -202,8 +216,6 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	log.Println(uploadLink.UploadLink)
-
 	if response.StatusCode != 200 {
 		log.Fatalln(response.Status)
 	}
@@ -264,6 +276,16 @@ func TestObjectGroup(t *testing.T) {
 	}
 
 	assert.Equal(t, string(dataRange), "fo")
+
+	i := 0
+	for msg := range streamHandler.GetResponseMessageChan() {
+		i++
+		if msg.Message.Resource == v1.Resource_OBJECT_GROUP_RESOURCE {
+			if msg.Message.ResourceId == createObjectGroupResponse.GetObjectGroupId() {
+				break
+			}
+		}
+	}
 }
 
 func TestObjectGroupBatch(t *testing.T) {

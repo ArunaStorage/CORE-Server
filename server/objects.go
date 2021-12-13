@@ -61,6 +61,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 		ObjectGroupName: objectgroup.Name,
 		ObjectLinks:     []*services.CreateObjectGroupResponse_ObjectLinks{},
 	}
+
 	if request.IncludeObjectLink {
 		for _, object := range objectgroup.Objects {
 			link, err := endpoint.ObjectHandler.CreateUploadLink(&object)
@@ -74,6 +75,17 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 				ObjectId: object.ID.String(),
 			})
 		}
+	}
+
+	err = endpoint.EventStreamMgmt.PublishMessage(&services.EventNotificationMessage{
+		Resource:    protoModels.Resource_OBJECT_GROUP_RESOURCE,
+		ResourceId:  objectGroupResponse.GetObjectGroupId(),
+		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
+	}, services.NotificationStreamRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
+
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not publish notification event")
 	}
 
 	return objectGroupResponse, nil
