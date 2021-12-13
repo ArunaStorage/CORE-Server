@@ -47,7 +47,20 @@ func NewNatsEventStreamMgmt(databaseReader *database.Read) (*NatsEventStreamMgmt
 		serverstring = nats.DefaultURL
 	}
 
-	nc, err := nats.Connect(serverstring, nats.Timeout(5*time.Second))
+	var options []nats.Option
+
+	if viper.IsSet("EventNotifications.NATS.NKeySeedEnvVarName") {
+		nkeySeedFile := viper.GetString("EventNotifications.NATS.NKeySeedFileName")
+		nkeyopts, err := nats.NkeyOptionFromSeed(nkeySeedFile)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+		options = append(options, nkeyopts)
+	}
+	options = append(options, nats.Timeout(5*time.Second))
+
+	nc, err := nats.Connect(serverstring, options...)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, err

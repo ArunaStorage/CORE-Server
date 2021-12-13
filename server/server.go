@@ -157,7 +157,6 @@ func createGenericEndpoint() (*Endpoints, error) {
 	var eventStreamMgmt eventstreaming.EventStreamMgmt
 
 	if useEventNotification {
-
 		eventStreamMgmt, err = eventstreaming.NewNatsEventStreamMgmt(&database.Read{
 			Common: &commonHandler,
 		})
