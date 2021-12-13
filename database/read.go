@@ -154,7 +154,7 @@ func (read *Read) GetDatasetVersion(versionID uuid.UUID) (*models.DatasetVersion
 	datasetVersion.ID = versionID
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Labels").Preload("Metadata").Preload("ObjectGroupRevisions").Find(datasetVersion).Error
+		return tx.Preload("Labels").Preload("Metadata").Find(datasetVersion).Error
 	})
 
 	if err != nil {

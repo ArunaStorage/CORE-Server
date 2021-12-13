@@ -19,7 +19,7 @@ func (handler *Delete) DeleteObjectGroup(objectGroupID uuid.UUID) error {
 	objectGroup.ID = objectGroupID
 
 	err := crdbgorm.ExecuteTx(context.Background(), handler.DB, nil, func(tx *gorm.DB) error {
-		return tx.Select("Labels", "Metadata", "Objects", "ObjectGroupRevisions", "ObjectGroupRevisions.Labels", "ObjectGroupRevisions.Metadata").Unscoped().Delete(objectGroup).Error
+		return tx.Select("Labels", "Metadata", "Objects").Unscoped().Delete(objectGroup).Error
 	})
 
 	if err != nil {
@@ -34,7 +34,7 @@ func (handler *Delete) DeleteDataset(datasetID uuid.UUID) error {
 	dataset.ID = datasetID
 
 	err := crdbgorm.ExecuteTx(context.Background(), handler.DB, nil, func(tx *gorm.DB) error {
-		return tx.Select("Labels", "Metadata", "Objects", "ObjectGroups", "DatasetVersion", "ObjectGroups.ObjectGroupRevision", "ObjectsGroups.Objects").Unscoped().Delete(dataset).Error
+		return tx.Select("Labels", "Metadata", "Objects", "ObjectGroups", "DatasetVersion", "ObjectsGroups.Objects").Unscoped().Delete(dataset).Error
 	})
 
 	if err != nil {
@@ -66,7 +66,7 @@ func (handler *Delete) DeleteProject(projectID uuid.UUID) error {
 	project.ID = projectID
 
 	err := crdbgorm.ExecuteTx(context.Background(), handler.DB, nil, func(tx *gorm.DB) error {
-		return tx.Select("Labels", "Metadata", "User", "APIToken", "Datasets", "Datasets.ObjectGroupRevisions", "Datasets.Objects").Unscoped().Delete(project).Error
+		return tx.Select("Labels", "Metadata", "User", "APIToken", "Datasets", "Datasets.Objects").Unscoped().Delete(project).Error
 	})
 
 	if err != nil {
