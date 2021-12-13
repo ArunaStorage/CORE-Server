@@ -58,16 +58,6 @@ func Run(host string, gRPCPort uint16) error {
 		return err
 	}
 
-	var eventStreamMgmt eventstreaming.EventStreamMgmt
-
-	if endpoints.UseEventStreaming {
-		eventStreamMgmt, err = eventstreaming.NewNatsEventStreamMgmt(endpoints.ReadHandler)
-		if err != nil {
-			log.Errorln(err.Error())
-			return err
-		}
-	}
-
 	projectEndpoints, err := NewProjectEndpoints(endpoints)
 	if err != nil {
 		log.Errorln(err.Error())
@@ -92,7 +82,7 @@ func Run(host string, gRPCPort uint16) error {
 		return err
 	}
 
-	notificationEndpoints, err := NewNotificationEndpoints(endpoints, eventStreamMgmt)
+	notificationEndpoints, err := NewNotificationEndpoints(endpoints)
 	if err != nil {
 		log.Errorln(err.Error())
 		return err
@@ -163,14 +153,19 @@ func createGenericEndpoint() (*Endpoints, error) {
 		S3Handler: objectHandler,
 	}
 
-	eventNotificationsMgmt, err := eventstreaming.NewNatsEventStreamMgmt(&database.Read{
-		Common: &commonHandler,
-	})
-	if err != nil {
-		log.Errorln(err.Error())
-		return nil, err
-	}
+	useEventNotification := viper.GetBool("EventNotifications.Enabled")
+	var eventStreamMgmt eventstreaming.EventStreamMgmt
 
+	if useEventNotification {
+
+		eventStreamMgmt, err = eventstreaming.NewNatsEventStreamMgmt(&database.Read{
+			Common: &commonHandler,
+		})
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+	}
 	endpoints := &Endpoints{
 		ReadHandler: &database.Read{
 			Common: &commonHandler,
@@ -189,7 +184,8 @@ func createGenericEndpoint() (*Endpoints, error) {
 			StreamingEndpoint: streamingEndpoint,
 			SigningSecret:     streamSigningSecret,
 		},
-		EventStreamMgmt: eventNotificationsMgmt,
+		EventStreamMgmt:   eventStreamMgmt,
+		UseEventStreaming: useEventNotification,
 	}
 
 	return endpoints, nil

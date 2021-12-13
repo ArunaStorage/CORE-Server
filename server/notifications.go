@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 
-	"github.com/ScienceObjectsDB/CORE-Server/eventstreaming"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -16,7 +15,7 @@ type NotificationEndpoints struct {
 }
 
 // NewLoadEndpoints New load service
-func NewNotificationEndpoints(endpoints *Endpoints, eventStreamMgmt eventstreaming.EventStreamMgmt) (*NotificationEndpoints, error) {
+func NewNotificationEndpoints(endpoints *Endpoints) (*NotificationEndpoints, error) {
 	notificationEndpoints := &NotificationEndpoints{
 		Endpoints: endpoints,
 	}

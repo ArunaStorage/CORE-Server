@@ -11,6 +11,7 @@ S3:
   Endpoint: "http://minio:9000"
   SkipDefaultCORSConfig: true
 EventNotifications:
+  Enabled: true
   NATS:
     URL: http://nats:4222
 
