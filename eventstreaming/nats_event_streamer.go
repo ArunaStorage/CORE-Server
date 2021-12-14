@@ -18,13 +18,12 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-const STREAM_SUBJECT_PREFIX = "UPDATES"
-
 type NatsEventStreamMgmt struct {
 	Connection       *nats.Conn
 	JetStreamContext nats.JetStream
 	JetStreamManager nats.JetStreamManager
 	ReadHandler      *database.Read
+	SubjectPrefix    string
 }
 
 type NatsEventStreamer struct {
@@ -37,6 +36,7 @@ type NatsEventStreamer struct {
 
 func NewNatsEventStreamMgmt(databaseReader *database.Read) (*NatsEventStreamMgmt, error) {
 	urls := viper.GetStringSlice("EventNotifications.NATS.URL")
+	streamSubjectPrefix := viper.GetString("EventNotifications.NATS.SubjectPrefix")
 
 	var serverstring string
 	if len(urls) == 1 {
@@ -77,6 +77,7 @@ func NewNatsEventStreamMgmt(databaseReader *database.Read) (*NatsEventStreamMgmt
 		JetStreamContext: jetstream,
 		JetStreamManager: jetstream,
 		ReadHandler:      databaseReader,
+		SubjectPrefix:    streamSubjectPrefix,
 	}
 
 	return streaming, nil
@@ -159,7 +160,7 @@ func (streaming *NatsEventStreamMgmt) createStreamSubject(resourceID string, res
 	}
 
 	idConcat := strings.Join(idList, ".")
-	subjectFullName := fmt.Sprintf("%v.%v", STREAM_SUBJECT_PREFIX, idConcat)
+	subjectFullName := fmt.Sprintf("%v.%v", streaming.SubjectPrefix, idConcat)
 
 	return subjectFullName, nil
 }

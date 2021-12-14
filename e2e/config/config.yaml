@@ -14,5 +14,6 @@ EventNotifications:
   Enabled: true
   NATS:
     URL: http://nats:4222
+    SubjectPrefix: "UPDATES.*"
 
 
