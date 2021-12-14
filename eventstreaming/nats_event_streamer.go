@@ -162,6 +162,8 @@ func (streaming *NatsEventStreamMgmt) createStreamSubject(resourceID string, res
 	idConcat := strings.Join(idList, ".")
 	subjectFullName := fmt.Sprintf("%v.%v", streaming.SubjectPrefix, idConcat)
 
+	log.Debugln(subjectFullName)
+
 	return subjectFullName, nil
 }
 
