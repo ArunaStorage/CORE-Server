@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 
@@ -9,7 +10,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+const envLogLevel = "LOG_LEVEL"
+const defaultLogLevel = log.WarnLevel
+
 func main() {
+	logLevel := getLogLevel()
+
+	log.SetLevel(logLevel)
 	log.SetReportCaller(true)
 
 	viper.SetConfigName("config") // name of config file (without extension)
@@ -28,4 +35,18 @@ func main() {
 		log.Fatalln(err.Error())
 	}
 
+}
+
+func getLogLevel() log.Level {
+	levelString, exists := os.LookupEnv(envLogLevel)
+	if !exists {
+		return defaultLogLevel
+	}
+
+	level, err := log.ParseLevel(levelString)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	return level
 }
