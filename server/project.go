@@ -8,7 +8,6 @@ import (
 
 	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
-	v1 "github.com/ScienceObjectsDB/go-api/api/services/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -50,12 +49,12 @@ func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *se
 	}
 
 	if endpoint.UseEventStreaming {
-		msg := &v1.EventNotificationMessage{
+		msg := &services.EventNotificationMessage{
 			ResourceId:  projectID,
 			Resource:    protoModels.Resource_PROJECT_RESOURCE,
 			UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
 		}
-		err := endpoint.EventStreamMgmt.PublishMessage(msg, v1.NotificationStreamRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
+		err := endpoint.EventStreamMgmt.PublishMessage(msg, services.NotificationStreamRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not publish notification event")
