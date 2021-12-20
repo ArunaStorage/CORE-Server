@@ -63,7 +63,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 	}
 
 	if request.IncludeObjectLink {
-		for _, object := range objectgroup.Objects {
+		for i, object := range objectgroup.Objects {
 			link, err := endpoint.ObjectHandler.CreateUploadLink(&object)
 			if err != nil {
 				log.Println(err.Error())
@@ -73,6 +73,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 				Filename: object.Filename,
 				Link:     link,
 				ObjectId: object.ID.String(),
+				Index:    int64(i),
 			})
 		}
 	}
