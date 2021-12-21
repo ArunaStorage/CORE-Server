@@ -415,6 +415,19 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 		Id: id.String(),
 	}
 
+	if endpoint.UseEventStreaming {
+		msg := &services.EventNotificationMessage{
+			ResourceId:  id.String(),
+			Resource:    protoModels.Resource_DATASET_VERSION_RESOURCE,
+			UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
+		}
+		err := endpoint.EventStreamMgmt.PublishMessage(msg, services.NotificationStreamRequest_EVENT_RESOURCES_DATASET_VERSION_RESOURCE)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not publish notification event")
+		}
+	}
+
 	return response, nil
 }
 

@@ -151,6 +151,14 @@ func (streaming *NatsEventStreamMgmt) createStreamSubject(resourceID string, res
 			return "", status.Error(codes.Internal, "could not find dataset")
 		}
 		idList = append(idList, objectGroup.ProjectID.String(), objectGroup.DatasetID.String(), objectGroup.ID.String())
+	case v1.NotificationStreamRequest_EVENT_RESOURCES_DATASET_VERSION_RESOURCE:
+		datasetVersion, err := streaming.ReadHandler.GetDatasetVersion(resourceUUID)
+		if err != nil {
+			log.Errorln(err)
+			return "", status.Error(codes.Internal, "could not find dataset")
+		}
+		idList = append(idList, datasetVersion.ProjectID.String(), datasetVersion.DatasetID.String())
+
 	default:
 		return "", status.Error(codes.Unimplemented, fmt.Sprintf("resource type %v not implemented", resource.String()))
 	}
