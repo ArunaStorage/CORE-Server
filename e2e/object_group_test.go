@@ -3,6 +3,7 @@ package e2e
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -308,7 +309,7 @@ func TestObjectGroupBatch(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		createObjectGroupRequest := &services.CreateObjectGroupRequest{
-			Name:      "baa",
+			Name:      fmt.Sprintf("foo-%v", i),
 			DatasetId: datasetID.GetId(),
 			Objects: []*services.CreateObjectRequest{
 				{
