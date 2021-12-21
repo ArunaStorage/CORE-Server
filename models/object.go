@@ -61,9 +61,9 @@ type ObjectGroup struct {
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	DeletedAt       gorm.DeletedAt `gorm:"index"`
-	Name            string
+	Name            string         `gorm:"index: unique_group_name"`
 	Description     string
-	DatasetID       uuid.UUID `gorm:"index"`
+	DatasetID       uuid.UUID `gorm:"index;index: unique_group_name"`
 	Dataset         Dataset
 	ProjectID       uuid.UUID `gorm:"index"`
 	Project         Project
