@@ -96,6 +96,7 @@ func (objectGroup *ObjectGroup) ToProtoModel() *protomodels.ObjectGroup {
 		Name:        objectGroup.Name,
 		Description: objectGroup.Description,
 		DatasetId:   objectGroup.DatasetID.String(),
+		ProjectId:   objectGroup.ProjectID.String(),
 		Labels:      labels,
 		Metadata:    metadataList,
 		Objects:     objectsList,
