@@ -52,6 +52,8 @@ func (object *Object) ToProtoModel() *protomodels.Object {
 		Location:   object.Location.toProtoModel(),
 		ContentLen: object.ContentLen,
 		UploadId:   object.UploadID,
+		DatasetId:  object.DatasetID.String(),
+		ProjectId:  object.ProjectID.String(),
 	}
 
 }
