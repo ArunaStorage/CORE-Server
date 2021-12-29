@@ -43,17 +43,18 @@ func (object *Object) ToProtoModel() *protomodels.Object {
 	}
 
 	return &protomodels.Object{
-		Id:         object.ID.String(),
-		Filename:   object.Filename,
-		Filetype:   object.Filetype,
-		Labels:     labels,
-		Metadata:   metadataList,
-		Created:    timestamppb.New(object.CreatedAt),
-		Location:   object.Location.toProtoModel(),
-		ContentLen: object.ContentLen,
-		UploadId:   object.UploadID,
-		DatasetId:  object.DatasetID.String(),
-		ProjectId:  object.ProjectID.String(),
+		Id:            object.ID.String(),
+		Filename:      object.Filename,
+		Filetype:      object.Filetype,
+		Labels:        labels,
+		Metadata:      metadataList,
+		Created:       timestamppb.New(object.CreatedAt),
+		Location:      object.Location.toProtoModel(),
+		ContentLen:    object.ContentLen,
+		UploadId:      object.UploadID,
+		DatasetId:     object.DatasetID.String(),
+		ProjectId:     object.ProjectID.String(),
+		ObjectGroupId: object.ObjectGroupID.String(),
 	}
 
 }
