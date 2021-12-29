@@ -98,6 +98,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *
 
 	response := services.CreateDownloadLinkResponse{
 		DownloadLink: downloadLink,
+		Object:       object.ToProtoModel(),
 	}
 
 	return &response, nil
