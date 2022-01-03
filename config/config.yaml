@@ -2,11 +2,17 @@ Server:
   Host: "127.0.0.1"
   Port: 50051
 DB:
-  Host: "localhost"
+  Host: "cockroach"
   Port: 26257
-  Name: "test"
-OAuth2:
-  UserInfoEndpoint: "https://keycloak.m1.k8s.computational.bio/auth/realms/NFDI4Biodiversity/protocol/openid-connect/userinfo"
-  RealmInfoEndpoint: "https://keycloak.m1.k8s.computational.bio/auth/realms/NFDI4Biodiversity"
+  Username: "cockroach"
+  Name: "coreservertestdb"
 S3:
-  BucketPrefix: "nfdi4biodivdevdata"
+  BucketPrefix: "test-bucket"
+  Endpoint: "http://minio:9000"
+  SkipDefaultCORSConfig: true
+EventNotifications:
+  Enabled: true
+  NATS:
+    URL: http://nats:4222
+    SubjectPrefix: "UPDATES"
+Insecure: true

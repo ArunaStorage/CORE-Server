@@ -142,10 +142,16 @@ func createGenericEndpoint() (*Endpoints, error) {
 		return nil, err
 	}
 
-	authzHandler, err := authz.InitAuthHandlerFromConf(db)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
+	var authzHandler authz.AuthInterface
+
+	if viper.IsSet("Insecure") {
+		authzHandler = &authz.TestHandler{}
+	} else {
+		authzHandler, err = authz.InitAuthHandlerFromConf(db)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
 	}
 
 	commonHandler := database.Common{
