@@ -1,19 +1,13 @@
 package models
 
 import (
-	"time"
-
 	protomodels "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"gorm.io/gorm"
 )
 
 type Dataset struct {
-	ID              uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	DeletedAt       gorm.DeletedAt `gorm:"index"`
+	BaseModel
 	Name            string
 	Description     string
 	Bucket          string
@@ -52,10 +46,7 @@ func (dataset *Dataset) ToProtoModel() protomodels.Dataset {
 }
 
 type DatasetVersion struct {
-	ID              uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	DeletedAt       gorm.DeletedAt `gorm:"index"`
+	BaseModel
 	Name            string
 	Description     string
 	Labels          []Label       `gorm:"many2many:dataset_version_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`

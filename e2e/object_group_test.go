@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -153,8 +154,10 @@ func TestObjectGroup(t *testing.T) {
 		},
 	}
 
+	name := fmt.Sprintf("objectgroup-%v", uuid.New())
+
 	createObjectGroupRequest := &services.CreateObjectGroupRequest{
-		Name:      "testog",
+		Name:      name,
 		DatasetId: datasetCreateResponse.GetId(),
 		Labels:    objectGroupLabel,
 		Metadata:  objectGroupMetadata,
@@ -278,12 +281,16 @@ func TestObjectGroup(t *testing.T) {
 
 	assert.Equal(t, string(dataRange), "fo")
 
-	i := 0
-	for msg := range streamHandler.GetResponseMessageChan() {
-		i++
-		if msg.Message.Resource == v1.Resource_OBJECT_GROUP_RESOURCE {
-			if msg.Message.ResourceId == createObjectGroupResponse.GetObjectGroupId() {
-				break
+	_, e2eComposeVar := os.LookupEnv("E2E_TEST_COMPOSE")
+
+	if e2eComposeVar {
+		i := 0
+		for msg := range streamHandler.GetResponseMessageChan() {
+			i++
+			if msg.Message.Resource == v1.Resource_OBJECT_GROUP_RESOURCE {
+				if msg.Message.ResourceId == createObjectGroupResponse.GetObjectGroupId() {
+					break
+				}
 			}
 		}
 	}

@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -92,19 +93,23 @@ func TestDataset(t *testing.T) {
 	assert.ElementsMatch(t, createDatasetRequest.Labels, datasetGetResponse.Dataset.Labels)
 	assert.ElementsMatch(t, createDatasetRequest.Metadata, datasetGetResponse.Dataset.Metadata)
 
-	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &services.DeleteDatasetRequest{
-		Id: datasetCreateResponse.GetId(),
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
+	//_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &services.DeleteDatasetRequest{
+	//	Id: datasetCreateResponse.GetId(),
+	//})
+	//if err != nil {
+	//	log.Fatalln(err.Error())
+	//
+	//}
+
+	_, e2eComposeVar := os.LookupEnv("E2E_TEST_COMPOSE")
+
+	if e2eComposeVar {
+		msgChan := streamer.GetResponseMessageChan()
+		notficationMsg := <-msgChan
+
+		assert.Equal(t, datasetCreateResponse.GetId(), notficationMsg.Message.ResourceId)
+		assert.Equal(t, v1.Resource_DATASET_RESOURCE, notficationMsg.Message.Resource)
 	}
-
-	msgChan := streamer.GetResponseMessageChan()
-	notficationMsg := <-msgChan
-
-	assert.Equal(t, datasetCreateResponse.GetId(), notficationMsg.Message.ResourceId)
-	assert.Equal(t, v1.Resource_DATASET_RESOURCE, notficationMsg.Message.Resource)
-
 }
 
 func TestDatasetObjectGroupsPagination(t *testing.T) {

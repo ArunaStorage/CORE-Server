@@ -6,16 +6,12 @@ import (
 	protomodels "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"gorm.io/gorm"
 )
 
 type Object struct {
-	ID            uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	DeletedAt     gorm.DeletedAt `gorm:"index"`
-	ObjectUUID    uuid.UUID      `gorm:"index,unique"`
-	Filename      string         `gorm:"index"`
+	BaseModel
+	ObjectUUID    uuid.UUID `gorm:"index,unique"`
+	Filename      string    `gorm:"index"`
 	Filetype      string
 	ContentLen    int64
 	Location      Location   `gorm:"foreignKey:ObjectID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
@@ -60,11 +56,8 @@ func (object *Object) ToProtoModel() *protomodels.Object {
 }
 
 type ObjectGroup struct {
-	ID              uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	DeletedAt       gorm.DeletedAt `gorm:"index"`
-	Name            string         `gorm:"index:unique_group_name,unique"`
+	BaseModel
+	Name            string `gorm:"index:unique_group_name,unique"`
 	Description     string
 	DatasetID       uuid.UUID `gorm:"index;index:unique_group_name,unique"`
 	Dataset         Dataset

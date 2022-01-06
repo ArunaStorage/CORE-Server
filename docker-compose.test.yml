@@ -1,10 +1,10 @@
 version: '3.9'
 services:
-  test:
+  cockroach-test:
     environment:
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
-      PSQL_PASSWORD: test123
+      E2E_TEST_COMPOSE: true
     build: 
       context: .
       dockerfile: test/Dockerfile
@@ -18,6 +18,27 @@ services:
     depends_on:
       - minioConf
       - cockroach
+      - nats
+  postgres-test:
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      PSQL_PASSWORD: test123
+      DatabaseType: Postgres
+      E2E_TEST_COMPOSE: true
+    build: 
+      context: .
+      dockerfile: test/Dockerfile
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5; 
+      /bin/mc config host add myminio http://minio:9000 minioadmin minioadmin;
+      /bin/mc mb myminio/test-bucket;
+      go test ./...
+      "
+    depends_on:
+      - minioConf
+      - postgres
       - nats
   minio:
     image: minio/minio
@@ -47,6 +68,14 @@ services:
       cockroach start-single-node --insecure --accept-sql-without-tls;
       "
     restart: always
+  postgres:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: test123
+      POSTGRES_USER: testuser
+      POSTGRES_DB: testdb
   nats:
     image: nats:alpine
     command: -js

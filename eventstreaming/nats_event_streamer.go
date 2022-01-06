@@ -18,7 +18,7 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-type NatsEventStreamMgmt struct {
+type natsEventStreamMgmt struct {
 	Connection       *nats.Conn
 	JetStreamContext nats.JetStream
 	JetStreamManager nats.JetStreamManager
@@ -26,7 +26,7 @@ type NatsEventStreamMgmt struct {
 	SubjectPrefix    string
 }
 
-type NatsEventStreamer struct {
+type natsEventStreamer struct {
 	MsgChan          chan *nats.Msg
 	ResponseChan     chan *v1.NotificationStreamResponse
 	ReadHandler      *database.Read
@@ -34,7 +34,7 @@ type NatsEventStreamer struct {
 	Subscription     *nats.Subscription
 }
 
-func NewNatsEventStreamMgmt(databaseReader *database.Read) (*NatsEventStreamMgmt, error) {
+func newNatsEventStreamMgmt(databaseReader *database.Read) (*natsEventStreamMgmt, error) {
 	urls := viper.GetStringSlice("EventNotifications.NATS.URL")
 	streamSubjectPrefix := viper.GetString("EventNotifications.NATS.SubjectPrefix")
 
@@ -72,7 +72,7 @@ func NewNatsEventStreamMgmt(databaseReader *database.Read) (*NatsEventStreamMgmt
 		return nil, err
 	}
 
-	streaming := &NatsEventStreamMgmt{
+	streaming := &natsEventStreamMgmt{
 		Connection:       nc,
 		JetStreamContext: jetstream,
 		JetStreamManager: jetstream,
@@ -83,7 +83,16 @@ func NewNatsEventStreamMgmt(databaseReader *database.Read) (*NatsEventStreamMgmt
 	return streaming, nil
 }
 
-func (streaming *NatsEventStreamMgmt) PublishMessage(msg *v1.EventNotificationMessage, resource v1.NotificationStreamRequest_EventResources) error {
+func (mgmt *natsEventStreamMgmt) EnableTestMode() error {
+	_, err := mgmt.JetStreamManager.AddStream(&nats.StreamConfig{Name: "UPDATES", Description: "TEST", Subjects: []string{"UPDATES.*", "UPDATES.*.*", "UPDATES.*.*.*"}})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	return nil
+}
+
+func (streaming *natsEventStreamMgmt) PublishMessage(msg *v1.EventNotificationMessage, resource v1.NotificationStreamRequest_EventResources) error {
 	data, err := proto.Marshal(msg)
 	if err != nil {
 		log.Errorln(err.Error())
@@ -105,7 +114,7 @@ func (streaming *NatsEventStreamMgmt) PublishMessage(msg *v1.EventNotificationMe
 	return nil
 }
 
-func (streaming *NatsEventStreamMgmt) getStreamOptions(request *v1.NotificationStreamRequest) (nats.SubOpt, error) {
+func (streaming *natsEventStreamMgmt) getStreamOptions(request *v1.NotificationStreamRequest) (nats.SubOpt, error) {
 	var deliverOption nats.SubOpt
 
 	switch value := request.StreamType.(type) {
@@ -120,7 +129,7 @@ func (streaming *NatsEventStreamMgmt) getStreamOptions(request *v1.NotificationS
 	return deliverOption, nil
 }
 
-func (streaming *NatsEventStreamMgmt) createStreamSubject(resourceID string, resource v1.NotificationStreamRequest_EventResources, includeSubResources bool) (string, error) {
+func (streaming *natsEventStreamMgmt) createStreamSubject(resourceID string, resource v1.NotificationStreamRequest_EventResources, includeSubResources bool) (string, error) {
 	resourceUUID, err := uuid.Parse(resourceID)
 	if err != nil {
 		log.Errorln(err)
@@ -175,7 +184,7 @@ func (streaming *NatsEventStreamMgmt) createStreamSubject(resourceID string, res
 	return subjectFullName, nil
 }
 
-func (streaming *NatsEventStreamMgmt) CreateMessageStreamHandler(request *v1.NotificationStreamRequest) (EventStreamer, error) {
+func (streaming *natsEventStreamMgmt) CreateMessageStreamHandler(request *v1.NotificationStreamRequest) (EventStreamer, error) {
 	streamMessageChan := make(chan *nats.Msg, 1000)
 	streamResponseChan := make(chan *v1.NotificationStreamResponse, 1000)
 
@@ -195,7 +204,7 @@ func (streaming *NatsEventStreamMgmt) CreateMessageStreamHandler(request *v1.Not
 		return nil, err
 	}
 
-	eventStreamer := &NatsEventStreamer{
+	eventStreamer := &natsEventStreamer{
 		ResponseChan:     streamResponseChan,
 		MsgChan:          streamMessageChan,
 		ReadHandler:      streaming.ReadHandler,
@@ -206,11 +215,11 @@ func (streaming *NatsEventStreamMgmt) CreateMessageStreamHandler(request *v1.Not
 	return eventStreamer, nil
 }
 
-func (streaming *NatsEventStreamer) GetResponseMessageChan() chan *v1.NotificationStreamResponse {
+func (streaming *natsEventStreamer) GetResponseMessageChan() chan *v1.NotificationStreamResponse {
 	return streaming.ResponseChan
 }
 
-func (streaming *NatsEventStreamer) StartMessageTransformation() error {
+func (streaming *natsEventStreamer) StartMessageTransformation() error {
 	for msg := range streaming.MsgChan {
 		meta, err := msg.Metadata()
 		if err != nil {

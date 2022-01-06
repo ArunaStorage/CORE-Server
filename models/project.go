@@ -1,18 +1,12 @@
 package models
 
 import (
-	"time"
-
 	protomodels "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type Project struct {
-	ID          uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	DeletedAt   gorm.DeletedAt `gorm:"index"`
+	BaseModel
 	Description string
 	Users       []User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Name        string
@@ -50,10 +44,7 @@ func (project *Project) ToProtoModel() *protomodels.Project {
 }
 
 type User struct {
-	ID           uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	DeletedAt    gorm.DeletedAt `gorm:"index"`
+	BaseModel
 	UserOauth2ID string
 	ProjectID    uuid.UUID
 	Project      Project
@@ -68,12 +59,9 @@ func (user *User) ToProtoModel() *protomodels.User {
 }
 
 type UserRight struct {
-	ID        uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-	Right     string
-	UserID    uuid.UUID
+	BaseModel
+	Right  string
+	UserID uuid.UUID
 }
 
 func (right *UserRight) ToProtoModel() protomodels.Right {
@@ -81,10 +69,7 @@ func (right *UserRight) ToProtoModel() protomodels.Right {
 }
 
 type APITokenRight struct {
-	ID         uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	DeletedAt  gorm.DeletedAt `gorm:"index"`
+	BaseModel
 	Right      string
 	APITokenID uuid.UUID
 }
@@ -94,12 +79,9 @@ func (right *APITokenRight) ToProtoModel() protomodels.Right {
 }
 
 type APIToken struct {
-	ID        uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-	Token     string         `gorm:"index"`
-	ProjectID uuid.UUID      `gorm:"index"`
+	BaseModel
+	Token     string    `gorm:"index"`
+	ProjectID uuid.UUID `gorm:"index"`
 	Project   Project
 	UserUUID  uuid.UUID `gorm:"index"`
 }

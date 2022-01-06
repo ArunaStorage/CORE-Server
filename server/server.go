@@ -34,7 +34,6 @@ type Endpoints struct {
 	ObjectHandler       *objectstorage.S3ObjectStorageHandler
 	ObjectStreamhandler *database.Streaming
 	EventStreamMgmt     eventstreaming.EventStreamMgmt
-	UseEventStreaming   bool
 }
 
 type Server struct {
@@ -116,18 +115,13 @@ func Run(host string, gRPCPort uint16) error {
 
 // Creates the endpoint config based on the provided config.
 func createGenericEndpoint() (*Endpoints, error) {
-	dbHost := viper.GetString("DB.Host")
-	dbPort := viper.GetUint("DB.Port")
-	dbName := viper.GetString("DB.Name")
-	dbUsername := viper.GetString("DB.Username")
-
 	streamingEndpoint := viper.GetString("Streaming.Endpoint")
 	streamSigningSecret := os.Getenv("STREAMINGSIGNSECRET")
 
 	var db *gorm.DB
 	var err error
 
-	db, err = database.NewPsqlDB(dbHost, uint64(dbPort), dbUsername, dbName)
+	db, err = database.InitDatabaseConnection()
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -159,18 +153,12 @@ func createGenericEndpoint() (*Endpoints, error) {
 		S3Handler: objectHandler,
 	}
 
-	useEventNotification := viper.GetBool("EventNotifications.Enabled")
-	var eventStreamMgmt eventstreaming.EventStreamMgmt
-
-	if useEventNotification {
-		eventStreamMgmt, err = eventstreaming.NewNatsEventStreamMgmt(&database.Read{
-			Common: &commonHandler,
-		})
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, err
-		}
+	eventStreamMgmt, err := eventstreaming.New(&database.Read{Common: &commonHandler})
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
 	}
+
 	endpoints := &Endpoints{
 		ReadHandler: &database.Read{
 			Common: &commonHandler,
@@ -189,8 +177,7 @@ func createGenericEndpoint() (*Endpoints, error) {
 			StreamingEndpoint: streamingEndpoint,
 			SigningSecret:     streamSigningSecret,
 		},
-		EventStreamMgmt:   eventStreamMgmt,
-		UseEventStreaming: useEventNotification,
+		EventStreamMgmt: eventStreamMgmt,
 	}
 
 	return endpoints, nil

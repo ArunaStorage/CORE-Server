@@ -85,7 +85,7 @@ func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (str
 	}
 
 	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
-		return create.DB.Create(&dataset).Error
+		return tx.Create(&dataset).Error
 	})
 
 	if err != nil {
@@ -105,7 +105,8 @@ func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (str
 	}
 
 	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
-		return tx.Model(&dataset).Update("Bucket", bucket).Error
+		dataset.Bucket = bucket
+		return tx.Model(&models.Dataset{}).Where("ID = ?", dataset.ID).Update("Bucket", bucket).Error
 	})
 	if err != nil {
 		log.Error(err.Error())
@@ -142,17 +143,9 @@ func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupReque
 	}
 
 	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
-		if err := tx.Create(&objectGroupModel).Error; err != nil {
-			return err
-		}
-
-		for _, object := range objects {
-			object.ObjectGroupID = objectGroupModel.ID
-		}
-
 		objectGroupModel.Objects = objects
 
-		if err := tx.Save(objectGroupModel).Error; err != nil {
+		if err := tx.Create(&objectGroupModel).Error; err != nil {
 			return err
 		}
 
@@ -192,25 +185,13 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObject
 			log.Println(err.Error())
 			return nil, err
 		}
+		objectGroup.Objects = objects
 		objectgroups = append(objectgroups, objectGroup)
 		objectgroupsObjects = append(objectgroupsObjects, objects)
 	}
 
 	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
 		if err = tx.Create(&objectgroups).Error; err != nil {
-			return err
-		}
-
-		for i, objectgroup := range objectgroups {
-			objects := objectgroupsObjects[i]
-			for _, object := range objects {
-				object.ObjectGroupID = objectgroup.ID
-			}
-
-			objectgroups[i].Objects = objects
-		}
-
-		if err := tx.Save(&objectgroups).Error; err != nil {
 			return err
 		}
 
@@ -334,7 +315,12 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 	}
 
 	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
-		return tx.Create(&version).Error
+		if err := tx.Omit("ObjectGroups.*").Create(&version).Error; err != nil {
+			log.Errorln(err.Error())
+			return err
+		}
+
+		return nil
 	})
 
 	if err != nil {
