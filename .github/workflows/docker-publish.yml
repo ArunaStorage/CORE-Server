@@ -20,7 +20,8 @@ jobs:
         run: |
           if [ -f docker-compose.test.yml ]; then
             docker-compose --file docker-compose.test.yml build
-            docker-compose --file docker-compose.test.yml run test
+            docker-compose --file docker-compose.test.yml run cockroach-test
+            docker-compose --file docker-compose.test.yml run postgres-test
           else
             docker build . --file Dockerfile
           fi
