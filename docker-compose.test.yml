@@ -4,7 +4,7 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
-      E2E_TEST_COMPOSE: true
+      E2E_TEST_COMPOSE: "true"
     build: 
       context: .
       dockerfile: test/Dockerfile
@@ -25,7 +25,7 @@ services:
       AWS_SECRET_ACCESS_KEY: minioadmin
       PSQL_PASSWORD: test123
       DatabaseType: Postgres
-      E2E_TEST_COMPOSE: true
+      E2E_TEST_COMPOSE: "true"
     build: 
       context: .
       dockerfile: test/Dockerfile
