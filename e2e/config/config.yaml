@@ -2,18 +2,15 @@ Server:
   Host: "127.0.0.1"
   Port: 50051
 DB:
-  Host: "cockroach"
-  Port: 26257
-  Username: "cockroach"
-  Name: "coreservertestdb"
+  Cockroach:
+    Hostname: "127.0.0.1"
+    Port: 26257
+    Username: "root"
+    Databasename: "defaultdb"
 S3:
   BucketPrefix: "test-bucket"
-  Endpoint: "http://minio:9000"
+  Endpoint: "http://localhost:9000"
   SkipDefaultCORSConfig: true
 EventNotifications:
-  Enabled: true
-  NATS:
-    URL: http://nats:4222
-    SubjectPrefix: "UPDATES"
-
+  Backend: Empty
 

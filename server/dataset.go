@@ -51,17 +51,15 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *se
 		return nil, err
 	}
 
-	if endpoint.UseEventStreaming {
-		msg := &services.EventNotificationMessage{
-			ResourceId:  id,
-			Resource:    protoModels.Resource_DATASET_RESOURCE,
-			UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
-		}
-		err := endpoint.EventStreamMgmt.PublishMessage(msg, services.NotificationStreamRequest_EVENT_RESOURCES_DATASET_RESOURCE)
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, status.Error(codes.Internal, "could not publish notification event")
-		}
+	msg := &services.EventNotificationMessage{
+		ResourceId:  id,
+		Resource:    protoModels.Resource_DATASET_RESOURCE,
+		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
+	}
+	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.NotificationStreamRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not publish notification event")
 	}
 
 	response := services.CreateDatasetResponse{
@@ -415,17 +413,15 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 		Id: id.String(),
 	}
 
-	if endpoint.UseEventStreaming {
-		msg := &services.EventNotificationMessage{
-			ResourceId:  id.String(),
-			Resource:    protoModels.Resource_DATASET_VERSION_RESOURCE,
-			UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
-		}
-		err := endpoint.EventStreamMgmt.PublishMessage(msg, services.NotificationStreamRequest_EVENT_RESOURCES_DATASET_VERSION_RESOURCE)
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, status.Error(codes.Internal, "could not publish notification event")
-		}
+	msg := &services.EventNotificationMessage{
+		ResourceId:  id.String(),
+		Resource:    protoModels.Resource_DATASET_VERSION_RESOURCE,
+		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
+	}
+	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.NotificationStreamRequest_EVENT_RESOURCES_DATASET_VERSION_RESOURCE)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not publish notification event")
 	}
 
 	return response, nil

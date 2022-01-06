@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/nats-io/nats.go"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ScienceObjectsDB/CORE-Server/authz"
@@ -27,18 +26,25 @@ var ServerEndpoints = &ServerEndpointsTest{}
 
 func TestMain(m *testing.M) {
 	log.SetReportCaller(true)
-
 	init_test_endpoints()
 	//local_init_test_endpoints()
 	code := m.Run()
 	os.Exit(code)
 }
 
-func local_init_test_endpoints() {
+func init_test_endpoints() {
 	viper.SetConfigName("config") // name of config file (without extension)
 	viper.SetConfigType("yaml")   // REQUIRED if the config file does not have the extension in the name
 
-	viper.AddConfigPath("/home/marius/Code/ScienceObjectsDB/CORE-Server/config/local")
+	_, e2eComposeVar := os.LookupEnv("E2E_TEST_COMPOSE")
+
+	if e2eComposeVar {
+		viper.AddConfigPath("./config_compose")
+	} else {
+		viper.AddConfigPath("./config")
+		os.Setenv("AWS_ACCESS_KEY_ID", "minioadmin")
+		os.Setenv("AWS_SECRET_ACCESS_KEY", "minioadmin")
+	}
 
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
@@ -47,82 +53,7 @@ func local_init_test_endpoints() {
 
 	os.Setenv("PSQL_PASSWORD", "test123")
 
-	dbHost := viper.GetString("DB.Host")
-	dbPort := viper.GetUint("DB.Port")
-	dbName := viper.GetString("DB.Name")
-	dbUsername := viper.GetString("DB.Username")
-
-	db, err := database.NewPsqlDB(dbHost, uint64(dbPort), dbUsername, dbName)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	bucketName := viper.GetString("S3.Bucket")
-
-	objectHandler := &objectstorage.S3ObjectStorageHandler{}
-	objectHandler, err = objectHandler.New(bucketName)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	commonHandler := database.Common{
-		DB:        db,
-		S3Handler: objectHandler,
-	}
-
-	authzHandler := &authz.TestHandler{}
-
-	eventMgmt, err := eventstreaming.NewNatsEventStreamMgmt(&database.Read{
-		Common: &commonHandler,
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	_, err = eventMgmt.JetStreamManager.AddStream(&nats.StreamConfig{Name: "UPDATES", Description: "TEST", Subjects: []string{"UPDATES"}})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	endpoints := &server.Endpoints{
-		ReadHandler: &database.Read{
-			Common: &commonHandler,
-		},
-		CreateHandler: &database.Create{Common: &commonHandler},
-		ObjectHandler: objectHandler,
-		UpdateHandler: &database.Update{
-			Common: &commonHandler,
-		},
-		DeleteHandler: &database.Delete{
-			Common: &commonHandler,
-		},
-		AuthzHandler:      authzHandler,
-		EventStreamMgmt:   eventMgmt,
-		UseEventStreaming: true,
-	}
-
-	serverEndpoints := &ServerEndpointsTest{
-		project: &server.ProjectEndpoints{Endpoints: endpoints},
-		dataset: &server.DatasetEndpoints{Endpoints: endpoints},
-		object:  &server.ObjectServerEndpoints{Endpoints: endpoints},
-		load:    &server.LoadEndpoints{Endpoints: endpoints},
-	}
-
-	ServerEndpoints = serverEndpoints
-}
-
-func init_test_endpoints() {
-	viper.SetConfigName("config") // name of config file (without extension)
-	viper.SetConfigType("yaml")   // REQUIRED if the config file does not have the extension in the name
-
-	viper.AddConfigPath("./config")
-
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil {             // Handle errors reading the config file
-		panic(fmt.Errorf("fatal error config file: %w", err))
-	}
-
-	db, err := database.NewPsqlDBCITest()
+	db, err := database.InitDatabaseConnection()
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -142,14 +73,12 @@ func init_test_endpoints() {
 
 	authzHandler := &authz.TestHandler{}
 
-	eventMgmt, err := eventstreaming.NewNatsEventStreamMgmt(&database.Read{
-		Common: &commonHandler,
-	})
+	eventMgmt, err := eventstreaming.New(&database.Read{Common: &commonHandler})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	_, err = eventMgmt.JetStreamManager.AddStream(&nats.StreamConfig{Name: "UPDATES", Description: "TEST", Subjects: []string{"UPDATES.*", "UPDATES.*.*", "UPDATES.*.*.*"}})
+	err = eventMgmt.EnableTestMode()
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -166,9 +95,8 @@ func init_test_endpoints() {
 		DeleteHandler: &database.Delete{
 			Common: &commonHandler,
 		},
-		AuthzHandler:      authzHandler,
-		EventStreamMgmt:   eventMgmt,
-		UseEventStreaming: true,
+		AuthzHandler:    authzHandler,
+		EventStreamMgmt: eventMgmt,
 	}
 
 	serverEndpoints := &ServerEndpointsTest{

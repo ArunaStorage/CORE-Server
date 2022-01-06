@@ -67,7 +67,7 @@ func (s3Handler *S3ObjectStorageHandler) New(S3BucketPrefix string) (*S3ObjectSt
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = false })
 
 	//Testing endpoint, minio cannot use bucket path style with presigned urls
-	if endpoint == "http://minio:9000" {
+	if endpoint == "http://minio:9000" || endpoint == "http://localhost:9000" {
 		client = s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = true })
 	}
 	presignClient := s3.NewPresignClient(client)
@@ -96,6 +96,8 @@ func (s3Handler *S3ObjectStorageHandler) CreateBucket(projectID uuid.UUID) (stri
 		if err == nil {
 			break
 		}
+
+		bucketname = "foo"
 
 		var bne *types.BucketAlreadyExists
 		if errors.As(err, &bne) {

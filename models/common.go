@@ -8,14 +8,25 @@ import (
 	"gorm.io/gorm"
 )
 
-type Metadata struct {
-	ID        uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+type BaseModel struct {
+	ID        uuid.UUID `gorm:"primaryKey;type:uuid"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
-	Name      string
-	Metadata  string
-	ParentID  uuid.UUID `gorm:"index"`
+}
+
+func (base *BaseModel) BeforeCreate(tx *gorm.DB) error {
+	id := uuid.New()
+	tx.Statement.SetColumn("ID", id)
+
+	return nil
+}
+
+type Metadata struct {
+	BaseModel
+	Name     string
+	Metadata string
+	ParentID uuid.UUID `gorm:"index"`
 }
 
 func (metadata *Metadata) ToProtoModel() *protomodels.Metadata {
@@ -33,12 +44,10 @@ func (metadata *Metadata) FromProtoModel(metadataProto *protomodels.Metadata) *M
 }
 
 type Label struct {
-	ID        uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-	Key       string
-	Value     string
+	BaseModel
+	Key      string
+	Value    string
+	ParentID uuid.UUID `gorm:"index"`
 }
 
 func (label *Label) ToProtoModel() *protomodels.Label {
@@ -56,14 +65,11 @@ func (label *Label) FromProtoModel(labelProto *protomodels.Label) *Label {
 }
 
 type Location struct {
-	ID        uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-	ObjectID  uuid.UUID      `gorm:"index"`
-	Endpoint  string
-	Bucket    string
-	Key       string
+	BaseModel
+	ObjectID uuid.UUID `gorm:"index"`
+	Endpoint string
+	Bucket   string
+	Key      string
 }
 
 func (location *Location) toProtoModel() *protomodels.Location {

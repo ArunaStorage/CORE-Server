@@ -48,17 +48,15 @@ func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *se
 		return nil, err
 	}
 
-	if endpoint.UseEventStreaming {
-		msg := &services.EventNotificationMessage{
-			ResourceId:  projectID,
-			Resource:    protoModels.Resource_PROJECT_RESOURCE,
-			UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
-		}
-		err := endpoint.EventStreamMgmt.PublishMessage(msg, services.NotificationStreamRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, status.Error(codes.Internal, "could not publish notification event")
-		}
+	msg := &services.EventNotificationMessage{
+		ResourceId:  projectID,
+		Resource:    protoModels.Resource_PROJECT_RESOURCE,
+		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
+	}
+	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.NotificationStreamRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not publish notification event")
 	}
 
 	response := &services.CreateProjectResponse{
