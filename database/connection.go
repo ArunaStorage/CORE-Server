@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ScienceObjectsDB/CORE-Server/config"
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -61,12 +62,12 @@ func InitDatabaseConnection() (*gorm.DB, error) {
 }
 
 func initCockroachConnection() (*gorm.DB, error) {
-	cockroachUsername := viper.GetString("DB.Cockroach.Username")
-	cockroachHostname := viper.GetString("DB.Cockroach.Hostname")
-	cockroachPort := viper.GetInt("DB.Cockroach.Port")
-	databasename := viper.GetString("DB.Cockroach.Databasename")
+	cockroachUsername := viper.GetString(config.DB_ROACH_USER)
+	cockroachHostname := viper.GetString(config.DB_ROACH_HOSTNAME)
+	cockroachPort := viper.GetInt(config.DB_ROACH_PORT)
+	databasename := viper.GetString(config.DB_ROACH_DATABASENAME)
 
-	password := os.Getenv("PSQL_PASSWORD")
+	password := os.Getenv(config.DB_ROACH_PASSWORDENVVAR)
 	dsn := fmt.Sprintf("postgres://%v:%v@%v:%v/%v?sslmode=prefer&TimeZone=Europe/Berlin", cockroachUsername, password, cockroachHostname, cockroachPort, databasename)
 
 	if password == "" {
@@ -84,12 +85,12 @@ func initCockroachConnection() (*gorm.DB, error) {
 }
 
 func initPsqlConnection() (*gorm.DB, error) {
-	postgresUsername := viper.GetString("DB.Postgres.Username")
-	postgresHostname := viper.GetString("DB.Postgres.Hostname")
-	postgresPort := viper.GetInt("DB.Postgres.Port")
-	databasename := viper.GetString("DB.Postgres.Databasename")
+	postgresUsername := viper.GetString(config.DB_POSTGRES_USER)
+	postgresHostname := viper.GetString(config.DB_POSTGRES_HOSTNAME)
+	postgresPort := viper.GetInt(config.DB_POSTGRES_PORT)
+	databasename := viper.GetString(config.DB_POSTGRES_DATABASENAME)
 
-	psqlPW := os.Getenv("PSQL_PASSWORD")
+	psqlPW := os.Getenv(viper.GetString(config.DB_POSTGRES_PASSWORDENVVAR))
 	dsn := fmt.Sprintf("postgres://%v:%v@%v:%v/%v?sslmode=prefer&TimeZone=Europe/Berlin", postgresUsername, psqlPW, postgresHostname, postgresPort, databasename)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
@@ -98,8 +99,6 @@ func initPsqlConnection() (*gorm.DB, error) {
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
-
-	log.Println(dsn)
 
 	return db, nil
 }

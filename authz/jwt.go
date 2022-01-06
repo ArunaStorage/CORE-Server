@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/ScienceObjectsDB/CORE-Server/config"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -83,7 +84,7 @@ func (handler *JWTHandler) VerifyAndParseToken(token string) (*jwt.Token, error)
 }
 
 func (handler *JWTHandler) GetCert() (string, error) {
-	realmInfoEndpoint := viper.GetString("OAuth2.RealmInfoEndpoint")
+	realmInfoEndpoint := viper.GetString(config.AUTHENTICATION_OAUTH2_REALMINFOENDPOINT)
 	response, err := http.DefaultClient.Get(realmInfoEndpoint)
 	if err != nil {
 		log.Println(err.Error())

@@ -3,13 +3,14 @@ package eventstreaming
 import (
 	"fmt"
 
+	"github.com/ScienceObjectsDB/CORE-Server/config"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
 	v1 "github.com/ScienceObjectsDB/go-api/api/services/v1"
 	"github.com/spf13/viper"
 )
 
 func New(db *database.Read) (EventStreamMgmt, error) {
-	eventStreamBackendConfString := viper.GetString("EventNotifications.Backend")
+	eventStreamBackendConfString := viper.GetString(config.EVENTNOTIFICATION_BACKEND)
 
 	var streamMgmt EventStreamMgmt
 	var err error

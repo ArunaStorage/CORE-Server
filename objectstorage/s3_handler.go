@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 
+	app_config "github.com/ScienceObjectsDB/CORE-Server/config"
 	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
 )
 
@@ -43,10 +44,8 @@ type DownloadedBytesInfo struct {
 
 // Creates a new S3ObjectStorageHandler
 func (s3Handler *S3ObjectStorageHandler) New(S3BucketPrefix string) (*S3ObjectStorageHandler, error) {
-	endpoint := "https://s3.computational.bio.uni-giessen.de"
-	if configEndpoint := viper.GetString("S3.Endpoint"); configEndpoint != "" {
-		endpoint = configEndpoint
-	}
+	s3Endpoint := viper.GetString(app_config.S3_ENDPOINT)
+	s3Implementation := viper.GetString(app_config.S3_IMPLEMENTATION)
 
 	cfg, err := config.LoadDefaultConfig(
 		context.Background(),
@@ -54,7 +53,7 @@ func (s3Handler *S3ObjectStorageHandler) New(S3BucketPrefix string) (*S3ObjectSt
 		config.WithEndpointResolver(aws.EndpointResolverFunc(
 			func(service, region string) (aws.Endpoint, error) {
 				return aws.Endpoint{
-					URL: endpoint,
+					URL: s3Endpoint,
 				}, nil
 			})),
 	)
@@ -66,15 +65,16 @@ func (s3Handler *S3ObjectStorageHandler) New(S3BucketPrefix string) (*S3ObjectSt
 
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = false })
 
-	//Testing endpoint, minio cannot use bucket path style with presigned urls
-	if endpoint == "http://minio:9000" || endpoint == "http://localhost:9000" {
+	switch s3Implementation {
+	case "MINIO":
 		client = s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = true })
 	}
+
 	presignClient := s3.NewPresignClient(client)
 
 	downloader := manager.NewDownloader(client)
 
-	s3Handler.S3Endpoint = endpoint
+	s3Handler.S3Endpoint = s3Endpoint
 	s3Handler.S3Client = client
 	s3Handler.PresignClient = presignClient
 	s3Handler.S3BucketPrefix = S3BucketPrefix
@@ -117,7 +117,7 @@ func (s3Handler *S3ObjectStorageHandler) CreateBucket(projectID uuid.UUID) (stri
 		}
 	}
 
-	if !viper.GetBool("S3.SkipDefaultCORSConfig") {
+	if viper.GetString(app_config.S3_IMPLEMENTATION) != "MINIO" {
 		_, err := s3Handler.S3Client.PutBucketCors(context.Background(), &s3.PutBucketCorsInput{
 			Bucket: aws.String(bucketname),
 			CORSConfiguration: &types.CORSConfiguration{

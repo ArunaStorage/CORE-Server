@@ -15,11 +15,11 @@ DB:
 S3:
   BucketPrefix: "test-bucket"
   Endpoint: "http://minio:9000"
-  SkipDefaultCORSConfig: true
+  Implementation: "MINIO"
 EventNotifications:
   Backend: NATS
   NATS:
-    URL: http://nats:4222
+    Host: http://nats:4222
     SubjectPrefix: "UPDATES"
 
 

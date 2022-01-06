@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/ScienceObjectsDB/CORE-Server/authz"
+	"github.com/ScienceObjectsDB/CORE-Server/config"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
 	"github.com/ScienceObjectsDB/CORE-Server/eventstreaming"
 	"github.com/ScienceObjectsDB/CORE-Server/objectstorage"
@@ -115,8 +116,8 @@ func Run(host string, gRPCPort uint16) error {
 
 // Creates the endpoint config based on the provided config.
 func createGenericEndpoint() (*Endpoints, error) {
-	streamingEndpoint := viper.GetString("Streaming.Endpoint")
-	streamSigningSecret := os.Getenv("STREAMINGSIGNSECRET")
+	streamingEndpoint := viper.GetString(config.STREAMING_ENDPOINT)
+	streamSigningSecret := os.Getenv(config.STREAMING_SECRET_ENV_VAR)
 
 	var db *gorm.DB
 	var err error
@@ -127,7 +128,7 @@ func createGenericEndpoint() (*Endpoints, error) {
 		return nil, err
 	}
 
-	bucketName := viper.GetString("S3.BucketPrefix")
+	bucketName := viper.GetString(config.S3_BUCKET_PREFIX)
 
 	objectHandler := &objectstorage.S3ObjectStorageHandler{}
 	objectHandler, err = objectHandler.New(bucketName)
@@ -138,7 +139,7 @@ func createGenericEndpoint() (*Endpoints, error) {
 
 	var authzHandler authz.AuthInterface
 
-	if viper.IsSet("Insecure") {
+	if viper.GetString(config.AUTHENTICATION_TYPE) == "INSECURE" {
 		authzHandler = &authz.TestHandler{}
 	} else {
 		authzHandler, err = authz.InitAuthHandlerFromConf(db)

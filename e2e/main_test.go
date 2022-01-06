@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ScienceObjectsDB/CORE-Server/authz"
+	"github.com/ScienceObjectsDB/CORE-Server/config"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
 	"github.com/ScienceObjectsDB/CORE-Server/eventstreaming"
 	"github.com/ScienceObjectsDB/CORE-Server/objectstorage"
@@ -51,6 +52,8 @@ func init_test_endpoints() {
 		panic(fmt.Errorf("fatal error config file: %w", err))
 	}
 
+	config.SetDefaults()
+
 	os.Setenv("PSQL_PASSWORD", "test123")
 
 	db, err := database.InitDatabaseConnection()
@@ -58,7 +61,7 @@ func init_test_endpoints() {
 		log.Fatalln(err.Error())
 	}
 
-	bucketName := viper.GetString("S3.BucketPrefix")
+	bucketName := viper.GetString(config.S3_BUCKET_PREFIX)
 
 	objectHandler := &objectstorage.S3ObjectStorageHandler{}
 	objectHandler, err = objectHandler.New(bucketName)

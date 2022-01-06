@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/ScienceObjectsDB/CORE-Server/config"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
 	v1 "github.com/ScienceObjectsDB/go-api/api/services/v1"
 	"github.com/google/uuid"
@@ -35,8 +36,8 @@ type natsEventStreamer struct {
 }
 
 func newNatsEventStreamMgmt(databaseReader *database.Read) (*natsEventStreamMgmt, error) {
-	urls := viper.GetStringSlice("EventNotifications.NATS.URL")
-	streamSubjectPrefix := viper.GetString("EventNotifications.NATS.SubjectPrefix")
+	urls := viper.GetStringSlice(config.EVENTNOTIFICATION_NATS_HOST)
+	streamSubjectPrefix := viper.GetString(config.EVENTNOTIFICATION_NATS_SUBJECTPREFIX)
 
 	var serverstring string
 	if len(urls) == 1 {
@@ -49,8 +50,8 @@ func newNatsEventStreamMgmt(databaseReader *database.Read) (*natsEventStreamMgmt
 
 	var options []nats.Option
 
-	if viper.IsSet("EventNotifications.NATS.NKeySeedFileName") {
-		nkeySeedFile := viper.GetString("EventNotifications.NATS.NKeySeedFileName")
+	if viper.IsSet(config.EVENTNOTIFICATION_NATS_NKeySeedFileName) {
+		nkeySeedFile := viper.GetString(config.EVENTNOTIFICATION_NATS_NKeySeedFileName)
 		nkeyopts, err := nats.NkeyOptionFromSeed(nkeySeedFile)
 		if err != nil {
 			log.Errorln(err.Error())
@@ -59,6 +60,8 @@ func newNatsEventStreamMgmt(databaseReader *database.Read) (*natsEventStreamMgmt
 		options = append(options, nkeyopts)
 	}
 	options = append(options, nats.Timeout(5*time.Second))
+
+	log.Println(serverstring)
 
 	nc, err := nats.Connect(serverstring, options...)
 	if err != nil {

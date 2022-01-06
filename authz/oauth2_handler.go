@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/ScienceObjectsDB/CORE-Server/config"
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -22,7 +23,7 @@ type OAuth2Authz struct {
 }
 
 func NewOAuth2Authz(db *gorm.DB, authz *JWTHandler) (*OAuth2Authz, error) {
-	endpointURL := viper.GetString("OAuth2.UserInfoEndpoint")
+	endpointURL := viper.GetString(config.AUTHENTICATION_OAUTH2_USERINFOENDPOINT)
 	if endpointURL == "" {
 		err := errors.New("endpoint URL has to be provided in config as 'OAuth2.UserInfoEndpoint'")
 		log.Println(err.Error())

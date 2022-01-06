@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/ScienceObjectsDB/CORE-Server/config"
 	"github.com/ScienceObjectsDB/CORE-Server/server"
 	"github.com/spf13/viper"
 )
@@ -19,18 +19,10 @@ func main() {
 	log.SetLevel(logLevel)
 	log.SetReportCaller(true)
 
-	viper.SetConfigName("config") // name of config file (without extension)
-	viper.SetConfigType("yaml")   // REQUIRED if the config file does not have the extension in the name
-	viper.AddConfigPath("./config")
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil {             // Handle errors reading the config file
-		panic(fmt.Errorf("fatal error config file: %w", err))
-	}
+	host := viper.GetString(config.SERVER_HOST)
+	port := viper.GetUint(config.SERVER_PORT)
 
-	host := viper.GetString("Server.Host")
-	port := viper.GetUint("Server.Port")
-
-	err = server.Run(host, uint16(port))
+	err := server.Run(host, uint16(port))
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
