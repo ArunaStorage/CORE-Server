@@ -8,6 +8,8 @@ This is a golang based implementation of the CORE-Server API described here: htt
 
 ## Configuration parameters
 
+The configuration for the CORE-Server has to be described as yaml file. It has to be places under ./config.
+
 ### Server parameters
 
 | Name          | Description                  | Value     |
