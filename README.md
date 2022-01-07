@@ -64,6 +64,14 @@ This is a golang based implementation of the CORE-Server API described here: htt
 | `Authentication.OIDC.UserInfoEndpoint`  | OAuth2 user info endpoint                  | `"localhost:9051/auth/realms/DEFAULTREALM/protocol/openid-connect/userinfo"` |
 | `Authentication.OIDC.RealmInfoEndpoint` | OAuth2 realm info endpoint                 | `"localhost:9051/auth/realms/DEFAULTREALM"`                                  |
 
+### Environment variables
+
+| Name                    | Description                                                                                         |
+| ----------------------- | --------------------------------------------------------------------------------------------------- |
+| `PSQL_PASSWORD`         | Database password; can be set via `"DB.Postgres.PasswordEnvVar"` or `"DB.Cockroach.PasswordEnvVar"` |
+| `AWS_ACCESS_KEY_ID`     | Access key for the object storage                                                                   |
+| `AWS_SECRET_ACCESS_KEY` | Secret key for the object storage                                                                   |
+
 ## Deployment
 
 ### Local insecure (for testing)
