@@ -49,6 +49,7 @@ The configuration for the CORE-Server has to be described as yaml file. It has t
 | `EventNotifications.NATS.URL`              | Hostname of the NATS cluster                               | `"http://localhost:4222"` |
 | `EventNotifications.NATS.SubjectPrefix`    | The Subject prefix that should be used on the NATS cluster | `"UPDATES"`               |
 | `EventNotifications.NATS.NKeySeedFileName` | Nkey file for autentication                                | None                      |
+| `EventNotifications.NATS.StreamName`       | Name of the underlaying jetstream stream                   | `"UPDATES"`               |
 
 ### Streaming parameters
 
@@ -99,3 +100,16 @@ docker run -d -p 9000:9000 -p 9001:9001 minio/minio server /data --console-addre
 ```
 docker run -d -p 50051:50051 -p 9011:9011 --mount type=bind,source=<path/to/configdir>,target=/config harbor.computational.bio.uni-giessen.de/scienceobjectsdb/core-server:latest
 ```
+
+## Details
+
+### Notifications
+
+CRUD operations fire notifications events that can be subscribed to via the Notifications API. Notifications are subdivided into subjects of the following form:
+
+```
+UPDATES.<ProjectID>.<DatasetID>.objectgroup|datasetversion.<ObjectGroupID|DatasetVersionID>
+```
+
+To select a stream the id of the targeted resource and the type of the resource has to be provided.
+By default only events on the resource itself will be send. In order to also receive notifications on subresources, the SubResources field has to be set to true.

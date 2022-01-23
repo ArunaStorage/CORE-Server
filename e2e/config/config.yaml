@@ -10,7 +10,10 @@ DB:
 S3:
   BucketPrefix: "test-bucket"
   Endpoint: "http://localhost:9000"
-  SkipDefaultCORSConfig: true
+  Implementation: "MINIO"
 EventNotifications:
-  Backend: Empty
+  Backend: NATS
+  NATS:
+    Host: http://localhost:4222
+    SubjectPrefix: "UPDATES"
 

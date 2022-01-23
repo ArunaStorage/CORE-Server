@@ -3,39 +3,37 @@ package eventstreaming
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/ScienceObjectsDB/CORE-Server/config"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
+	"github.com/ScienceObjectsDB/CORE-Server/models"
+	v1models "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	v1 "github.com/ScienceObjectsDB/go-api/api/services/v1"
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 )
 
-type natsEventStreamMgmt struct {
+const OBJECTGROUPSUBJECTNAME = "objectgroup"
+const DATASETVERSIONSUBJECTNAME = "datasetversion"
+const DEFAULTSUBJECTSUFFIX = "_"
+
+type NatsEventStreamMgmt struct {
 	Connection       *nats.Conn
-	JetStreamContext nats.JetStream
+	JetStreamContext nats.JetStreamContext
 	JetStreamManager nats.JetStreamManager
-	ReadHandler      *database.Read
+	DatabaseRead     *database.Read
+	DatabaseCreate   *database.Create
 	SubjectPrefix    string
 }
 
-type natsEventStreamer struct {
-	MsgChan          chan *nats.Msg
-	ResponseChan     chan *v1.NotificationStreamResponse
-	ReadHandler      *database.Read
-	JetStreamContext nats.JetStream
-	Subscription     *nats.Subscription
-}
-
-func newNatsEventStreamMgmt(databaseReader *database.Read) (*natsEventStreamMgmt, error) {
+func NewNatsEventStreamMgmt(databaseReader *database.Read, databaseCreate *database.Create) (*NatsEventStreamMgmt, error) {
 	urls := viper.GetStringSlice(config.EVENTNOTIFICATION_NATS_HOST)
 	streamSubjectPrefix := viper.GetString(config.EVENTNOTIFICATION_NATS_SUBJECTPREFIX)
 
@@ -61,8 +59,6 @@ func newNatsEventStreamMgmt(databaseReader *database.Read) (*natsEventStreamMgmt
 	}
 	options = append(options, nats.Timeout(5*time.Second))
 
-	log.Println(serverstring)
-
 	nc, err := nats.Connect(serverstring, options...)
 	if err != nil {
 		log.Errorln(err.Error())
@@ -75,40 +71,95 @@ func newNatsEventStreamMgmt(databaseReader *database.Read) (*natsEventStreamMgmt
 		return nil, err
 	}
 
-	streaming := &natsEventStreamMgmt{
+	streaming := &NatsEventStreamMgmt{
 		Connection:       nc,
 		JetStreamContext: jetstream,
 		JetStreamManager: jetstream,
-		ReadHandler:      databaseReader,
 		SubjectPrefix:    streamSubjectPrefix,
+		DatabaseRead:     databaseReader,
+		DatabaseCreate:   databaseCreate,
 	}
 
 	return streaming, nil
 }
 
-func (mgmt *natsEventStreamMgmt) EnableTestMode() error {
-	_, err := mgmt.JetStreamManager.AddStream(&nats.StreamConfig{Name: "UPDATES", Description: "TEST", Subjects: []string{"UPDATES.*", "UPDATES.*.*", "UPDATES.*.*.*"}})
+func (eventStreamManager *NatsEventStreamMgmt) CreateMessageStreamGroupHandler(streamGroup *models.StreamGroup) (EventStreamer, error) {
+	sub, err := eventStreamManager.JetStreamContext.PullSubscribe(streamGroup.Subject, streamGroup.ID.String(), nats.Bind(eventStreamManager.SubjectPrefix, streamGroup.ID.String()))
 	if err != nil {
-		log.Fatalln(err.Error())
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	responseMsgChan := make(chan *v1.NotificationStreamGroupResponse, 3)
+
+	streamer := &NatsEventStreamer{
+		ResponseMsgChan: responseMsgChan,
+		Subscription:    sub,
+		MsgMap:          make(map[string][]*nats.Msg),
+		MsgMapMutex:     &sync.Mutex{},
+		MaxPendingAck:   make(chan bool, 3),
+		Close:           make(chan bool, 1),
+	}
+
+	return streamer, nil
+}
+
+func (eventStreamManager *NatsEventStreamMgmt) CreateStreamGroup(projectID uuid.UUID, resourceID uuid.UUID, resourceType *v1.CreateEventStreamingGroupRequest_EventResources, includeSubResources bool) (*models.StreamGroup, error) {
+	targetSubject, err := eventStreamManager.getSubscriptionSubject(resourceID, *resourceType, includeSubResources)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	group, err := eventStreamManager.DatabaseCreate.CreateStreamGroup(projectID, resourceType.Enum().String(), resourceID, targetSubject, includeSubResources)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	cfg := &nats.ConsumerConfig{
+		Durable:       group.ID.String(),
+		FilterSubject: targetSubject,
+		DeliverPolicy: nats.DeliverAllPolicy,
+		AckPolicy:     nats.AckExplicitPolicy,
+		AckWait:       time.Second * 15,
+	}
+
+	_, err = eventStreamManager.JetStreamManager.AddConsumer(viper.GetString(config.EVENTNOTIFICATION_NATS_STREAM_NAME), cfg)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	return group, err
+}
+
+func (eventStreamManager *NatsEventStreamMgmt) PublishMessage(request *v1.EventNotificationMessage, resource v1.CreateEventStreamingGroupRequest_EventResources) error {
+	data, err := protojson.Marshal(request)
+	if err != nil {
+		log.Errorln(err.Error())
+		return err
+	}
+
+	publishSubject, err := eventStreamManager.getPublishSubject(request)
+	if err != nil {
+		log.Errorln(err.Error())
+		return err
+	}
+
+	_, err = eventStreamManager.JetStreamContext.Publish(publishSubject, data)
+	if err != nil {
+		log.Errorln(err.Error())
+		return err
 	}
 
 	return nil
 }
 
-func (streaming *natsEventStreamMgmt) PublishMessage(msg *v1.EventNotificationMessage, resource v1.NotificationStreamRequest_EventResources) error {
-	data, err := proto.Marshal(msg)
-	if err != nil {
-		log.Errorln(err.Error())
-		return err
-	}
+func (eventStreamManager *NatsEventStreamMgmt) EnableTestMode() error {
+	targetSubject := fmt.Sprintf("%v.>", viper.GetString(config.EVENTNOTIFICATION_NATS_SUBJECTPREFIX))
 
-	subject, err := streaming.createStreamSubject(msg.GetResourceId(), resource, false)
-	if err != nil {
-		log.Errorln(err.Error())
-		return err
-	}
-
-	_, err = streaming.JetStreamContext.Publish(subject, data)
+	_, err := eventStreamManager.JetStreamContext.AddStream(&nats.StreamConfig{Name: viper.GetString(config.EVENTNOTIFICATION_NATS_STREAM_NAME), Subjects: []string{targetSubject}})
 	if err != nil {
 		log.Errorln(err.Error())
 		return err
@@ -117,134 +168,215 @@ func (streaming *natsEventStreamMgmt) PublishMessage(msg *v1.EventNotificationMe
 	return nil
 }
 
-func (streaming *natsEventStreamMgmt) getStreamOptions(request *v1.NotificationStreamRequest) (nats.SubOpt, error) {
-	var deliverOption nats.SubOpt
+func (eventStreamManager *NatsEventStreamMgmt) getSubscriptionSubject(resourceID uuid.UUID, resourceType v1.CreateEventStreamingGroupRequest_EventResources, useSubResource bool) (string, error) {
+	subject := ""
 
-	switch value := request.StreamType.(type) {
-	case *v1.NotificationStreamRequest_StreamAll:
-		deliverOption = nats.DeliverAll()
-	case *v1.NotificationStreamRequest_StreamFromDate:
-		deliverOption = nats.StartTime(value.StreamFromDate.Timestamp.AsTime())
-	case *v1.NotificationStreamRequest_StreamFromSequence:
-		deliverOption = nats.StartSequence(value.StreamFromSequence.GetSequence())
+	finalSymbol := DEFAULTSUBJECTSUFFIX
+	if useSubResource {
+		finalSymbol = ">"
 	}
 
-	return deliverOption, nil
-}
+	switch resourceType {
+	case v1.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE:
+		{
+			subject = fmt.Sprintf("%v.%v.%v", eventStreamManager.SubjectPrefix, resourceID.String(), finalSymbol)
+		}
 
-func (streaming *natsEventStreamMgmt) createStreamSubject(resourceID string, resource v1.NotificationStreamRequest_EventResources, includeSubResources bool) (string, error) {
-	resourceUUID, err := uuid.Parse(resourceID)
-	if err != nil {
-		log.Errorln(err)
-		return "", status.Error(codes.InvalidArgument, "could not parse provided resource id as uuid")
-	}
+	case v1.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE:
+		{
+			dataset, err := eventStreamManager.DatabaseRead.GetDataset(resourceID)
+			if err != nil {
+				log.Errorln(err.Error())
+				return "", err
+			}
 
-	var idList []string
+			subject = fmt.Sprintf("%v.%v.%v.%v", eventStreamManager.SubjectPrefix, dataset.ProjectID.String(), dataset.ID.String(), finalSymbol)
 
-	switch resource {
-	case v1.NotificationStreamRequest_EVENT_RESOURCES_PROJECT_RESOURCE:
-		project, err := streaming.ReadHandler.GetProject(resourceUUID)
-		if err != nil {
-			log.Errorln(err)
-			return "", status.Error(codes.Internal, "could not find project")
 		}
-		idList = append(idList, project.ID.String())
-	case v1.NotificationStreamRequest_EVENT_RESOURCES_DATASET_RESOURCE:
-		dataset, err := streaming.ReadHandler.GetDataset(resourceUUID)
-		if err != nil {
-			log.Errorln(err)
-			return "", status.Error(codes.Internal, "could not find dataset")
+
+	case v1.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_VERSION_RESOURCE:
+		{
+			datasetVersion, err := eventStreamManager.DatabaseRead.GetDatasetVersion(resourceID)
+			if err != nil {
+				log.Errorln(err.Error())
+				return "", err
+			}
+
+			subject = fmt.Sprintf("%v.%v.%v.%v.%v.%v", eventStreamManager.SubjectPrefix, datasetVersion.ProjectID.String(), datasetVersion.DatasetID.String(), DATASETVERSIONSUBJECTNAME, datasetVersion.ID.String(), finalSymbol)
 		}
-		idList = append(idList, dataset.ProjectID.String(), dataset.ID.String())
-	case v1.NotificationStreamRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE:
-		objectGroup, err := streaming.ReadHandler.GetObjectGroup(resourceUUID)
-		if err != nil {
-			log.Errorln(err)
-			return "", status.Error(codes.Internal, "could not find dataset")
+
+	case v1.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE:
+		{
+			objectGroup, err := eventStreamManager.DatabaseRead.GetObjectGroup(resourceID)
+			if err != nil {
+				log.Errorln(err.Error())
+				return "", err
+			}
+
+			subject = fmt.Sprintf("%v.%v.%v.%v.%v.%v", eventStreamManager.SubjectPrefix, objectGroup.ProjectID.String(), objectGroup.DatasetID.String(), OBJECTGROUPSUBJECTNAME, objectGroup.ID.String(), finalSymbol)
 		}
-		idList = append(idList, objectGroup.ProjectID.String(), objectGroup.DatasetID.String(), objectGroup.ID.String())
-	case v1.NotificationStreamRequest_EVENT_RESOURCES_DATASET_VERSION_RESOURCE:
-		datasetVersion, err := streaming.ReadHandler.GetDatasetVersion(resourceUUID)
-		if err != nil {
-			log.Errorln(err)
-			return "", status.Error(codes.Internal, "could not find dataset")
-		}
-		idList = append(idList, datasetVersion.ProjectID.String(), datasetVersion.DatasetID.String())
 
 	default:
-		return "", status.Error(codes.Unimplemented, fmt.Sprintf("resource type %v not implemented", resource.String()))
+		{
+			return "", fmt.Errorf("queried resource not implemented")
+		}
 	}
 
-	if includeSubResources {
-		idList = append(idList, "*")
-	}
-
-	idConcat := strings.Join(idList, ".")
-	subjectFullName := fmt.Sprintf("%v.%v", streaming.SubjectPrefix, idConcat)
-
-	log.Debugln(subjectFullName)
-
-	return subjectFullName, nil
+	return subject, nil
 }
 
-func (streaming *natsEventStreamMgmt) CreateMessageStreamHandler(request *v1.NotificationStreamRequest) (EventStreamer, error) {
-	streamMessageChan := make(chan *nats.Msg, 1000)
-	streamResponseChan := make(chan *v1.NotificationStreamResponse, 1000)
-
-	subject, err := streaming.createStreamSubject(request.GetResourceId(), request.GetResource(), request.GetIncludeSubresource())
+func (eventStreamManager *NatsEventStreamMgmt) getPublishSubject(request *v1.EventNotificationMessage) (string, error) {
+	idAsUUID, err := uuid.Parse(request.ResourceId)
 	if err != nil {
-		return nil, err
+		log.Errorln(err.Error())
+		return "", err
 	}
 
-	streamOpts, err := streaming.getStreamOptions(request)
-	if err != nil {
-		return nil, err
+	switch request.Resource {
+	case v1models.Resource_PROJECT_RESOURCE:
+		{
+			subject := fmt.Sprintf("%v.%v._", eventStreamManager.SubjectPrefix, request.ResourceId)
+			return subject, nil
+		}
+	case v1models.Resource_DATASET_RESOURCE:
+		{
+			dataset, err := eventStreamManager.DatabaseRead.GetDataset(idAsUUID)
+			if err != nil {
+				log.Errorln(err.Error())
+				return "", err
+			}
+
+			subject := fmt.Sprintf("%v.%v.%v._", eventStreamManager.SubjectPrefix, dataset.ProjectID.String(), dataset.ID.String())
+
+			return subject, nil
+		}
+
+	case v1models.Resource_OBJECT_GROUP_RESOURCE:
+		{
+			objectgroup, err := eventStreamManager.DatabaseRead.GetObjectGroup(idAsUUID)
+			if err != nil {
+				log.Errorln(err.Error())
+				return "", err
+			}
+
+			subject := fmt.Sprintf("%v.%v.%v.%v.%v._", eventStreamManager.SubjectPrefix, objectgroup.ProjectID.String(), objectgroup.DatasetID.String(), OBJECTGROUPSUBJECTNAME, objectgroup.ID.String())
+
+			return subject, nil
+		}
+	case v1models.Resource_DATASET_VERSION_RESOURCE:
+		{
+			datasetVersion, err := eventStreamManager.DatabaseRead.GetDatasetVersion(idAsUUID)
+			if err != nil {
+				log.Errorln(err.Error())
+				return "", err
+			}
+
+			subject := fmt.Sprintf("%v.%v.%v.%v.%v._", eventStreamManager.SubjectPrefix, datasetVersion.ProjectID.String(), datasetVersion.DatasetID.String(), DATASETVERSIONSUBJECTNAME, datasetVersion.ID.String())
+
+			return subject, nil
+		}
+
+	default:
+		{
+			return "", fmt.Errorf("provided resource not implemented")
+		}
 	}
 
-	sub, err := streaming.JetStreamContext.ChanSubscribe(subject, streamMessageChan, streamOpts)
-	if err != nil {
-		log.Fatalln(err.Error())
-		return nil, err
-	}
-
-	eventStreamer := &natsEventStreamer{
-		ResponseChan:     streamResponseChan,
-		MsgChan:          streamMessageChan,
-		ReadHandler:      streaming.ReadHandler,
-		JetStreamContext: streaming.JetStreamContext,
-		Subscription:     sub,
-	}
-
-	return eventStreamer, nil
 }
 
-func (streaming *natsEventStreamer) GetResponseMessageChan() chan *v1.NotificationStreamResponse {
-	return streaming.ResponseChan
+type NatsEventStreamer struct {
+	Subscription    *nats.Subscription
+	ResponseMsgChan chan *v1.NotificationStreamGroupResponse
+	MsgMap          map[string][]*nats.Msg
+	MsgMapMutex     *sync.Mutex
+	MaxPendingAck   chan bool
+	Close           chan bool
+	ID              string
 }
 
-func (streaming *natsEventStreamer) StartMessageTransformation() error {
-	for msg := range streaming.MsgChan {
-		meta, err := msg.Metadata()
+func (streamer *NatsEventStreamer) GetResponseMessageChan() chan *v1.NotificationStreamGroupResponse {
+	return streamer.ResponseMsgChan
+}
+
+func (streamer *NatsEventStreamer) StartStream() error {
+	for {
+		var responseChunk []*v1.NotificationStreamResponse
+
+		select {
+		case <-streamer.Close:
+			close(streamer.ResponseMsgChan)
+			return nil
+		default:
+		}
+
+		streamer.MaxPendingAck <- true
+
+		chunk, err := streamer.Subscription.Fetch(500, nats.MaxWait(1*time.Second))
+		if err != nil && err != nats.ErrTimeout {
+			log.Errorln(err.Error())
+			return err
+		}
+
+		for _, msg := range chunk {
+			notificationMsg := &v1.EventNotificationMessage{}
+
+			err := protojson.Unmarshal(msg.Data, notificationMsg)
+			if err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			metadata, err := msg.Metadata()
+			if err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			responseMsg := &v1.NotificationStreamResponse{
+				Message:   notificationMsg,
+				Sequence:  metadata.Sequence.Stream,
+				Timestamp: timestamppb.Now(),
+			}
+
+			responseChunk = append(responseChunk, responseMsg)
+		}
+
+		ackUUID := uuid.New()
+
+		response := &v1.NotificationStreamGroupResponse{
+			Notification: responseChunk,
+			AckChunkId:   ackUUID.String(),
+		}
+
+		streamer.ResponseMsgChan <- response
+
+		streamer.MsgMapMutex.Lock()
+		streamer.MsgMap[ackUUID.String()] = chunk
+		streamer.MsgMapMutex.Unlock()
+	}
+}
+
+func (streamer *NatsEventStreamer) CloseStream() error {
+	streamer.Close <- true
+
+	return nil
+}
+
+func (streamer *NatsEventStreamer) AckChunk(chunkID string) error {
+	streamer.MsgMapMutex.Lock()
+	response := streamer.MsgMap[chunkID]
+	delete(streamer.MsgMap, chunkID)
+	streamer.MsgMapMutex.Unlock()
+
+	for _, msg := range response {
+		err := msg.Ack()
 		if err != nil {
 			log.Errorln(err.Error())
-			return status.Error(codes.Internal, "error while parsing event message metadata")
+			return err
 		}
-
-		notificationMsg := &v1.EventNotificationMessage{}
-		err = proto.Unmarshal(msg.Data, notificationMsg)
-		if err != nil {
-			log.Errorln(err.Error())
-			return status.Error(codes.Internal, "error while parsing event message")
-		}
-
-		response := v1.NotificationStreamResponse{
-			Message:   notificationMsg,
-			Sequence:  meta.Sequence.Stream,
-			Timestamp: timestamppb.New(meta.Timestamp),
-		}
-
-		streaming.ResponseChan <- &response
 	}
+
+	<-streamer.MaxPendingAck
 
 	return nil
 }

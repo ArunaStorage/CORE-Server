@@ -423,3 +423,18 @@ func (read *Read) GetObjectGroupsInDateRangeBatches(datasetID uuid.UUID, startDa
 
 	return nil
 }
+
+func (read *Read) GetStreamGroup(streamGroupID uuid.UUID) (*models.StreamGroup, error) {
+	streamGroup := &models.StreamGroup{}
+	streamGroup.ID = streamGroupID
+	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
+		return tx.First(streamGroup).Error
+	})
+
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	return streamGroup, nil
+}

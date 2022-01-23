@@ -3,7 +3,6 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -69,18 +68,6 @@ func TestDataset(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	streamer, err := ServerEndpoints.dataset.EventStreamMgmt.CreateMessageStreamHandler(&services.NotificationStreamRequest{
-		Resource:           services.NotificationStreamRequest_EVENT_RESOURCES_PROJECT_RESOURCE,
-		ResourceId:         createResponse.GetId(),
-		IncludeSubresource: true,
-		StreamType:         &services.NotificationStreamRequest_StreamAll{},
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	go streamer.StartMessageTransformation()
-
 	datasetGetResponse, err := ServerEndpoints.dataset.GetDataset(context.Background(), &services.GetDatasetRequest{
 		Id: datasetCreateResponse.GetId(),
 	})
@@ -101,15 +88,6 @@ func TestDataset(t *testing.T) {
 	//
 	//}
 
-	_, e2eComposeVar := os.LookupEnv("E2E_TEST_COMPOSE")
-
-	if e2eComposeVar {
-		msgChan := streamer.GetResponseMessageChan()
-		notficationMsg := <-msgChan
-
-		assert.Equal(t, datasetCreateResponse.GetId(), notficationMsg.Message.ResourceId)
-		assert.Equal(t, v1.Resource_DATASET_RESOURCE, notficationMsg.Message.Resource)
-	}
 }
 
 func TestDatasetObjectGroupsPagination(t *testing.T) {
