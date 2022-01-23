@@ -82,7 +82,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 		Resource:    protoModels.Resource_OBJECT_GROUP_RESOURCE,
 		ResourceId:  objectGroupResponse.GetObjectGroupId(),
 		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
-	}, services.NotificationStreamRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
+	}, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -159,6 +159,19 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 
 	response := &services.CreateObjectGroupBatchResponse{
 		Responses: objectgroupResponseList,
+	}
+
+	for _, createdObjectGroup := range objectgroupResponseList {
+		err = endpoint.EventStreamMgmt.PublishMessage(&services.EventNotificationMessage{
+			Resource:    protoModels.Resource_OBJECT_GROUP_RESOURCE,
+			ResourceId:  createdObjectGroup.GetObjectGroupId(),
+			UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
+		}, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
+
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
 	}
 
 	return response, nil
@@ -263,6 +276,17 @@ func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, re
 			log.Println(err.Error())
 			return nil, err
 		}
+	}
+
+	err = endpoint.EventStreamMgmt.PublishMessage(&services.EventNotificationMessage{
+		Resource:    protoModels.Resource_OBJECT_GROUP_RESOURCE,
+		ResourceId:  request.GetId(),
+		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_DELETED,
+	}, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
+
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
 	}
 
 	err = endpoint.DeleteHandler.DeleteObjectGroup(requestID)

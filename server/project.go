@@ -48,17 +48,6 @@ func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *se
 		return nil, err
 	}
 
-	msg := &services.EventNotificationMessage{
-		ResourceId:  projectID,
-		Resource:    protoModels.Resource_PROJECT_RESOURCE,
-		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
-	}
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.NotificationStreamRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
-	if err != nil {
-		log.Errorln(err.Error())
-		return nil, status.Error(codes.Internal, "could not publish notification event")
-	}
-
 	response := &services.CreateProjectResponse{
 		Id: projectID,
 	}
@@ -67,7 +56,7 @@ func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *se
 		Resource:    protoModels.Resource_PROJECT_RESOURCE,
 		ResourceId:  projectID,
 		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
-	}, services.NotificationStreamRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
+	}, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -305,6 +294,17 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *se
 	}
 
 	err = endpoint.ObjectHandler.DeleteObjects(objects)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	err = endpoint.EventStreamMgmt.PublishMessage(&services.EventNotificationMessage{
+		Resource:    protoModels.Resource_PROJECT_RESOURCE,
+		ResourceId:  request.GetId(),
+		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_DELETED,
+	}, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
+
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

@@ -116,6 +116,7 @@ func makeMigrations(db *gorm.DB) *gorm.DB {
 		&models.APIToken{},
 		&models.User{},
 		&models.StreamingEntry{},
+		&models.StreamGroup{},
 	)
 
 	if err != nil {

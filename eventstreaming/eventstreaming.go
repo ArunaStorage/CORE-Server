@@ -5,11 +5,13 @@ import (
 
 	"github.com/ScienceObjectsDB/CORE-Server/config"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
+	"github.com/ScienceObjectsDB/CORE-Server/models"
 	v1 "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 )
 
-func New(db *database.Read) (EventStreamMgmt, error) {
+func New(dbRead *database.Read, dbCreate *database.Create) (EventStreamMgmt, error) {
 	eventStreamBackendConfString := viper.GetString(config.EVENTNOTIFICATION_BACKEND)
 
 	var streamMgmt EventStreamMgmt
@@ -19,7 +21,7 @@ func New(db *database.Read) (EventStreamMgmt, error) {
 	case "Empty":
 		streamMgmt = &emptyEventStreamMgmt{}
 	case "NATS":
-		streamMgmt, err = newNatsEventStreamMgmt(db)
+		streamMgmt, err = NewNatsEventStreamMgmt(dbRead, dbCreate)
 	default:
 		err = fmt.Errorf("no valid eventstreaming config found in EventNotifications.Backend, please specify either NATS or Empty")
 	}
@@ -28,12 +30,15 @@ func New(db *database.Read) (EventStreamMgmt, error) {
 }
 
 type EventStreamMgmt interface {
-	CreateMessageStreamHandler(request *v1.NotificationStreamRequest) (EventStreamer, error)
-	PublishMessage(request *v1.EventNotificationMessage, resource v1.NotificationStreamRequest_EventResources) error
+	CreateMessageStreamGroupHandler(streamGroup *models.StreamGroup) (EventStreamer, error)
+	CreateStreamGroup(projectID uuid.UUID, resourceID uuid.UUID, resourceType *v1.CreateEventStreamingGroupRequest_EventResources, includeSubResources bool) (*models.StreamGroup, error)
+	PublishMessage(request *v1.EventNotificationMessage, resource v1.CreateEventStreamingGroupRequest_EventResources) error
 	EnableTestMode() error
 }
 
 type EventStreamer interface {
-	GetResponseMessageChan() chan *v1.NotificationStreamResponse
-	StartMessageTransformation() error
+	GetResponseMessageChan() chan *v1.NotificationStreamGroupResponse
+	StartStream() error
+	CloseStream() error
+	AckChunk(chunkID string) error
 }

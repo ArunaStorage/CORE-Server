@@ -99,6 +99,8 @@ func (s3Handler *S3ObjectStorageHandler) CreateBucket(projectID uuid.UUID) (stri
 
 		bucketname = "foo"
 
+		log.Println(projectID)
+
 		var bne *types.BucketAlreadyExists
 		if errors.As(err, &bne) {
 			log.Infof("bucket with name %v already exists", bucketname)

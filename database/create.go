@@ -355,6 +355,27 @@ func (create *Create) AddUserToProject(request *services.AddUserToProjectRequest
 	return nil
 }
 
+func (create *Create) CreateStreamGroup(projectID uuid.UUID, resourceType string, resourceID uuid.UUID, subject string, subResource bool) (*models.StreamGroup, error) {
+	streamGroupEntry := &models.StreamGroup{
+		ResourceID:     resourceID,
+		ProjectID:      projectID,
+		ResourceType:   resourceType,
+		UseSubResource: subResource,
+		Subject:        subject,
+	}
+
+	err := crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
+		return tx.Create(streamGroupEntry).Error
+	})
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil, fmt.Errorf("could not create stream group")
+	}
+
+	return streamGroupEntry, nil
+}
+
 func (create *Create) CreateAPIToken(request *services.CreateAPITokenRequest, userOauth2ID string) (string, error) {
 	rndBytes, err := util.GenerateRandomString(45)
 	if err != nil {

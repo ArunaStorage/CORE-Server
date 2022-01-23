@@ -154,7 +154,7 @@ func createGenericEndpoint() (*Endpoints, error) {
 		S3Handler: objectHandler,
 	}
 
-	eventStreamMgmt, err := eventstreaming.New(&database.Read{Common: &commonHandler})
+	eventStreamMgmt, err := eventstreaming.New(&database.Read{Common: &commonHandler}, &database.Create{Common: &commonHandler})
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

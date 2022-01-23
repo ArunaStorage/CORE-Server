@@ -32,6 +32,7 @@ const (
 	EVENTNOTIFICATION_NATS_HOST             = "EventNotifications.NATS.HOST"
 	EVENTNOTIFICATION_NATS_SUBJECTPREFIX    = "EventNotifications.NATS.SubjectPrefix"
 	EVENTNOTIFICATION_NATS_NKeySeedFileName = "EventNotifications.NATS.NKeySeedFileName"
+	EVENTNOTIFICATION_NATS_STREAM_NAME      = "EventNotifications.NATS.StreamName"
 
 	AUTHENTICATION_TYPE                     = "Authentication.Type"
 	AUTHENTICATION_OAUTH2_USERINFOENDPOINT  = "Authentication.OIDC.UserInfoEndpoint"
@@ -85,6 +86,7 @@ func SetDefaults() {
 	viper.SetDefault(EVENTNOTIFICATION_BACKEND, "Empty")
 	viper.SetDefault(EVENTNOTIFICATION_NATS_HOST, "http://localhost:4222")
 	viper.SetDefault(EVENTNOTIFICATION_NATS_SUBJECTPREFIX, "UPDATES")
+	viper.SetDefault(EVENTNOTIFICATION_NATS_STREAM_NAME, "UPDATES")
 
 	viper.SetDefault(STREAMING_ENDPOINT, "localhost")
 	viper.SetDefault(STREAMING_PORT, 443)
@@ -92,6 +94,6 @@ func SetDefaults() {
 
 	viper.SetDefault(AUTHENTICATION_TYPE, "INSECURE")
 	viper.SetDefault(AUTHENTICATION_OAUTH2_USERINFOENDPOINT, "localhost:9051/auth/realms/DEFAULTREALM/protocol/openid-connect/userinfo")
-	viper.SetDefault(AUTHENTICATION_OAUTH2_USERINFOENDPOINT, "localhost:9051/auth/realms/DEFAULTREALM")
+	viper.SetDefault(AUTHENTICATION_OAUTH2_REALMINFOENDPOINT, "localhost:9051/auth/realms/DEFAULTREALM")
 
 }

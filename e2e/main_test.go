@@ -17,10 +17,11 @@ import (
 )
 
 type ServerEndpointsTest struct {
-	project *server.ProjectEndpoints
-	dataset *server.DatasetEndpoints
-	object  *server.ObjectServerEndpoints
-	load    *server.LoadEndpoints
+	project      *server.ProjectEndpoints
+	dataset      *server.DatasetEndpoints
+	object       *server.ObjectServerEndpoints
+	load         *server.LoadEndpoints
+	notification *server.NotificationEndpoints
 }
 
 var ServerEndpoints = &ServerEndpointsTest{}
@@ -76,7 +77,7 @@ func init_test_endpoints() {
 
 	authzHandler := &authz.TestHandler{}
 
-	eventMgmt, err := eventstreaming.New(&database.Read{Common: &commonHandler})
+	eventMgmt, err := eventstreaming.New(&database.Read{Common: &commonHandler}, &database.Create{Common: &commonHandler})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -103,10 +104,11 @@ func init_test_endpoints() {
 	}
 
 	serverEndpoints := &ServerEndpointsTest{
-		project: &server.ProjectEndpoints{Endpoints: endpoints},
-		dataset: &server.DatasetEndpoints{Endpoints: endpoints},
-		object:  &server.ObjectServerEndpoints{Endpoints: endpoints},
-		load:    &server.LoadEndpoints{Endpoints: endpoints},
+		project:      &server.ProjectEndpoints{Endpoints: endpoints},
+		dataset:      &server.DatasetEndpoints{Endpoints: endpoints},
+		object:       &server.ObjectServerEndpoints{Endpoints: endpoints},
+		load:         &server.LoadEndpoints{Endpoints: endpoints},
+		notification: &server.NotificationEndpoints{Endpoints: endpoints},
 	}
 
 	ServerEndpoints = serverEndpoints

@@ -56,7 +56,8 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *se
 		Resource:    protoModels.Resource_DATASET_RESOURCE,
 		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
 	}
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.NotificationStreamRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+
+	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
@@ -369,6 +370,17 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *se
 		return nil, err
 	}
 
+	msg := &services.EventNotificationMessage{
+		ResourceId:  dataset.ID.String(),
+		Resource:    protoModels.Resource_DATASET_RESOURCE,
+		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_DELETED,
+	}
+	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not publish notification event")
+	}
+
 	err = endpoint.DeleteHandler.DeleteDataset(requestID)
 	if err != nil {
 		log.Println(err.Error())
@@ -418,7 +430,7 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 		Resource:    protoModels.Resource_DATASET_VERSION_RESOURCE,
 		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
 	}
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.NotificationStreamRequest_EVENT_RESOURCES_DATASET_VERSION_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
@@ -518,6 +530,17 @@ func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, requ
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
+	}
+
+	msg := &services.EventNotificationMessage{
+		ResourceId:  version.ID.String(),
+		Resource:    protoModels.Resource_DATASET_VERSION_RESOURCE,
+		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_DELETED,
+	}
+	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not publish notification event")
 	}
 
 	err = endpoint.DeleteHandler.DeleteDatasetVersion(requestID)
