@@ -14,6 +14,8 @@ const envLogLevel = "LOG_LEVEL"
 const defaultLogLevel = log.WarnLevel
 
 func main() {
+	config.HandleConfigFile()
+
 	logLevel := getLogLevel()
 
 	log.SetLevel(logLevel)
