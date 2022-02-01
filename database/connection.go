@@ -26,9 +26,9 @@ func InitDatabaseConnection() (*gorm.DB, error) {
 
 	var databaseType DatabaseType
 
-	databaseTypeString := viper.GetString(config.DB_DATABASETYPE)
+	databaseTypeString := os.Getenv("DatabaseType")
 	if databaseTypeString == "" {
-		databaseTypeString = os.Getenv("DatabaseType")
+		databaseTypeString = viper.GetString("DB.DatabaseType")
 	}
 	log.Println(databaseTypeString)
 
