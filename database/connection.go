@@ -30,7 +30,6 @@ func InitDatabaseConnection() (*gorm.DB, error) {
 	if databaseTypeString == "" {
 		databaseTypeString = viper.GetString("DB.DatabaseType")
 	}
-	log.Println(databaseTypeString)
 
 	switch databaseTypeString {
 	case "CockroachDB":
@@ -67,6 +66,7 @@ func initCockroachConnection() (*gorm.DB, error) {
 	databasename := viper.GetString(config.DB_ROACH_DATABASENAME)
 
 	password := os.Getenv(config.DB_ROACH_PASSWORDENVVAR)
+	log.Println(password)
 	dsn := fmt.Sprintf("postgres://%v:%v@%v:%v/%v?sslmode=prefer&TimeZone=Europe/Berlin", cockroachUsername, password, cockroachHostname, cockroachPort, databasename)
 
 	if password == "" {
