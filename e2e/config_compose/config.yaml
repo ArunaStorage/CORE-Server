@@ -2,6 +2,7 @@ Server:
   Host: "127.0.0.1"
   Port: 50051
 DB:
+  DatabaseType: CockroachDB
   Cockroach:
     Hostname: "cockroach"
     Port: 26257
@@ -21,5 +22,3 @@ EventNotifications:
   NATS:
     Host: http://nats:4222
     SubjectPrefix: "UPDATES"
-
-

@@ -26,20 +26,18 @@ func InitDatabaseConnection() (*gorm.DB, error) {
 
 	var databaseType DatabaseType
 
-	databaseTypeEnvVar := os.Getenv("DatabaseType")
-	if databaseTypeEnvVar != "" {
-		switch databaseTypeEnvVar {
-		case "CockroachDB":
-			databaseType = CockroachDB
-		case "Postgres":
-			databaseType = Postgres
-		}
-	} else {
-		if viper.IsSet("DB.Cockroach") {
-			databaseType = CockroachDB
-		} else if viper.IsSet("DB.Postgres") {
-			db, err = initPsqlConnection()
-		}
+	databaseTypeString := os.Getenv("DatabaseType")
+	if databaseTypeString == "" {
+		databaseTypeString = viper.GetString("DB.DatabaseType")
+	}
+
+	switch databaseTypeString {
+	case "CockroachDB":
+		databaseType = CockroachDB
+	case "Postgres":
+		databaseType = Postgres
+	default:
+		databaseType = Undefined
 	}
 
 	switch databaseType {

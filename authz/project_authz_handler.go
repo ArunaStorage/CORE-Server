@@ -102,3 +102,38 @@ func (projectHandler *ProjectHandler) AuthorizeCreateProject(metadata metadata.M
 
 	return nil
 }
+
+func (projectHandler *ProjectHandler) AuthorizeRead(metadata metadata.MD) error {
+	if len(metadata.Get(USER_TOKEN_ENTRY_KEY)) != 1 {
+		return fmt.Errorf("could not authorize requested action")
+	}
+
+	token := metadata.Get(USER_TOKEN_ENTRY_KEY)[0]
+
+	parsedToken, err := projectHandler.JwtHandler.VerifyAndParseToken(token)
+	if err != nil {
+		log.Println(err.Error())
+		return errors.New("could not verify token")
+	}
+
+	var ok bool
+	var claims *CustomClaim
+
+	if claims, ok = parsedToken.Claims.(*CustomClaim); !ok || !parsedToken.Valid {
+		return errors.New("could not verify token")
+	}
+
+	hasGroup := false
+	for _, group := range claims.UserGroups {
+		if group == "/sciobjsdb-test" {
+			hasGroup = true
+			break
+		}
+	}
+
+	if !hasGroup {
+		return fmt.Errorf("user not part of group sciobjsdb-test")
+	}
+
+	return nil
+}

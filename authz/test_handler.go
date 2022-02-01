@@ -20,3 +20,7 @@ func (projectHandler *TestHandler) Authorize(projectID uuid.UUID, requestedRight
 func (projectHandler *TestHandler) AuthorizeCreateProject(metadata metadata.MD) error {
 	return nil
 }
+
+func (projectHandler *TestHandler) AuthorizeRead(metadata metadata.MD) error {
+	return nil
+}
