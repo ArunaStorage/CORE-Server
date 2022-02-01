@@ -65,8 +65,7 @@ func initCockroachConnection() (*gorm.DB, error) {
 	cockroachPort := viper.GetInt(config.DB_ROACH_PORT)
 	databasename := viper.GetString(config.DB_ROACH_DATABASENAME)
 
-	password := os.Getenv(config.DB_ROACH_PASSWORDENVVAR)
-	log.Println(password)
+	password := os.Getenv(viper.GetString(config.DB_ROACH_PASSWORDENVVAR))
 	dsn := fmt.Sprintf("postgres://%v:%v@%v:%v/%v?sslmode=prefer&TimeZone=Europe/Berlin", cockroachUsername, password, cockroachHostname, cockroachPort, databasename)
 
 	if password == "" {
