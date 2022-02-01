@@ -14,6 +14,7 @@ type Update struct {
 	*Common
 }
 
+// Adds an upload id to an object for multipart uploads
 func (update *Update) AddUploadID(objectID uuid.UUID, uploadID string) error {
 	err := crdbgorm.ExecuteTx(context.Background(), update.DB, nil, func(tx *gorm.DB) error {
 		return tx.Model(&models.Object{}).Where("id = ?", objectID).Update("upload_id", uploadID).Error

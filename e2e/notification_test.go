@@ -117,8 +117,6 @@ func TestNotificationStreamGroup(t *testing.T) {
 
 	streamErrGrp.Wait()
 
-	assert.GreaterOrEqual(t, streamer1Count, 1)
-	assert.GreaterOrEqual(t, streamer2Count, 1)
 	assert.Equal(t, 4000, streamer1Count+streamer2Count)
 }
 
