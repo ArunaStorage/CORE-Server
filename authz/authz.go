@@ -16,6 +16,7 @@ type AuthInterface interface {
 	GetUserID(metadata metadata.MD) (uuid.UUID, error)
 	Authorize(projectID uuid.UUID, requestedRight protoModels.Right, metadata metadata.MD) error
 	AuthorizeCreateProject(metadata metadata.MD) error
+	AuthorizeRead(metadata metadata.MD) error
 }
 
 func InitAuthHandlerFromConf(db *gorm.DB) (AuthInterface, error) {
