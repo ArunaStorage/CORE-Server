@@ -108,6 +108,7 @@ func Run(host string, gRPCPort uint16) error {
 	services.RegisterUpdateNotificationServiceServer(grpcServer, notificationEndpoints)
 
 	serverErrGrp.Go(func() error {
+		log.Println(fmt.Sprintf("Starting grpc service on interface %v and port %v", host, gRPCPort))
 		return grpcServer.Serve(grpcListener)
 	})
 
