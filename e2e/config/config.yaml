@@ -2,18 +2,19 @@ Server:
   Host: "127.0.0.1"
   Port: 50051
 DB:
+  DatabaseType: CockroachDB
   Cockroach:
-    Hostname: "127.0.0.1"
+    Hostname: "cockroach"
     Port: 26257
     Username: "root"
     Databasename: "defaultdb"
 S3:
   BucketPrefix: "test-bucket"
-  Endpoint: "http://localhost:9000"
+  Endpoint: "http://minio:9000"
   Implementation: "MINIO"
 EventNotifications:
   Backend: NATS
   NATS:
-    Host: http://localhost:4222
+    Host: http://nats:4222
     SubjectPrefix: "UPDATES"
 

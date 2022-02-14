@@ -22,7 +22,7 @@ func TestProject(t *testing.T) {
 			},
 			{
 				Key:      "TestKey2",
-				Metadata: []byte("mymetadata2"),
+				Metadata: []byte("mymetadata3"),
 			},
 		},
 	}
