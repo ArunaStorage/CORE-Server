@@ -1,7 +1,7 @@
 package models
 
 import (
-	protomodels "github.com/ScienceObjectsDB/go-api/api/models/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	"github.com/google/uuid"
 )
 
@@ -16,24 +16,24 @@ type Project struct {
 	Datasets    []Dataset  `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
-func (project *Project) ToProtoModel() *protomodels.Project {
-	users := []*protomodels.User{}
+func (project *Project) ToProtoModel() *v1storagemodels.Project {
+	users := []*v1storagemodels.User{}
 
 	for _, user := range project.Users {
 		users = append(users, user.ToProtoModel())
 	}
 
-	labels := []*protomodels.Label{}
+	labels := []*v1storagemodels.Label{}
 	for _, label := range project.Labels {
 		labels = append(labels, label.ToProtoModel())
 	}
 
-	metadataList := []*protomodels.Metadata{}
+	metadataList := []*v1storagemodels.Metadata{}
 	for _, metadata := range project.Metadata {
 		metadataList = append(metadataList, metadata.ToProtoModel())
 	}
 
-	return &protomodels.Project{
+	return &v1storagemodels.Project{
 		Id:          project.ID.String(),
 		Name:        project.Name,
 		Description: project.Description,
@@ -50,9 +50,9 @@ type User struct {
 	Project      Project
 }
 
-func (user *User) ToProtoModel() *protomodels.User {
-	rights := []protomodels.Right{}
-	return &protomodels.User{
+func (user *User) ToProtoModel() *v1storagemodels.User {
+	rights := []v1storagemodels.Right{}
+	return &v1storagemodels.User{
 		UserId: user.UserOauth2ID,
 		Rights: rights,
 	}
@@ -64,8 +64,8 @@ type UserRight struct {
 	UserID uuid.UUID
 }
 
-func (right *UserRight) ToProtoModel() protomodels.Right {
-	return protomodels.Right(protomodels.Right_value[right.Right])
+func (right *UserRight) ToProtoModel() v1storagemodels.Right {
+	return v1storagemodels.Right(v1storagemodels.Right_value[right.Right])
 }
 
 type APITokenRight struct {
@@ -74,8 +74,8 @@ type APITokenRight struct {
 	APITokenID uuid.UUID
 }
 
-func (right *APITokenRight) ToProtoModel() protomodels.Right {
-	return protomodels.Right(protomodels.Right_value[right.Right])
+func (right *APITokenRight) ToProtoModel() v1storagemodels.Right {
+	return v1storagemodels.Right(v1storagemodels.Right_value[right.Right])
 }
 
 type APIToken struct {
@@ -86,8 +86,8 @@ type APIToken struct {
 	UserUUID  uuid.UUID `gorm:"index"`
 }
 
-func (token *APIToken) ToProtoModel() *protomodels.APIToken {
-	apiToken := protomodels.APIToken{
+func (token *APIToken) ToProtoModel() *v1storagemodels.APIToken {
+	apiToken := v1storagemodels.APIToken{
 		Id:        token.ID.String(),
 		Token:     token.Token,
 		ProjectId: token.ProjectID.String(),

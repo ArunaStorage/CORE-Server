@@ -6,11 +6,13 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	v1notificationservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/notification/services/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 )
 
 type DatasetEndpoints struct {
@@ -27,7 +29,7 @@ func NewDatasetEndpoints(endpoints *Endpoints) (*DatasetEndpoints, error) {
 }
 
 // CreateNewDataset Creates a new dataset and associates it with a dataset
-func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *services.CreateDatasetRequest) (*services.CreateDatasetResponse, error) {
+func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *v1storageservices.CreateDatasetRequest) (*v1storageservices.CreateDatasetResponse, error) {
 	projectID, err := uuid.Parse(request.GetProjectId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -38,7 +40,7 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *se
 
 	err = endpoint.AuthzHandler.Authorize(
 		projectID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -51,19 +53,19 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *se
 		return nil, err
 	}
 
-	msg := &services.EventNotificationMessage{
+	msg := &v1notificationservices.EventNotificationMessage{
 		ResourceId:  id,
-		Resource:    protoModels.Resource_DATASET_RESOURCE,
-		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
+		Resource:    v1storagemodels.Resource_RESOURCE_DATASET,
+		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
 	}
 
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg, v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
 	}
 
-	response := services.CreateDatasetResponse{
+	response := v1storageservices.CreateDatasetResponse{
 		Id: id,
 	}
 
@@ -71,7 +73,7 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *se
 }
 
 // Dataset Returns a specific dataset
-func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *services.GetDatasetRequest) (*services.GetDatasetResponse, error) {
+func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *v1storageservices.GetDatasetRequest) (*v1storageservices.GetDatasetResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -88,7 +90,7 @@ func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *servi
 
 	err = endpoint.AuthzHandler.Authorize(
 		dataset.ProjectID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -96,7 +98,7 @@ func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *servi
 	}
 
 	protoDataset := dataset.ToProtoModel()
-	response := services.GetDatasetResponse{
+	response := v1storageservices.GetDatasetResponse{
 		Dataset: &protoDataset,
 	}
 
@@ -104,7 +106,7 @@ func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *servi
 }
 
 // Lists Versions of a dataset
-func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, request *services.GetDatasetVersionsRequest) (*services.GetDatasetVersionsResponse, error) {
+func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, request *v1storageservices.GetDatasetVersionsRequest) (*v1storageservices.GetDatasetVersionsResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -121,7 +123,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, reques
 
 	err = endpoint.AuthzHandler.Authorize(
 		dataset.ProjectID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -134,20 +136,20 @@ func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, reques
 		return nil, err
 	}
 
-	var protoVersions []*protoModels.DatasetVersion
+	var protoVersions []*v1storagemodels.DatasetVersion
 	for _, version := range versions {
 		protoVersion := version.ToProtoModel()
 		protoVersions = append(protoVersions, protoVersion)
 	}
 
-	response := &services.GetDatasetVersionsResponse{
+	response := &v1storageservices.GetDatasetVersionsResponse{
 		DatasetVersions: protoVersions,
 	}
 
 	return response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, request *services.GetDatasetObjectGroupsRequest) (*services.GetDatasetObjectGroupsResponse, error) {
+func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, request *v1storageservices.GetDatasetObjectGroupsRequest) (*v1storageservices.GetDatasetObjectGroupsResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -164,7 +166,7 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 
 	err = endpoint.AuthzHandler.Authorize(
 		dataset.ProjectID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -177,20 +179,20 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 		return nil, err
 	}
 
-	var protoObjectGroups []*protoModels.ObjectGroup
+	var protoObjectGroups []*v1storagemodels.ObjectGroup
 	for _, objectGroup := range objectGroups {
 		protoObjectGroup := objectGroup.ToProtoModel()
 		protoObjectGroups = append(protoObjectGroups, protoObjectGroup)
 	}
 
-	response := services.GetDatasetObjectGroupsResponse{
+	response := v1storageservices.GetDatasetObjectGroupsResponse{
 		ObjectGroups: protoObjectGroups,
 	}
 
 	return &response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context, request *services.GetObjectGroupsInDateRangeRequest) (*services.GetObjectGroupsInDateRangeResponse, error) {
+func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context, request *v1storageservices.GetObjectGroupsInDateRangeRequest) (*v1storageservices.GetObjectGroupsInDateRangeResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -207,7 +209,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 
 	err = endpoint.AuthzHandler.Authorize(
 		dataset.ProjectID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -220,23 +222,23 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 		return nil, err
 	}
 
-	var protoObjectGroups []*protoModels.ObjectGroup
+	var protoObjectGroups []*v1storagemodels.ObjectGroup
 	for _, object := range objectGroups {
 		protoObjectGroups = append(protoObjectGroups, object.ToProtoModel())
 	}
 
-	response := &services.GetObjectGroupsInDateRangeResponse{
+	response := &v1storageservices.GetObjectGroupsInDateRangeResponse{
 		ObjectGroups: protoObjectGroups,
 	}
 
 	return response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context, request *services.GetObjectGroupsStreamLinkRequest) (*services.GetObjectGroupsStreamLinkResponse, error) {
+func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context, request *v1storageservices.GetObjectGroupsStreamLinkRequest) (*v1storageservices.GetObjectGroupsStreamLinkResponse, error) {
 	var projectID uuid.UUID
 
 	switch value := request.Query.(type) {
-	case *services.GetObjectGroupsStreamLinkRequest_GroupIds:
+	case *v1storageservices.GetObjectGroupsStreamLinkRequest_GroupIds:
 		{
 			datasetID, err := uuid.Parse(value.GroupIds.GetDatasetId())
 			if err != nil {
@@ -252,7 +254,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 
 			projectID = dataset.ProjectID
 		}
-	case *services.GetObjectGroupsStreamLinkRequest_Dataset:
+	case *v1storageservices.GetObjectGroupsStreamLinkRequest_Dataset:
 		{
 			datasetID, err := uuid.Parse(value.Dataset.GetDatasetId())
 			if err != nil {
@@ -268,7 +270,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 
 			projectID = dataset.ProjectID
 		}
-	case *services.GetObjectGroupsStreamLinkRequest_DatasetVersion:
+	case *v1storageservices.GetObjectGroupsStreamLinkRequest_DatasetVersion:
 		{
 			datasetVersionID, err := uuid.Parse(value.DatasetVersion.GetDatasetVersionId())
 			if err != nil {
@@ -284,7 +286,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 
 			projectID = dataset.ProjectID
 		}
-	case *services.GetObjectGroupsStreamLinkRequest_DateRange:
+	case *v1storageservices.GetObjectGroupsStreamLinkRequest_DateRange:
 		{
 			datasetID, err := uuid.Parse(value.DateRange.GetDatasetId())
 			if err != nil {
@@ -308,7 +310,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 
 	err := endpoint.AuthzHandler.Authorize(
 		projectID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -321,7 +323,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 		return nil, status.Error(codes.Internal, "could not create link")
 	}
 
-	response := &services.GetObjectGroupsStreamLinkResponse{
+	response := &v1storageservices.GetObjectGroupsStreamLinkResponse{
 		Url: link,
 	}
 
@@ -329,12 +331,12 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsStreamLink(ctx context.Context,
 }
 
 // Updates a field of a dataset
-func (endpoint *DatasetEndpoints) UpdateDatasetField(_ context.Context, _ *services.UpdateDatasetFieldRequest) (*services.UpdateDatasetFieldResponse, error) {
+func (endpoint *DatasetEndpoints) UpdateDatasetField(_ context.Context, _ *v1storageservices.UpdateDatasetFieldRequest) (*v1storageservices.UpdateDatasetFieldResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "unimplemented")
 }
 
 // DeleteDataset Delete a dataset
-func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *services.DeleteDatasetRequest) (*services.DeleteDatasetResponse, error) {
+func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *v1storageservices.DeleteDatasetRequest) (*v1storageservices.DeleteDatasetResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -351,7 +353,7 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *se
 
 	err = endpoint.AuthzHandler.Authorize(
 		dataset.ProjectID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -370,12 +372,12 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *se
 		return nil, err
 	}
 
-	msg := &services.EventNotificationMessage{
+	msg := &v1notificationservices.EventNotificationMessage{
 		ResourceId:  dataset.ID.String(),
-		Resource:    protoModels.Resource_DATASET_RESOURCE,
-		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_DELETED,
+		Resource:    v1storagemodels.Resource_RESOURCE_DATASET,
+		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_DELETED,
 	}
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg, v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
@@ -387,11 +389,11 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *se
 		return nil, err
 	}
 
-	return &services.DeleteDatasetResponse{}, nil
+	return &v1storageservices.DeleteDatasetResponse{}, nil
 }
 
 //ReleaseDatasetVersion Release a new dataset version
-func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, request *services.ReleaseDatasetVersionRequest) (*services.ReleaseDatasetVersionResponse, error) {
+func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, request *v1storageservices.ReleaseDatasetVersionRequest) (*v1storageservices.ReleaseDatasetVersionResponse, error) {
 	datasetID, err := uuid.Parse(request.GetDatasetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -408,7 +410,7 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 
 	err = endpoint.AuthzHandler.Authorize(
 		dataset.ProjectID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -421,16 +423,16 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 		return nil, err
 	}
 
-	response := &services.ReleaseDatasetVersionResponse{
+	response := &v1storageservices.ReleaseDatasetVersionResponse{
 		Id: id.String(),
 	}
 
-	msg := &services.EventNotificationMessage{
+	msg := &v1notificationservices.EventNotificationMessage{
 		ResourceId:  id.String(),
-		Resource:    protoModels.Resource_DATASET_VERSION_RESOURCE,
-		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
+		Resource:    v1storagemodels.Resource_RESOURCE_DATASET_VERSION,
+		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
 	}
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg, v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_VERSION_RESOURCE)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
@@ -439,7 +441,7 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 	return response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request *services.GetDatasetVersionRequest) (*services.GetDatasetVersionResponse, error) {
+func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request *v1storageservices.GetDatasetVersionRequest) (*v1storageservices.GetDatasetVersionResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -456,7 +458,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request
 
 	err = endpoint.AuthzHandler.Authorize(
 		version.ProjectID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -465,14 +467,14 @@ func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request
 
 	protoVersion := version.ToProtoModel()
 
-	response := &services.GetDatasetVersionResponse{
+	response := &v1storageservices.GetDatasetVersionResponse{
 		DatasetVersion: protoVersion,
 	}
 
 	return response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Context, request *services.GetDatasetVersionObjectGroupsRequest) (*services.GetDatasetVersionObjectGroupsResponse, error) {
+func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Context, request *v1storageservices.GetDatasetVersionObjectGroupsRequest) (*v1storageservices.GetDatasetVersionObjectGroupsResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -489,26 +491,26 @@ func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Cont
 
 	err = endpoint.AuthzHandler.Authorize(
 		version.ProjectID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
 
-	var protoObjectGroups []*protoModels.ObjectGroup
+	var protoObjectGroups []*v1storagemodels.ObjectGroup
 	for _, objectGroup := range version.ObjectGroups {
 		protoObjectGroups = append(protoObjectGroups, objectGroup.ToProtoModel())
 	}
 
-	response := &services.GetDatasetVersionObjectGroupsResponse{
+	response := &v1storageservices.GetDatasetVersionObjectGroupsResponse{
 		ObjectGroup: protoObjectGroups,
 	}
 
 	return response, nil
 }
 
-func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, request *services.DeleteDatasetVersionRequest) (*services.DeleteDatasetVersionResponse, error) {
+func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, request *v1storageservices.DeleteDatasetVersionRequest) (*v1storageservices.DeleteDatasetVersionResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -525,19 +527,19 @@ func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, requ
 
 	err = endpoint.AuthzHandler.Authorize(
 		version.ProjectID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
 
-	msg := &services.EventNotificationMessage{
+	msg := &v1notificationservices.EventNotificationMessage{
 		ResourceId:  version.ID.String(),
-		Resource:    protoModels.Resource_DATASET_VERSION_RESOURCE,
-		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_DELETED,
+		Resource:    v1storagemodels.Resource_RESOURCE_DATASET,
+		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_DELETED,
 	}
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg, v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
@@ -549,5 +551,5 @@ func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, requ
 		return nil, err
 	}
 
-	return &services.DeleteDatasetVersionResponse{}, nil
+	return &v1storageservices.DeleteDatasetVersionResponse{}, nil
 }

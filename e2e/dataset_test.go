@@ -7,17 +7,18 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	v1 "github.com/ScienceObjectsDB/go-api/api/models/v1"
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 )
 
 func TestDataset(t *testing.T) {
-	createProjectRequest := &services.CreateProjectRequest{
+	createProjectRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "testproject_dataset",
 		Description: "test",
-		Metadata: []*v1.Metadata{
+		Metadata: []*v1storagemodels.Metadata{
 			{
 				Key:      "TestKey1",
 				Metadata: []byte("mymetadata1"),
@@ -34,7 +35,7 @@ func TestDataset(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	datasetMetadata := []*v1.Metadata{
+	datasetMetadata := []*v1storagemodels.Metadata{
 		{
 			Key:      "Key1",
 			Metadata: []byte("dasddasd"),
@@ -45,7 +46,7 @@ func TestDataset(t *testing.T) {
 		},
 	}
 
-	datasetLabel := []*v1.Label{
+	datasetLabel := []*v1storagemodels.Label{
 		{
 			Key:   "Label1",
 			Value: "LabelValue1",
@@ -56,7 +57,7 @@ func TestDataset(t *testing.T) {
 		},
 	}
 
-	createDatasetRequest := &services.CreateDatasetRequest{
+	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
 		Name:      "testdataset",
 		ProjectId: createResponse.GetId(),
 		Metadata:  datasetMetadata,
@@ -68,7 +69,7 @@ func TestDataset(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	datasetGetResponse, err := ServerEndpoints.dataset.GetDataset(context.Background(), &services.GetDatasetRequest{
+	datasetGetResponse, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
 		Id: datasetCreateResponse.GetId(),
 	})
 	if err != nil {
@@ -91,10 +92,10 @@ func TestDataset(t *testing.T) {
 }
 
 func TestDatasetObjectGroupsPagination(t *testing.T) {
-	createProjectRequest := &services.CreateProjectRequest{
+	createProjectRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "testproject_dataset",
 		Description: "test",
-		Metadata: []*v1.Metadata{
+		Metadata: []*v1storagemodels.Metadata{
 			{
 				Key:      "TestKey1",
 				Metadata: []byte("mymetadata1"),
@@ -111,7 +112,7 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	createDatasetRequest := &services.CreateDatasetRequest{
+	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
 		Name:      "testdataset",
 		ProjectId: createResponse.GetId(),
 	}
@@ -122,7 +123,7 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 	}
 
 	for i := 0; i < 10; i++ {
-		createObjectGroup := &services.CreateObjectGroupRequest{
+		createObjectGroup := &v1storageservices.CreateObjectGroupRequest{
 			Name:        fmt.Sprintf("foo-%v", i),
 			Description: "foo",
 			DatasetId:   datasetCreateResponse.GetId(),
@@ -136,7 +137,7 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 
 	handledObjectGroups := make(map[string]struct{})
 
-	objectGroups1, err := ServerEndpoints.dataset.ReadHandler.GetDatasetObjectGroups(uuid.MustParse(datasetCreateResponse.GetId()), &v1.PageRequest{
+	objectGroups1, err := ServerEndpoints.dataset.ReadHandler.GetDatasetObjectGroups(uuid.MustParse(datasetCreateResponse.GetId()), &v1storagemodels.PageRequest{
 		LastUuid: "",
 		PageSize: 4,
 	})
@@ -157,7 +158,7 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 		}
 	}
 
-	objectGroups2, err := ServerEndpoints.dataset.ReadHandler.GetDatasetObjectGroups(uuid.MustParse(datasetCreateResponse.GetId()), &v1.PageRequest{
+	objectGroups2, err := ServerEndpoints.dataset.ReadHandler.GetDatasetObjectGroups(uuid.MustParse(datasetCreateResponse.GetId()), &v1storagemodels.PageRequest{
 		LastUuid: lastUUID.String(),
 		PageSize: 4,
 	})
@@ -176,7 +177,7 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 		}
 	}
 
-	objectGroups3, err := ServerEndpoints.dataset.ReadHandler.GetDatasetObjectGroups(uuid.MustParse(datasetCreateResponse.GetId()), &v1.PageRequest{
+	objectGroups3, err := ServerEndpoints.dataset.ReadHandler.GetDatasetObjectGroups(uuid.MustParse(datasetCreateResponse.GetId()), &v1storagemodels.PageRequest{
 		LastUuid: lastUUID.String(),
 		PageSize: 2,
 	})

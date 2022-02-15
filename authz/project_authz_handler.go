@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
 	"google.golang.org/grpc/metadata"
 	"gorm.io/gorm"
 )
@@ -44,7 +44,7 @@ func (projectHandler *ProjectHandler) GetUserID(metadata metadata.MD) (uuid.UUID
 	return userID, nil
 }
 
-func (projectHandler *ProjectHandler) Authorize(projectID uuid.UUID, requestedRight protoModels.Right, metadata metadata.MD) error {
+func (projectHandler *ProjectHandler) Authorize(projectID uuid.UUID, requestedRight v1storagemodels.Right, metadata metadata.MD) error {
 	if len(metadata.Get(API_TOKEN_ENTRY_KEY)) > 0 {
 		_, err := projectHandler.APITokenHandler.Authorize(metadata.Get(API_TOKEN_ENTRY_KEY)[0], projectID)
 		if err != nil {

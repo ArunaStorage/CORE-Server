@@ -10,7 +10,7 @@ import (
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	"github.com/ScienceObjectsDB/CORE-Server/objectstorage"
 	"github.com/ScienceObjectsDB/CORE-Server/signing"
-	v1 "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
 )
@@ -73,7 +73,7 @@ func (server *DataStreamingServer) datasetStream(c *gin.Context) {
 	}
 
 	packer := ObjectsPacker{
-		StreamType:    v1.GetObjectGroupsStreamLinkRequest_STREAM_TYPE_TARGZ,
+		StreamType:    v1storageservices.GetObjectGroupsStreamLinkRequest_STREAM_TYPE_TARGZ,
 		TargetWrite:   c.Writer,
 		ObjectHandler: server.ObjectHandler,
 	}

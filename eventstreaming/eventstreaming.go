@@ -6,7 +6,7 @@ import (
 	"github.com/ScienceObjectsDB/CORE-Server/config"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
 	"github.com/ScienceObjectsDB/CORE-Server/models"
-	v1 "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1notificationservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/notification/services/v1"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
 )
@@ -31,13 +31,13 @@ func New(dbRead *database.Read, dbCreate *database.Create) (EventStreamMgmt, err
 
 type EventStreamMgmt interface {
 	CreateMessageStreamGroupHandler(streamGroup *models.StreamGroup) (EventStreamer, error)
-	CreateStreamGroup(projectID uuid.UUID, resourceID uuid.UUID, resourceType *v1.CreateEventStreamingGroupRequest_EventResources, includeSubResources bool) (*models.StreamGroup, error)
-	PublishMessage(request *v1.EventNotificationMessage, resource v1.CreateEventStreamingGroupRequest_EventResources) error
+	CreateStreamGroup(projectID uuid.UUID, resourceID uuid.UUID, resourceType *v1notificationservices.CreateEventStreamingGroupRequest_EventResources, includeSubResources bool) (*models.StreamGroup, error)
+	PublishMessage(request *v1notificationservices.EventNotificationMessage, resource v1notificationservices.CreateEventStreamingGroupRequest_EventResources) error
 	EnableTestMode() error
 }
 
 type EventStreamer interface {
-	GetResponseMessageChan() chan *v1.NotificationStreamGroupResponse
+	GetResponseMessageChan() chan *v1notificationservices.NotificationStreamGroupResponse
 	StartStream() error
 	CloseStream() error
 	AckChunk(chunkID string) error

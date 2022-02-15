@@ -12,7 +12,7 @@ import (
 
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	"github.com/ScienceObjectsDB/CORE-Server/util"
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 )
 
 // Handles Create operations
@@ -20,7 +20,7 @@ type Create struct {
 	*Common
 }
 
-func (create *Create) CreateProject(request *services.CreateProjectRequest, userID string) (string, error) {
+func (create *Create) CreateProject(request *v1storageservices.CreateProjectRequest, userID string) (string, error) {
 	labels := []models.Label{}
 	for _, protoLabel := range request.Labels {
 		label := models.Label{}
@@ -56,7 +56,7 @@ func (create *Create) CreateProject(request *services.CreateProjectRequest, user
 	return project.ID.String(), nil
 }
 
-func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (string, error) {
+func (create *Create) CreateDataset(request *v1storageservices.CreateDatasetRequest) (string, error) {
 	labels := []models.Label{}
 	for _, protoLabel := range request.Labels {
 		label := models.Label{}
@@ -116,7 +116,7 @@ func (create *Create) CreateDataset(request *services.CreateDatasetRequest) (str
 	return dataset.ID.String(), nil
 }
 
-func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupRequest, bucket string) (*models.ObjectGroup, error) {
+func (create *Create) CreateObjectGroup(request *v1storageservices.CreateObjectGroupRequest, bucket string) (*models.ObjectGroup, error) {
 	dataset := &models.Dataset{}
 
 	datasetID, err := uuid.Parse(request.GetDatasetId())
@@ -160,7 +160,7 @@ func (create *Create) CreateObjectGroup(request *services.CreateObjectGroupReque
 	return &objectGroupModel, nil
 }
 
-func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObjectGroupBatchRequest, bucket string) ([]models.ObjectGroup, error) {
+func (create *Create) CreateObjectGroupBatch(batchRequest *v1storageservices.CreateObjectGroupBatchRequest, bucket string) ([]models.ObjectGroup, error) {
 	var objectgroups []models.ObjectGroup
 	var objectgroupsObjects [][]models.Object
 
@@ -206,7 +206,7 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *services.CreateObject
 	return objectgroups, nil
 }
 
-func (create *Create) prepareObjectGroupForInsert(request *services.CreateObjectGroupRequest, dataset *models.Dataset, bucket string) (models.ObjectGroup, []models.Object, error) {
+func (create *Create) prepareObjectGroupForInsert(request *v1storageservices.CreateObjectGroupRequest, dataset *models.Dataset, bucket string) (models.ObjectGroup, []models.Object, error) {
 	labels := []models.Label{}
 	for _, protoLabel := range request.Labels {
 		label := models.Label{}
@@ -266,7 +266,7 @@ func (create *Create) prepareObjectGroupForInsert(request *services.CreateObject
 	return objectGroupModel, objects, nil
 }
 
-func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersionRequest, projectID uuid.UUID) (uuid.UUID, error) {
+func (create *Create) CreateDatasetVersion(request *v1storageservices.ReleaseDatasetVersionRequest, projectID uuid.UUID) (uuid.UUID, error) {
 	labels := []models.Label{}
 	for _, protoLabel := range request.Labels {
 		label := models.Label{}
@@ -331,7 +331,7 @@ func (create *Create) CreateDatasetVersion(request *services.ReleaseDatasetVersi
 	return version.ID, nil
 }
 
-func (create *Create) AddUserToProject(request *services.AddUserToProjectRequest) error {
+func (create *Create) AddUserToProject(request *v1storageservices.AddUserToProjectRequest) error {
 	projectID, err := uuid.Parse(request.GetProjectId())
 	if err != nil {
 		log.Error(err.Error())
@@ -376,7 +376,7 @@ func (create *Create) CreateStreamGroup(projectID uuid.UUID, resourceType string
 	return streamGroupEntry, nil
 }
 
-func (create *Create) CreateAPIToken(request *services.CreateAPITokenRequest, userOauth2ID string) (string, error) {
+func (create *Create) CreateAPIToken(request *v1storageservices.CreateAPITokenRequest, userOauth2ID string) (string, error) {
 	rndBytes, err := util.GenerateRandomString(45)
 	if err != nil {
 		log.Println(err.Error())

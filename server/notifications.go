@@ -4,14 +4,15 @@ import (
 	"context"
 	"io"
 
-	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
-	v1 "github.com/ScienceObjectsDB/go-api/api/services/v1"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	v1notficationservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/notification/services/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 )
 
 type NotificationEndpoints struct {
@@ -27,7 +28,7 @@ func NewNotificationEndpoints(endpoints *Endpoints) (*NotificationEndpoints, err
 	return notificationEndpoints, nil
 }
 
-func (notificationEndpoints *NotificationEndpoints) CreateEventStreamingGroup(ctx context.Context, request *v1.CreateEventStreamingGroupRequest) (*v1.CreateEventStreamingGroupResponse, error) {
+func (notificationEndpoints *NotificationEndpoints) CreateEventStreamingGroup(ctx context.Context, request *v1notficationservices.CreateEventStreamingGroupRequest) (*v1notficationservices.CreateEventStreamingGroupResponse, error) {
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	var projectUUID uuid.UUID
@@ -39,11 +40,11 @@ func (notificationEndpoints *NotificationEndpoints) CreateEventStreamingGroup(ct
 	}
 
 	switch request.Resource {
-	case v1.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE:
+	case v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE:
 		{
 			projectUUID = resourceUUID
 		}
-	case v1.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE:
+	case v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE:
 		{
 			dataset, err := notificationEndpoints.ReadHandler.GetDataset(resourceUUID)
 			if err != nil {
@@ -61,7 +62,7 @@ func (notificationEndpoints *NotificationEndpoints) CreateEventStreamingGroup(ct
 
 	err = notificationEndpoints.AuthzHandler.Authorize(
 		projectUUID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Errorln(err.Error())
@@ -74,14 +75,14 @@ func (notificationEndpoints *NotificationEndpoints) CreateEventStreamingGroup(ct
 		return nil, err
 	}
 
-	response := &v1.CreateEventStreamingGroupResponse{
+	response := &v1notficationservices.CreateEventStreamingGroupResponse{
 		StreamGroupId: streamGroup.ID.String(),
 	}
 
 	return response, nil
 }
 
-func (notificationEndpoints *NotificationEndpoints) NotificationStreamGroup(stream v1.UpdateNotificationService_NotificationStreamGroupServer) error {
+func (notificationEndpoints *NotificationEndpoints) NotificationStreamGroup(stream v1notficationservices.UpdateNotificationService_NotificationStreamGroupServer) error {
 	metadata, _ := metadata.FromIncomingContext(stream.Context())
 
 	request, err := stream.Recv()
@@ -110,7 +111,7 @@ func (notificationEndpoints *NotificationEndpoints) NotificationStreamGroup(stre
 
 	err = notificationEndpoints.AuthzHandler.Authorize(
 		streamGroup.ProjectID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Errorln(err.Error())

@@ -1,7 +1,7 @@
 package models
 
 import (
-	protomodels "github.com/ScienceObjectsDB/go-api/api/models/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -21,18 +21,18 @@ type Dataset struct {
 	DatasetVersions []DatasetVersion `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
-func (dataset *Dataset) ToProtoModel() protomodels.Dataset {
-	labels := []*protomodels.Label{}
+func (dataset *Dataset) ToProtoModel() v1storagemodels.Dataset {
+	labels := []*v1storagemodels.Label{}
 	for _, label := range dataset.Labels {
 		labels = append(labels, label.ToProtoModel())
 	}
 
-	metadataList := []*protomodels.Metadata{}
+	metadataList := []*v1storagemodels.Metadata{}
 	for _, metadata := range dataset.Metadata {
 		metadataList = append(metadataList, metadata.ToProtoModel())
 	}
 
-	return protomodels.Dataset{
+	return v1storagemodels.Dataset{
 		Id:          dataset.ID.String(),
 		Name:        dataset.Name,
 		Description: dataset.Description,
@@ -63,13 +63,13 @@ type DatasetVersion struct {
 	Dataset         Dataset
 }
 
-func (version *DatasetVersion) ToProtoModel() *protomodels.DatasetVersion {
-	labels := []*protomodels.Label{}
+func (version *DatasetVersion) ToProtoModel() *v1storagemodels.DatasetVersion {
+	labels := []*v1storagemodels.Label{}
 	for _, label := range version.Labels {
 		labels = append(labels, label.ToProtoModel())
 	}
 
-	metadataList := []*protomodels.Metadata{}
+	metadataList := []*v1storagemodels.Metadata{}
 	for _, metadata := range version.Metadata {
 		metadataList = append(metadataList, metadata.ToProtoModel())
 	}
@@ -79,21 +79,21 @@ func (version *DatasetVersion) ToProtoModel() *protomodels.DatasetVersion {
 		objectGroupIDs = append(objectGroupIDs, id.ID.String())
 	}
 
-	versionTag := protomodels.Version_VersionStage_value[version.Stage]
+	versionTag := v1storagemodels.Version_VersionStage_value[version.Stage]
 
-	protoVersion := &protomodels.DatasetVersion{
+	protoVersion := &v1storagemodels.DatasetVersion{
 		Id:          version.ID.String(),
 		DatasetId:   version.DatasetID.String(),
 		Description: version.Description,
 		Labels:      labels,
 		Metadata:    metadataList,
 		Created:     timestamppb.New(version.CreatedAt),
-		Version: &protomodels.Version{
+		Version: &v1storagemodels.Version{
 			Major:    int32(version.MajorVersion),
 			Minor:    int32(version.MinorVersion),
 			Patch:    int32(version.PatchVersion),
 			Revision: int32(version.RevisionVersion),
-			Stage:    protomodels.Version_VersionStage(versionTag),
+			Stage:    v1storagemodels.Version_VersionStage(versionTag),
 		},
 		ObjectGroupIds: objectGroupIDs,
 		Name:           version.Name,

@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ScienceObjectsDB/CORE-Server/models"
-	apimodels "github.com/ScienceObjectsDB/go-api/api/models/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 )
 
 type Read struct {
@@ -94,7 +94,7 @@ func (read *Read) GetProjectDatasets(projectID uuid.UUID) ([]*models.Dataset, er
 	return objects, nil
 }
 
-func (read *Read) GetDatasetObjectGroups(datasetID uuid.UUID, page *apimodels.PageRequest) ([]*models.ObjectGroup, error) {
+func (read *Read) GetDatasetObjectGroups(datasetID uuid.UUID, page *v1storagemodels.PageRequest) ([]*models.ObjectGroup, error) {
 	objectGroups := make([]*models.ObjectGroup, 0)
 
 	if page == nil || page.PageSize == 0 {
@@ -205,7 +205,7 @@ func (read *Read) GetAPIToken(userOAuth2ID uuid.UUID) ([]models.APIToken, error)
 	return token, nil
 }
 
-func (read *Read) GetDatasetVersionWithObjectGroups(datasetVersionID uuid.UUID, page *apimodels.PageRequest) (*models.DatasetVersion, error) {
+func (read *Read) GetDatasetVersionWithObjectGroups(datasetVersionID uuid.UUID, page *v1storagemodels.PageRequest) (*models.DatasetVersion, error) {
 	version := &models.DatasetVersion{}
 	version.ID = datasetVersionID
 

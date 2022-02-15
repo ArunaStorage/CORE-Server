@@ -6,16 +6,16 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	v1 "github.com/ScienceObjectsDB/go-api/api/models/v1"
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestProject(t *testing.T) {
-	createRequest := &services.CreateProjectRequest{
+	createRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "testproject1",
 		Description: "test",
-		Metadata: []*v1.Metadata{
+		Metadata: []*v1storagemodels.Metadata{
 			{
 				Key:      "TestKey1",
 				Metadata: []byte("mymetadata1"),
@@ -32,7 +32,7 @@ func TestProject(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	getResponse, err := ServerEndpoints.project.GetProject(context.Background(), &services.GetProjectRequest{
+	getResponse, err := ServerEndpoints.project.GetProject(context.Background(), &v1storageservices.GetProjectRequest{
 		Id: createResponse.GetId(),
 	})
 	if err != nil {
@@ -44,7 +44,7 @@ func TestProject(t *testing.T) {
 	assert.ElementsMatch(t, createRequest.Labels, getResponse.Project.Labels)
 	assert.ElementsMatch(t, createRequest.Metadata, getResponse.Project.Metadata)
 
-	_, err = ServerEndpoints.project.DeleteProject(context.Background(), &services.DeleteProjectRequest{
+	_, err = ServerEndpoints.project.DeleteProject(context.Background(), &v1storageservices.DeleteProjectRequest{
 		Id: createResponse.GetId(),
 	})
 	if err != nil {

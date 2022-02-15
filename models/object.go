@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	protomodels "github.com/ScienceObjectsDB/go-api/api/models/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -27,18 +27,18 @@ type Object struct {
 	ObjectGroup   ObjectGroup
 }
 
-func (object *Object) ToProtoModel() *protomodels.Object {
-	labels := []*protomodels.Label{}
+func (object *Object) ToProtoModel() *v1storagemodels.Object {
+	labels := []*v1storagemodels.Label{}
 	for _, label := range object.Labels {
 		labels = append(labels, label.ToProtoModel())
 	}
 
-	metadataList := []*protomodels.Metadata{}
+	metadataList := []*v1storagemodels.Metadata{}
 	for _, metadata := range object.Metadata {
 		metadataList = append(metadataList, metadata.ToProtoModel())
 	}
 
-	return &protomodels.Object{
+	return &v1storagemodels.Object{
 		Id:            object.ID.String(),
 		Filename:      object.Filename,
 		Filetype:      object.Filetype,
@@ -71,23 +71,23 @@ type ObjectGroup struct {
 	Objects         []Object `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
-func (objectGroup *ObjectGroup) ToProtoModel() *protomodels.ObjectGroup {
-	labels := []*protomodels.Label{}
+func (objectGroup *ObjectGroup) ToProtoModel() *v1storagemodels.ObjectGroup {
+	labels := []*v1storagemodels.Label{}
 	for _, label := range objectGroup.Labels {
 		labels = append(labels, label.ToProtoModel())
 	}
 
-	metadataList := []*protomodels.Metadata{}
+	metadataList := []*v1storagemodels.Metadata{}
 	for _, metadata := range objectGroup.Metadata {
 		metadataList = append(metadataList, metadata.ToProtoModel())
 	}
 
-	objectsList := make([]*protomodels.Object, len(objectGroup.Objects))
+	objectsList := make([]*v1storagemodels.Object, len(objectGroup.Objects))
 	for _, object := range objectGroup.Objects {
 		objectsList[object.Index] = object.ToProtoModel()
 	}
 
-	return &protomodels.ObjectGroup{
+	return &v1storagemodels.ObjectGroup{
 		Id:          objectGroup.ID.String(),
 		Name:        objectGroup.Name,
 		Description: objectGroup.Description,

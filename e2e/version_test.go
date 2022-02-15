@@ -7,17 +7,17 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	v1 "github.com/ScienceObjectsDB/go-api/api/models/v1"
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDatasetVersion(t *testing.T) {
-	createProjectRequest := &services.CreateProjectRequest{
+	createProjectRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "testproject_dataset",
 		Description: "test",
-		Metadata: []*v1.Metadata{
+		Metadata: []*v1storagemodels.Metadata{
 			{
 				Key:      "TestKey1",
 				Metadata: []byte("mymetadata1"),
@@ -34,7 +34,7 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	datasetMetadata := []*v1.Metadata{
+	datasetMetadata := []*v1storagemodels.Metadata{
 		{
 			Key:      "Key1",
 			Metadata: []byte("dasddasd"),
@@ -45,7 +45,7 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
-	datasetLabel := []*v1.Label{
+	datasetLabel := []*v1storagemodels.Label{
 		{
 			Key:   "Label1",
 			Value: "LabelValue1",
@@ -56,7 +56,7 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
-	createDatasetRequest := &services.CreateDatasetRequest{
+	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
 		Name:      "testdataset",
 		ProjectId: createResponse.GetId(),
 		Metadata:  datasetMetadata,
@@ -68,7 +68,7 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	objectGroupMetadata := []*v1.Metadata{
+	objectGroupMetadata := []*v1storagemodels.Metadata{
 		{
 			Key:      "Key1OG",
 			Metadata: []byte("dasddasdOG"),
@@ -79,7 +79,7 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
-	objectGroupLabel := []*v1.Label{
+	objectGroupLabel := []*v1storagemodels.Label{
 		{
 			Key:   "Label1OG",
 			Value: "LabelValue1OG",
@@ -90,7 +90,7 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
-	object1Metadata := []*v1.Metadata{
+	object1Metadata := []*v1storagemodels.Metadata{
 		{
 			Key:      "Key1O1",
 			Metadata: []byte("dasddasdO1"),
@@ -101,7 +101,7 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
-	object1Label := []*v1.Label{
+	object1Label := []*v1storagemodels.Label{
 		{
 			Key:   "Label1O1",
 			Value: "LabelValue1O1",
@@ -112,7 +112,7 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
-	object2Metadata := []*v1.Metadata{
+	object2Metadata := []*v1storagemodels.Metadata{
 		{
 			Key:      "Key1O2",
 			Metadata: []byte("dasddasdO2"),
@@ -123,7 +123,7 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
-	object2Label := []*v1.Label{
+	object2Label := []*v1storagemodels.Label{
 		{
 			Key:   "Label1O2",
 			Value: "LabelValue1O2",
@@ -134,12 +134,12 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
-	createObjectGroupRequest := &services.CreateObjectGroupRequest{
+	createObjectGroupRequest := &v1storageservices.CreateObjectGroupRequest{
 		Name:      "testog",
 		DatasetId: datasetCreateResponse.GetId(),
 		Labels:    objectGroupLabel,
 		Metadata:  objectGroupMetadata,
-		Objects: []*services.CreateObjectRequest{
+		Objects: []*v1storageservices.CreateObjectRequest{
 			{
 				Filename:   "testfile1",
 				Filetype:   "bin",
@@ -164,14 +164,14 @@ func TestDatasetVersion(t *testing.T) {
 
 	assert.NotEqual(t, createObjectGroupResponse.ObjectGroupId, 0)
 
-	getObjectGroupResponse, err := ServerEndpoints.object.GetObjectGroup(context.Background(), &services.GetObjectGroupRequest{
+	getObjectGroupResponse, err := ServerEndpoints.object.GetObjectGroup(context.Background(), &v1storageservices.GetObjectGroupRequest{
 		Id: createObjectGroupResponse.ObjectGroupId,
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	versionMetadata := []*v1.Metadata{
+	versionMetadata := []*v1storagemodels.Metadata{
 		{
 			Key:      "Key1V",
 			Metadata: []byte("dasddasdV"),
@@ -182,7 +182,7 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
-	versionLabel := []*v1.Label{
+	versionLabel := []*v1storagemodels.Label{
 		{
 			Key:   "Label1",
 			Value: "LabelValue1",
@@ -193,15 +193,15 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
-	releaseVersionRequest := &services.ReleaseDatasetVersionRequest{
+	releaseVersionRequest := &v1storageservices.ReleaseDatasetVersionRequest{
 		Name:      "foo",
 		DatasetId: datasetCreateResponse.GetId(),
-		Version: &v1.Version{
+		Version: &v1storagemodels.Version{
 			Major:    1,
 			Minor:    0,
 			Patch:    2,
 			Revision: 1,
-			Stage:    v1.Version_STABLE,
+			Stage:    v1storagemodels.Version_VERSION_STAGE_STABLE,
 		},
 		Description:    "testrelease",
 		ObjectGroupIds: []string{getObjectGroupResponse.ObjectGroup.Id},
@@ -214,7 +214,7 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	response, err := ServerEndpoints.dataset.GetDatasetVersions(context.Background(), &services.GetDatasetVersionsRequest{
+	response, err := ServerEndpoints.dataset.GetDatasetVersions(context.Background(), &v1storageservices.GetDatasetVersionsRequest{
 		Id: datasetCreateResponse.GetId(),
 	})
 	if err != nil {
@@ -223,7 +223,7 @@ func TestDatasetVersion(t *testing.T) {
 
 	assert.Equal(t, len(response.GetDatasetVersions()), 1)
 
-	versionRevisions, err := ServerEndpoints.dataset.GetDatasetVersionObjectGroups(context.Background(), &services.GetDatasetVersionObjectGroupsRequest{
+	versionRevisions, err := ServerEndpoints.dataset.GetDatasetVersionObjectGroups(context.Background(), &v1storageservices.GetDatasetVersionObjectGroupsRequest{
 		Id: versionResponse.Id,
 	})
 	if err != nil {
@@ -232,7 +232,7 @@ func TestDatasetVersion(t *testing.T) {
 
 	assert.Equal(t, 1, len(versionRevisions.GetObjectGroup()))
 
-	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &services.DeleteDatasetRequest{
+	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
 		Id: datasetCreateResponse.GetId(),
 	})
 	if err != nil {
@@ -241,10 +241,10 @@ func TestDatasetVersion(t *testing.T) {
 }
 
 func TestDatasetVersionPaginated(t *testing.T) {
-	createProjectRequest := &services.CreateProjectRequest{
+	createProjectRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "testproject_dataset",
 		Description: "test",
-		Metadata: []*v1.Metadata{
+		Metadata: []*v1storagemodels.Metadata{
 			{
 				Key:      "TestKey1",
 				Metadata: []byte("mymetadata1"),
@@ -261,7 +261,7 @@ func TestDatasetVersionPaginated(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	createDatasetRequest := &services.CreateDatasetRequest{
+	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
 		Name:      "testdataset",
 		ProjectId: createResponse.GetId(),
 	}
@@ -273,7 +273,7 @@ func TestDatasetVersionPaginated(t *testing.T) {
 
 	var objectIDs []string
 	for i := 0; i < 10; i++ {
-		createObjectGroup := &services.CreateObjectGroupRequest{
+		createObjectGroup := &v1storageservices.CreateObjectGroupRequest{
 			Name:        fmt.Sprintf("foo-%v", i),
 			Description: "foo",
 			DatasetId:   datasetCreateResponse.GetId(),
@@ -289,17 +289,17 @@ func TestDatasetVersionPaginated(t *testing.T) {
 
 	handledObjectGroups := make(map[string]struct{})
 
-	versionID, err := ServerEndpoints.dataset.CreateHandler.CreateDatasetVersion(&services.ReleaseDatasetVersionRequest{
+	versionID, err := ServerEndpoints.dataset.CreateHandler.CreateDatasetVersion(&v1storageservices.ReleaseDatasetVersionRequest{
 		Name:           "foo",
 		DatasetId:      datasetCreateResponse.GetId(),
 		ObjectGroupIds: objectIDs,
-		Version:        &v1.Version{},
+		Version:        &v1storagemodels.Version{},
 	}, uuid.MustParse(createResponse.GetId()))
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	objectGroups1, err := ServerEndpoints.dataset.ReadHandler.GetDatasetVersionWithObjectGroups(versionID, &v1.PageRequest{
+	objectGroups1, err := ServerEndpoints.dataset.ReadHandler.GetDatasetVersionWithObjectGroups(versionID, &v1storagemodels.PageRequest{
 		LastUuid: "",
 		PageSize: 4,
 	})
@@ -320,7 +320,7 @@ func TestDatasetVersionPaginated(t *testing.T) {
 		}
 	}
 
-	objectGroups2, err := ServerEndpoints.dataset.ReadHandler.GetDatasetVersionWithObjectGroups(versionID, &v1.PageRequest{
+	objectGroups2, err := ServerEndpoints.dataset.ReadHandler.GetDatasetVersionWithObjectGroups(versionID, &v1storagemodels.PageRequest{
 		LastUuid: lastUUID.String(),
 		PageSize: 4,
 	})
@@ -339,7 +339,7 @@ func TestDatasetVersionPaginated(t *testing.T) {
 		}
 	}
 
-	objectGroups3, err := ServerEndpoints.dataset.ReadHandler.GetDatasetVersionWithObjectGroups(versionID, &v1.PageRequest{
+	objectGroups3, err := ServerEndpoints.dataset.ReadHandler.GetDatasetVersionWithObjectGroups(versionID, &v1storagemodels.PageRequest{
 		LastUuid: lastUUID.String(),
 		PageSize: 2,
 	})

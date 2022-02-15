@@ -18,7 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 
 	app_config "github.com/ScienceObjectsDB/CORE-Server/config"
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 )
 
 // Default chunk size for chunked downloads
@@ -157,7 +157,7 @@ func (s3Handler *S3ObjectStorageHandler) CreateLocation(projectID uuid.UUID, dat
 }
 
 // CreateDownloadLink Generates a presigned download link for an object
-func (s3Handler *S3ObjectStorageHandler) CreateDownloadLink(object *models.Object, request *services.CreateDownloadLinkRequest) (string, error) {
+func (s3Handler *S3ObjectStorageHandler) CreateDownloadLink(object *models.Object, request *v1storageservices.CreateDownloadLinkRequest) (string, error) {
 	ctx := context.Background()
 
 	objectInputConf := &s3.GetObjectInput{

@@ -11,7 +11,7 @@ import (
 
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	"github.com/ScienceObjectsDB/CORE-Server/signing"
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 	"github.com/cockroachdb/cockroach-go/v2/crdb/crdbgorm"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -24,12 +24,12 @@ type Streaming struct {
 	SigningSecret     string
 }
 
-func (handler *Streaming) CreateStreamingLink(request *services.GetObjectGroupsStreamLinkRequest, projectID uuid.UUID) (string, error) {
+func (handler *Streaming) CreateStreamingLink(request *v1storageservices.GetObjectGroupsStreamLinkRequest, projectID uuid.UUID) (string, error) {
 	var url string
 	var err error
 
 	switch value := request.Query.(type) {
-	case *services.GetObjectGroupsStreamLinkRequest_GroupIds:
+	case *v1storageservices.GetObjectGroupsStreamLinkRequest_GroupIds:
 		{
 			var datasetID uuid.UUID
 			datasetID, err = uuid.Parse(request.GetGroupIds().GetDatasetId())
@@ -39,7 +39,7 @@ func (handler *Streaming) CreateStreamingLink(request *services.GetObjectGroupsS
 			}
 			url, err = handler.createObjectGroupsRequest(value.GroupIds.GetObjectGroups(), datasetID, projectID)
 		}
-	case *services.GetObjectGroupsStreamLinkRequest_Dataset:
+	case *v1storageservices.GetObjectGroupsStreamLinkRequest_Dataset:
 		{
 			var datasetID uuid.UUID
 			datasetID, err = uuid.Parse(request.GetDataset().GetDatasetId())
@@ -49,7 +49,7 @@ func (handler *Streaming) CreateStreamingLink(request *services.GetObjectGroupsS
 			}
 			url, err = handler.createResourceObjectGroupsURL(datasetID, "/dataset")
 		}
-	case *services.GetObjectGroupsStreamLinkRequest_DatasetVersion:
+	case *v1storageservices.GetObjectGroupsStreamLinkRequest_DatasetVersion:
 		{
 			var datasetVersionID uuid.UUID
 			datasetVersionID, err = uuid.Parse(request.GetDatasetVersion().GetDatasetVersionId())

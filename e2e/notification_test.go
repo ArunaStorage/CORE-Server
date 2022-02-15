@@ -10,7 +10,8 @@ import (
 
 	"github.com/ScienceObjectsDB/CORE-Server/eventstreaming"
 	"github.com/ScienceObjectsDB/CORE-Server/models"
-	v1 "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1notificationservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/notification/services/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
@@ -85,10 +86,10 @@ func TestNotificationStreamGroup(t *testing.T) {
 
 	streamErrGrp.Go(func() error {
 		for i := 0; i < 4000; i++ {
-			notification := &v1.EventNotificationMessage{
+			notification := &v1notificationservices.EventNotificationMessage{
 				Resource:    4,
 				ResourceId:  fmt.Sprintf("test-%v", i),
-				UpdatedType: v1.EventNotificationMessage_UPDATE_TYPE_CREATED,
+				UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
 			}
 
 			data, err := protojson.Marshal(notification)
@@ -126,7 +127,7 @@ func TestResourceNotifications(t *testing.T) {
 	bufSize := 1024 * 1024
 	lis = bufconn.Listen(bufSize)
 	s := grpc.NewServer()
-	v1.RegisterUpdateNotificationServiceServer(s, ServerEndpoints.notification)
+	v1notificationservices.RegisterUpdateNotificationServiceServer(s, ServerEndpoints.notification)
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("Server exited with error: %v", err)
@@ -139,9 +140,9 @@ func TestResourceNotifications(t *testing.T) {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
 
-	notificationClient := v1.NewUpdateNotificationServiceClient(conn)
+	notificationClient := v1notificationservices.NewUpdateNotificationServiceClient(conn)
 
-	project, err := ServerEndpoints.project.CreateProject(context.Background(), &v1.CreateProjectRequest{
+	project, err := ServerEndpoints.project.CreateProject(context.Background(), &v1storageservices.CreateProjectRequest{
 		Name:        "test",
 		Description: "test",
 	})
@@ -149,11 +150,11 @@ func TestResourceNotifications(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	streamGroup, err := notificationClient.CreateEventStreamingGroup(context.Background(), &v1.CreateEventStreamingGroupRequest{
-		Resource:           v1.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE,
+	streamGroup, err := notificationClient.CreateEventStreamingGroup(context.Background(), &v1notificationservices.CreateEventStreamingGroupRequest{
+		Resource:           v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE,
 		ResourceId:         project.GetId(),
 		IncludeSubresource: true,
-		StreamType:         &v1.CreateEventStreamingGroupRequest_StreamAll{},
+		StreamType:         &v1notificationservices.CreateEventStreamingGroupRequest_StreamAll{},
 	})
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -164,9 +165,9 @@ func TestResourceNotifications(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	err = stream.Send(&v1.NotificationStreamGroupRequest{
-		StreamAction: &v1.NotificationStreamGroupRequest_Init{
-			Init: &v1.NotificationStreamInit{
+	err = stream.Send(&v1notificationservices.NotificationStreamGroupRequest{
+		StreamAction: &v1notificationservices.NotificationStreamGroupRequest_Init{
+			Init: &v1notificationservices.NotificationStreamInit{
 				StreamGroupId: streamGroup.StreamGroupId,
 			},
 		},
@@ -187,9 +188,9 @@ func TestResourceNotifications(t *testing.T) {
 
 			numberOfEventsChan <- len(events.Notification)
 
-			err = stream.Send(&v1.NotificationStreamGroupRequest{
-				StreamAction: &v1.NotificationStreamGroupRequest_Ack{
-					Ack: &v1.NotficationStreamAck{
+			err = stream.Send(&v1notificationservices.NotificationStreamGroupRequest{
+				StreamAction: &v1notificationservices.NotificationStreamGroupRequest_Ack{
+					Ack: &v1notificationservices.NotficationStreamAck{
 						AckChunkId: []string{events.GetAckChunkId()},
 					},
 				},
@@ -200,7 +201,7 @@ func TestResourceNotifications(t *testing.T) {
 		}
 	})
 
-	_, err = ServerEndpoints.dataset.CreateDataset(context.Background(), &v1.CreateDatasetRequest{
+	_, err = ServerEndpoints.dataset.CreateDataset(context.Background(), &v1storageservices.CreateDatasetRequest{
 		Name:        "test",
 		Description: "test",
 		ProjectId:   project.GetId(),

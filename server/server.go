@@ -18,7 +18,8 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1notficationservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/notification/services/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 )
 
 // A generic structs for the gRPC endpoint that contains all relevant database handler interfaces
@@ -101,11 +102,11 @@ func Run(host string, gRPCPort uint16) error {
 		return streamingServer.Run()
 	})
 
-	services.RegisterProjectServiceServer(grpcServer, projectEndpoints)
-	services.RegisterDatasetServiceServer(grpcServer, datasetEndpoints)
-	services.RegisterDatasetObjectsServiceServer(grpcServer, objectEndpoints)
-	services.RegisterObjectLoadServiceServer(grpcServer, loadEndpoints)
-	services.RegisterUpdateNotificationServiceServer(grpcServer, notificationEndpoints)
+	v1storageservices.RegisterProjectServiceServer(grpcServer, projectEndpoints)
+	v1storageservices.RegisterDatasetServiceServer(grpcServer, datasetEndpoints)
+	v1storageservices.RegisterDatasetObjectsServiceServer(grpcServer, objectEndpoints)
+	v1storageservices.RegisterObjectLoadServiceServer(grpcServer, loadEndpoints)
+	v1notficationservices.RegisterUpdateNotificationServiceServer(grpcServer, notificationEndpoints)
 
 	serverErrGrp.Go(func() error {
 		log.Println(fmt.Sprintf("Starting grpc service on interface %v and port %v", host, gRPCPort))

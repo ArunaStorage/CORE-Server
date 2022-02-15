@@ -6,8 +6,9 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1notficationservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/notification/services/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -26,7 +27,7 @@ func NewObjectEndpoints(endpoints *Endpoints) (*ObjectServerEndpoints, error) {
 }
 
 //CreateObjectGroup Creates a new object group endpoint service
-func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, request *services.CreateObjectGroupRequest) (*services.CreateObjectGroupResponse, error) {
+func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, request *v1storageservices.CreateObjectGroupRequest) (*v1storageservices.CreateObjectGroupResponse, error) {
 	parsedDatasetID, err := uuid.Parse(request.DatasetId)
 	if err != nil {
 		log.Debug(err.Error())
@@ -43,7 +44,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 
 	err = endpoint.AuthzHandler.Authorize(
 		dataset.ProjectID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Error(err.Error())
@@ -56,10 +57,10 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 		return nil, err
 	}
 
-	objectGroupResponse := &services.CreateObjectGroupResponse{
+	objectGroupResponse := &v1storageservices.CreateObjectGroupResponse{
 		ObjectGroupId:   objectgroup.ID.String(),
 		ObjectGroupName: objectgroup.Name,
-		ObjectLinks:     []*services.CreateObjectGroupResponse_ObjectLinks{},
+		ObjectLinks:     []*v1storageservices.CreateObjectGroupResponse_ObjectLinks{},
 	}
 
 	if request.IncludeObjectLink {
@@ -69,7 +70,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 				log.Println(err.Error())
 				return nil, err
 			}
-			objectGroupResponse.ObjectLinks = append(objectGroupResponse.ObjectLinks, &services.CreateObjectGroupResponse_ObjectLinks{
+			objectGroupResponse.ObjectLinks = append(objectGroupResponse.ObjectLinks, &v1storageservices.CreateObjectGroupResponse_ObjectLinks{
 				Filename: object.Filename,
 				Link:     link,
 				ObjectId: object.ID.String(),
@@ -78,11 +79,11 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 		}
 	}
 
-	err = endpoint.EventStreamMgmt.PublishMessage(&services.EventNotificationMessage{
-		Resource:    protoModels.Resource_OBJECT_GROUP_RESOURCE,
+	err = endpoint.EventStreamMgmt.PublishMessage(&v1notficationservices.EventNotificationMessage{
+		Resource:    v1storagemodels.Resource_RESOURCE_OBJECT_GROUP,
 		ResourceId:  objectGroupResponse.GetObjectGroupId(),
-		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
-	}, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
+		UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
+	}, v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -92,7 +93,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 	return objectGroupResponse, nil
 }
 
-func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Context, requests *services.CreateObjectGroupBatchRequest) (*services.CreateObjectGroupBatchResponse, error) {
+func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Context, requests *v1storageservices.CreateObjectGroupBatchRequest) (*v1storageservices.CreateObjectGroupBatchResponse, error) {
 	if len(requests.GetRequests()) < 1 {
 		return nil, status.Error(codes.InvalidArgument, "at least one request in request batch is required")
 	}
@@ -119,7 +120,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 
 	err = endpoint.AuthzHandler.Authorize(
 		dataset.ProjectID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -132,13 +133,13 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 		return nil, err
 	}
 
-	var objectgroupResponseList []*services.CreateObjectGroupResponse
+	var objectgroupResponseList []*v1storageservices.CreateObjectGroupResponse
 
 	for _, objectgroup := range objectgroups {
-		objectgroupResponse := &services.CreateObjectGroupResponse{
+		objectgroupResponse := &v1storageservices.CreateObjectGroupResponse{
 			ObjectGroupId:   objectgroup.ID.String(),
 			ObjectGroupName: objectgroup.Name,
-			ObjectLinks:     make([]*services.CreateObjectGroupResponse_ObjectLinks, 0),
+			ObjectLinks:     make([]*v1storageservices.CreateObjectGroupResponse_ObjectLinks, 0),
 		}
 		if requests.IncludeObjectLink {
 			for _, object := range objectgroup.Objects {
@@ -148,7 +149,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 					return nil, err
 				}
 
-				objectgroupResponse.ObjectLinks = append(objectgroupResponse.ObjectLinks, &services.CreateObjectGroupResponse_ObjectLinks{
+				objectgroupResponse.ObjectLinks = append(objectgroupResponse.ObjectLinks, &v1storageservices.CreateObjectGroupResponse_ObjectLinks{
 					Filename: object.Filename,
 					Link:     link,
 				})
@@ -157,16 +158,16 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 		objectgroupResponseList = append(objectgroupResponseList, objectgroupResponse)
 	}
 
-	response := &services.CreateObjectGroupBatchResponse{
+	response := &v1storageservices.CreateObjectGroupBatchResponse{
 		Responses: objectgroupResponseList,
 	}
 
 	for _, createdObjectGroup := range objectgroupResponseList {
-		err = endpoint.EventStreamMgmt.PublishMessage(&services.EventNotificationMessage{
-			Resource:    protoModels.Resource_OBJECT_GROUP_RESOURCE,
+		err = endpoint.EventStreamMgmt.PublishMessage(&v1notficationservices.EventNotificationMessage{
+			Resource:    v1storagemodels.Resource_RESOURCE_OBJECT_GROUP,
 			ResourceId:  createdObjectGroup.GetObjectGroupId(),
-			UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
-		}, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
+			UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
+		}, v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
 
 		if err != nil {
 			log.Println(err.Error())
@@ -178,7 +179,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 }
 
 //GetObjectGroup Returns the object group with the given ID
-func (endpoint *ObjectServerEndpoints) GetObjectGroup(ctx context.Context, request *services.GetObjectGroupRequest) (*services.GetObjectGroupResponse, error) {
+func (endpoint *ObjectServerEndpoints) GetObjectGroup(ctx context.Context, request *v1storageservices.GetObjectGroupRequest) (*v1storageservices.GetObjectGroupResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -195,7 +196,7 @@ func (endpoint *ObjectServerEndpoints) GetObjectGroup(ctx context.Context, reque
 
 	err = endpoint.AuthzHandler.Authorize(
 		objectGroup.ProjectID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -203,7 +204,7 @@ func (endpoint *ObjectServerEndpoints) GetObjectGroup(ctx context.Context, reque
 	}
 
 	protoObjectGroup := objectGroup.ToProtoModel()
-	response := services.GetObjectGroupResponse{
+	response := v1storageservices.GetObjectGroupResponse{
 		ObjectGroup: protoObjectGroup,
 	}
 
@@ -211,7 +212,7 @@ func (endpoint *ObjectServerEndpoints) GetObjectGroup(ctx context.Context, reque
 }
 
 //FinishObjectUpload Finishes the upload process for an object
-func (endpoint *ObjectServerEndpoints) FinishObjectUpload(ctx context.Context, request *services.FinishObjectUploadRequest) (*services.FinishObjectUploadResponse, error) {
+func (endpoint *ObjectServerEndpoints) FinishObjectUpload(ctx context.Context, request *v1storageservices.FinishObjectUploadRequest) (*v1storageservices.FinishObjectUploadResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -228,19 +229,19 @@ func (endpoint *ObjectServerEndpoints) FinishObjectUpload(ctx context.Context, r
 
 	err = endpoint.AuthzHandler.Authorize(
 		object.ProjectID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
 
-	finished := &services.FinishObjectUploadResponse{}
+	finished := &v1storageservices.FinishObjectUploadResponse{}
 
 	return finished, nil
 }
 
-func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, request *services.DeleteObjectGroupRequest) (*services.DeleteObjectGroupResponse, error) {
+func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, request *v1storageservices.DeleteObjectGroupRequest) (*v1storageservices.DeleteObjectGroupResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -257,7 +258,7 @@ func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, re
 
 	err = endpoint.AuthzHandler.Authorize(
 		objectGroup.ProjectID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -278,11 +279,11 @@ func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, re
 		}
 	}
 
-	err = endpoint.EventStreamMgmt.PublishMessage(&services.EventNotificationMessage{
-		Resource:    protoModels.Resource_OBJECT_GROUP_RESOURCE,
+	err = endpoint.EventStreamMgmt.PublishMessage(&v1notficationservices.EventNotificationMessage{
+		Resource:    v1storagemodels.Resource_RESOURCE_OBJECT_GROUP,
 		ResourceId:  request.GetId(),
-		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_DELETED,
-	}, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
+		UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_DELETED,
+	}, v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
 
 	if err != nil {
 		log.Println(err.Error())
@@ -295,5 +296,5 @@ func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, re
 		return nil, err
 	}
 
-	return &services.DeleteObjectGroupResponse{}, nil
+	return &v1storageservices.DeleteObjectGroupResponse{}, nil
 }

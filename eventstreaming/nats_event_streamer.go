@@ -15,9 +15,10 @@ import (
 	"github.com/ScienceObjectsDB/CORE-Server/config"
 	"github.com/ScienceObjectsDB/CORE-Server/database"
 	"github.com/ScienceObjectsDB/CORE-Server/models"
-	v1models "github.com/ScienceObjectsDB/go-api/api/models/v1"
-	v1 "github.com/ScienceObjectsDB/go-api/api/services/v1"
 	"github.com/nats-io/nats.go"
+
+	v1notificationservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/notification/services/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 )
 
 const OBJECTGROUPSUBJECTNAME = "objectgroup"
@@ -90,7 +91,7 @@ func (eventStreamManager *NatsEventStreamMgmt) CreateMessageStreamGroupHandler(s
 		return nil, err
 	}
 
-	responseMsgChan := make(chan *v1.NotificationStreamGroupResponse, 3)
+	responseMsgChan := make(chan *v1notificationservices.NotificationStreamGroupResponse, 3)
 
 	streamer := &NatsEventStreamer{
 		ResponseMsgChan: responseMsgChan,
@@ -104,7 +105,7 @@ func (eventStreamManager *NatsEventStreamMgmt) CreateMessageStreamGroupHandler(s
 	return streamer, nil
 }
 
-func (eventStreamManager *NatsEventStreamMgmt) CreateStreamGroup(projectID uuid.UUID, resourceID uuid.UUID, resourceType *v1.CreateEventStreamingGroupRequest_EventResources, includeSubResources bool) (*models.StreamGroup, error) {
+func (eventStreamManager *NatsEventStreamMgmt) CreateStreamGroup(projectID uuid.UUID, resourceID uuid.UUID, resourceType *v1notificationservices.CreateEventStreamingGroupRequest_EventResources, includeSubResources bool) (*models.StreamGroup, error) {
 	targetSubject, err := eventStreamManager.getSubscriptionSubject(resourceID, *resourceType, includeSubResources)
 	if err != nil {
 		log.Errorln(err.Error())
@@ -134,7 +135,7 @@ func (eventStreamManager *NatsEventStreamMgmt) CreateStreamGroup(projectID uuid.
 	return group, err
 }
 
-func (eventStreamManager *NatsEventStreamMgmt) PublishMessage(request *v1.EventNotificationMessage, resource v1.CreateEventStreamingGroupRequest_EventResources) error {
+func (eventStreamManager *NatsEventStreamMgmt) PublishMessage(request *v1notificationservices.EventNotificationMessage, resource v1notificationservices.CreateEventStreamingGroupRequest_EventResources) error {
 	data, err := protojson.Marshal(request)
 	if err != nil {
 		log.Errorln(err.Error())
@@ -168,7 +169,7 @@ func (eventStreamManager *NatsEventStreamMgmt) EnableTestMode() error {
 	return nil
 }
 
-func (eventStreamManager *NatsEventStreamMgmt) getSubscriptionSubject(resourceID uuid.UUID, resourceType v1.CreateEventStreamingGroupRequest_EventResources, useSubResource bool) (string, error) {
+func (eventStreamManager *NatsEventStreamMgmt) getSubscriptionSubject(resourceID uuid.UUID, resourceType v1notificationservices.CreateEventStreamingGroupRequest_EventResources, useSubResource bool) (string, error) {
 	subject := ""
 
 	finalSymbol := DEFAULTSUBJECTSUFFIX
@@ -177,12 +178,12 @@ func (eventStreamManager *NatsEventStreamMgmt) getSubscriptionSubject(resourceID
 	}
 
 	switch resourceType {
-	case v1.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE:
+	case v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE:
 		{
 			subject = fmt.Sprintf("%v.%v.%v", eventStreamManager.SubjectPrefix, resourceID.String(), finalSymbol)
 		}
 
-	case v1.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE:
+	case v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE:
 		{
 			dataset, err := eventStreamManager.DatabaseRead.GetDataset(resourceID)
 			if err != nil {
@@ -194,7 +195,7 @@ func (eventStreamManager *NatsEventStreamMgmt) getSubscriptionSubject(resourceID
 
 		}
 
-	case v1.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_VERSION_RESOURCE:
+	case v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_VERSION_RESOURCE:
 		{
 			datasetVersion, err := eventStreamManager.DatabaseRead.GetDatasetVersion(resourceID)
 			if err != nil {
@@ -205,7 +206,7 @@ func (eventStreamManager *NatsEventStreamMgmt) getSubscriptionSubject(resourceID
 			subject = fmt.Sprintf("%v.%v.%v.%v.%v.%v", eventStreamManager.SubjectPrefix, datasetVersion.ProjectID.String(), datasetVersion.DatasetID.String(), DATASETVERSIONSUBJECTNAME, datasetVersion.ID.String(), finalSymbol)
 		}
 
-	case v1.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE:
+	case v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE:
 		{
 			objectGroup, err := eventStreamManager.DatabaseRead.GetObjectGroup(resourceID)
 			if err != nil {
@@ -225,7 +226,7 @@ func (eventStreamManager *NatsEventStreamMgmt) getSubscriptionSubject(resourceID
 	return subject, nil
 }
 
-func (eventStreamManager *NatsEventStreamMgmt) getPublishSubject(request *v1.EventNotificationMessage) (string, error) {
+func (eventStreamManager *NatsEventStreamMgmt) getPublishSubject(request *v1notificationservices.EventNotificationMessage) (string, error) {
 	idAsUUID, err := uuid.Parse(request.ResourceId)
 	if err != nil {
 		log.Errorln(err.Error())
@@ -233,12 +234,12 @@ func (eventStreamManager *NatsEventStreamMgmt) getPublishSubject(request *v1.Eve
 	}
 
 	switch request.Resource {
-	case v1models.Resource_PROJECT_RESOURCE:
+	case v1storagemodels.Resource_RESOURCE_PROJECT:
 		{
 			subject := fmt.Sprintf("%v.%v._", eventStreamManager.SubjectPrefix, request.ResourceId)
 			return subject, nil
 		}
-	case v1models.Resource_DATASET_RESOURCE:
+	case v1storagemodels.Resource_RESOURCE_DATASET:
 		{
 			dataset, err := eventStreamManager.DatabaseRead.GetDataset(idAsUUID)
 			if err != nil {
@@ -251,7 +252,7 @@ func (eventStreamManager *NatsEventStreamMgmt) getPublishSubject(request *v1.Eve
 			return subject, nil
 		}
 
-	case v1models.Resource_OBJECT_GROUP_RESOURCE:
+	case v1storagemodels.Resource_RESOURCE_OBJECT_GROUP:
 		{
 			objectgroup, err := eventStreamManager.DatabaseRead.GetObjectGroup(idAsUUID)
 			if err != nil {
@@ -263,7 +264,7 @@ func (eventStreamManager *NatsEventStreamMgmt) getPublishSubject(request *v1.Eve
 
 			return subject, nil
 		}
-	case v1models.Resource_DATASET_VERSION_RESOURCE:
+	case v1storagemodels.Resource_RESOURCE_DATASET_VERSION:
 		{
 			datasetVersion, err := eventStreamManager.DatabaseRead.GetDatasetVersion(idAsUUID)
 			if err != nil {
@@ -286,7 +287,7 @@ func (eventStreamManager *NatsEventStreamMgmt) getPublishSubject(request *v1.Eve
 
 type NatsEventStreamer struct {
 	Subscription    *nats.Subscription
-	ResponseMsgChan chan *v1.NotificationStreamGroupResponse
+	ResponseMsgChan chan *v1notificationservices.NotificationStreamGroupResponse
 	MsgMap          map[string][]*nats.Msg
 	MsgMapMutex     *sync.Mutex
 	MaxPendingAck   chan bool
@@ -294,13 +295,13 @@ type NatsEventStreamer struct {
 	ID              string
 }
 
-func (streamer *NatsEventStreamer) GetResponseMessageChan() chan *v1.NotificationStreamGroupResponse {
+func (streamer *NatsEventStreamer) GetResponseMessageChan() chan *v1notificationservices.NotificationStreamGroupResponse {
 	return streamer.ResponseMsgChan
 }
 
 func (streamer *NatsEventStreamer) StartStream() error {
 	for {
-		var responseChunk []*v1.NotificationStreamResponse
+		var responseChunk []*v1notificationservices.NotificationStreamResponse
 
 		select {
 		case <-streamer.Close:
@@ -318,7 +319,7 @@ func (streamer *NatsEventStreamer) StartStream() error {
 		}
 
 		for _, msg := range chunk {
-			notificationMsg := &v1.EventNotificationMessage{}
+			notificationMsg := &v1notificationservices.EventNotificationMessage{}
 
 			err := protojson.Unmarshal(msg.Data, notificationMsg)
 			if err != nil {
@@ -332,7 +333,7 @@ func (streamer *NatsEventStreamer) StartStream() error {
 				return err
 			}
 
-			responseMsg := &v1.NotificationStreamResponse{
+			responseMsg := &v1notificationservices.NotificationStreamResponse{
 				Message:   notificationMsg,
 				Sequence:  metadata.Sequence.Stream,
 				Timestamp: timestamppb.Now(),
@@ -343,7 +344,7 @@ func (streamer *NatsEventStreamer) StartStream() error {
 
 		ackUUID := uuid.New()
 
-		response := &v1.NotificationStreamGroupResponse{
+		response := &v1notificationservices.NotificationStreamGroupResponse{
 			Notification: responseChunk,
 			AckChunkId:   ackUUID.String(),
 		}

@@ -9,11 +9,13 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/ScienceObjectsDB/CORE-Server/models"
-	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 )
 
 type LoadEndpoints struct {
@@ -29,7 +31,7 @@ func NewLoadEndpoints(endpoints *Endpoints) (*LoadEndpoints, error) {
 	return loadEndpoint, nil
 }
 
-func (endpoint *LoadEndpoints) CreateUploadLink(ctx context.Context, request *services.CreateUploadLinkRequest) (*services.CreateUploadLinkResponse, error) {
+func (endpoint *LoadEndpoints) CreateUploadLink(ctx context.Context, request *v1storageservices.CreateUploadLinkRequest) (*v1storageservices.CreateUploadLinkResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -46,7 +48,7 @@ func (endpoint *LoadEndpoints) CreateUploadLink(ctx context.Context, request *se
 
 	err = endpoint.AuthzHandler.Authorize(
 		object.ProjectID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -59,14 +61,14 @@ func (endpoint *LoadEndpoints) CreateUploadLink(ctx context.Context, request *se
 		return nil, err
 	}
 
-	response := services.CreateUploadLinkResponse{
+	response := v1storageservices.CreateUploadLinkResponse{
 		UploadLink: uploadLink,
 	}
 
 	return &response, nil
 }
 
-func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *services.CreateDownloadLinkRequest) (*services.CreateDownloadLinkResponse, error) {
+func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *v1storageservices.CreateDownloadLinkRequest) (*v1storageservices.CreateDownloadLinkResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -83,7 +85,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *
 
 	err = endpoint.AuthzHandler.Authorize(
 		object.ProjectID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -96,7 +98,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *
 		return nil, err
 	}
 
-	response := services.CreateDownloadLinkResponse{
+	response := v1storageservices.CreateDownloadLinkResponse{
 		DownloadLink: downloadLink,
 		Object:       object.ToProtoModel(),
 	}
@@ -104,9 +106,9 @@ func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *
 	return &response, nil
 }
 
-func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, request *services.CreateDownloadLinkBatchRequest) (*services.CreateDownloadLinkBatchResponse, error) {
+func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, request *v1storageservices.CreateDownloadLinkBatchRequest) (*v1storageservices.CreateDownloadLinkBatchResponse, error) {
 	metadata, _ := metadata.FromIncomingContext(ctx)
-	dlLinks := make([]*services.CreateDownloadLinkResponse, len(request.GetRequests()))
+	dlLinks := make([]*v1storageservices.CreateDownloadLinkResponse, len(request.GetRequests()))
 	projectIDs := make(map[uuid.UUID]interface{})
 	objectIDs := make([]uuid.UUID, len(request.GetRequests()))
 	for i, request := range request.GetRequests() {
@@ -130,7 +132,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, requ
 	}
 
 	for projectID := range projectIDs {
-		err := endpoint.AuthzHandler.Authorize(projectID, protoModels.Right_READ, metadata)
+		err := endpoint.AuthzHandler.Authorize(projectID, v1storagemodels.Right_RIGHT_READ, metadata)
 		if err != nil {
 			log.Println(err.Error())
 			return nil, err
@@ -144,24 +146,24 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, requ
 			return nil, err
 		}
 
-		dlLinks[i] = &services.CreateDownloadLinkResponse{
+		dlLinks[i] = &v1storageservices.CreateDownloadLinkResponse{
 			DownloadLink: link,
 			Object:       object.ToProtoModel(),
 		}
 	}
 
-	response := &services.CreateDownloadLinkBatchResponse{
+	response := &v1storageservices.CreateDownloadLinkBatchResponse{
 		Links: dlLinks,
 	}
 
 	return response, nil
 }
 
-func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.CreateDownloadLinkStreamRequest, responseStream services.ObjectLoadService_CreateDownloadLinkStreamServer) error {
+func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *v1storageservices.CreateDownloadLinkStreamRequest, responseStream v1storageservices.ObjectLoadService_CreateDownloadLinkStreamServer) error {
 	var projectID uuid.UUID
 
 	switch value := request.Query.(type) {
-	case *services.CreateDownloadLinkStreamRequest_Dataset:
+	case *v1storageservices.CreateDownloadLinkStreamRequest_Dataset:
 		{
 			datasetId, err := uuid.Parse(value.Dataset.GetDatasetId())
 			if err != nil {
@@ -176,7 +178,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 
 			projectID = dataset.ProjectID
 		}
-	case *services.CreateDownloadLinkStreamRequest_DatasetVersion:
+	case *v1storageservices.CreateDownloadLinkStreamRequest_DatasetVersion:
 		{
 			datasetVersionID, err := uuid.Parse(value.DatasetVersion.GetDatasetVersionId())
 			if err != nil {
@@ -191,7 +193,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 
 			projectID = dataset.ProjectID
 		}
-	case *services.CreateDownloadLinkStreamRequest_DateRange:
+	case *v1storageservices.CreateDownloadLinkStreamRequest_DateRange:
 		{
 			datasetID, err := uuid.Parse(value.DateRange.GetDatasetId())
 			if err != nil {
@@ -215,7 +217,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 
 	err := endpoint.AuthzHandler.Authorize(
 		projectID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -226,7 +228,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 	objectGroupsChan := make(chan []*models.ObjectGroup, 5)
 
 	switch value := request.Query.(type) {
-	case *services.CreateDownloadLinkStreamRequest_Dataset:
+	case *v1storageservices.CreateDownloadLinkStreamRequest_Dataset:
 		{
 			readerErrGrp.Go(func() error {
 				defer close(objectGroupsChan)
@@ -241,7 +243,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 			})
 
 		}
-	case *services.CreateDownloadLinkStreamRequest_DateRange:
+	case *v1storageservices.CreateDownloadLinkStreamRequest_DateRange:
 		{
 			readerErrGrp.Go(func() error {
 				defer close(objectGroupsChan)
@@ -259,26 +261,26 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 	}
 
 	for objectGroupBatch := range objectGroupsChan {
-		objectGroups := make([]*protoModels.ObjectGroup, len(objectGroupBatch))
-		links := make([]*services.InnerLinksResponse, len(objectGroupBatch))
+		objectGroups := make([]*v1storagemodels.ObjectGroup, len(objectGroupBatch))
+		links := make([]*v1storageservices.InnerLinksResponse, len(objectGroupBatch))
 		for i, objectGroup := range objectGroupBatch {
 			objectGroups = append(objectGroups, objectGroup.ToProtoModel())
 			objectLinks := make([]string, len(objectGroup.Objects))
 			for j, object := range objectGroup.Objects {
-				link, err := endpoint.ObjectHandler.CreateDownloadLink(&object, &services.CreateDownloadLinkRequest{})
+				link, err := endpoint.ObjectHandler.CreateDownloadLink(&object, &v1storageservices.CreateDownloadLinkRequest{})
 				if err != nil {
 					log.Println(err.Error())
 					return err
 				}
 				objectLinks[j] = link
 			}
-			links[i] = &services.InnerLinksResponse{
+			links[i] = &v1storageservices.InnerLinksResponse{
 				ObjectLinks: objectLinks,
 			}
 		}
 
-		batchResponse := &services.CreateDownloadLinkStreamResponse{
-			Links: &services.LinksResponse{
+		batchResponse := &v1storageservices.CreateDownloadLinkStreamResponse{
+			Links: &v1storageservices.LinksResponse{
 				ObjectGroups:     objectGroups,
 				ObjectGroupLinks: links,
 			},
@@ -294,7 +296,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *services.Create
 	return nil
 }
 
-func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request *services.StartMultipartUploadRequest) (*services.StartMultipartUploadResponse, error) {
+func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request *v1storageservices.StartMultipartUploadRequest) (*v1storageservices.StartMultipartUploadResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -311,7 +313,7 @@ func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request
 
 	err = endpoint.AuthzHandler.Authorize(
 		object.ProjectID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -331,14 +333,14 @@ func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request
 	}
 	object.UploadID = uploadID
 
-	response := &services.StartMultipartUploadResponse{
+	response := &v1storageservices.StartMultipartUploadResponse{
 		Object: object.ToProtoModel(),
 	}
 
 	return response, nil
 }
 
-func (endpoint *LoadEndpoints) GetMultipartUploadLink(ctx context.Context, request *services.GetMultipartUploadLinkRequest) (*services.GetMultipartUploadLinkResponse, error) {
+func (endpoint *LoadEndpoints) GetMultipartUploadLink(ctx context.Context, request *v1storageservices.GetMultipartUploadLinkRequest) (*v1storageservices.GetMultipartUploadLinkResponse, error) {
 	objectID, err := uuid.Parse(request.GetObjectId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -355,7 +357,7 @@ func (endpoint *LoadEndpoints) GetMultipartUploadLink(ctx context.Context, reque
 
 	err = endpoint.AuthzHandler.Authorize(
 		object.ProjectID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -368,14 +370,14 @@ func (endpoint *LoadEndpoints) GetMultipartUploadLink(ctx context.Context, reque
 		return nil, err
 	}
 
-	response := &services.GetMultipartUploadLinkResponse{
+	response := &v1storageservices.GetMultipartUploadLinkResponse{
 		UploadLink: link,
 	}
 
 	return response, nil
 }
 
-func (endpoint *LoadEndpoints) CompleteMultipartUpload(ctx context.Context, request *services.CompleteMultipartUploadRequest) (*services.CompleteMultipartUploadResponse, error) {
+func (endpoint *LoadEndpoints) CompleteMultipartUpload(ctx context.Context, request *v1storageservices.CompleteMultipartUploadRequest) (*v1storageservices.CompleteMultipartUploadResponse, error) {
 	objectID, err := uuid.Parse(request.GetObjectId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -392,7 +394,7 @@ func (endpoint *LoadEndpoints) CompleteMultipartUpload(ctx context.Context, requ
 
 	err = endpoint.AuthzHandler.Authorize(
 		object.ProjectID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -413,7 +415,7 @@ func (endpoint *LoadEndpoints) CompleteMultipartUpload(ctx context.Context, requ
 		return nil, err
 	}
 
-	response := &services.CompleteMultipartUploadResponse{}
+	response := &v1storageservices.CompleteMultipartUploadResponse{}
 
 	return response, nil
 }

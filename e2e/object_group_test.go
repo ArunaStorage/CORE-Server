@@ -11,18 +11,18 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	v1 "github.com/ScienceObjectsDB/go-api/api/models/v1"
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestObjectGroup(t *testing.T) {
-	createProjectRequest := &services.CreateProjectRequest{
+	createProjectRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "testproject_dataset",
 		Description: "test",
-		Metadata: []*v1.Metadata{
+		Metadata: []*v1storagemodels.Metadata{
 			{
 				Key:      "TestKey1",
 				Metadata: []byte("mymetadata1"),
@@ -39,7 +39,7 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	datasetMetadata := []*v1.Metadata{
+	datasetMetadata := []*v1storagemodels.Metadata{
 		{
 			Key:      "Key1",
 			Metadata: []byte("dasddasd"),
@@ -50,7 +50,7 @@ func TestObjectGroup(t *testing.T) {
 		},
 	}
 
-	datasetLabel := []*v1.Label{
+	datasetLabel := []*v1storagemodels.Label{
 		{
 			Key:   "Label1",
 			Value: "LabelValue1",
@@ -61,7 +61,7 @@ func TestObjectGroup(t *testing.T) {
 		},
 	}
 
-	createDatasetRequest := &services.CreateDatasetRequest{
+	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
 		Name:      "testdataset",
 		ProjectId: createResponse.GetId(),
 		Metadata:  datasetMetadata,
@@ -73,7 +73,7 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	objectGroupMetadata := []*v1.Metadata{
+	objectGroupMetadata := []*v1storagemodels.Metadata{
 		{
 			Key:      "Key1OG",
 			Metadata: []byte("dasddasdOG"),
@@ -84,7 +84,7 @@ func TestObjectGroup(t *testing.T) {
 		},
 	}
 
-	objectGroupLabel := []*v1.Label{
+	objectGroupLabel := []*v1storagemodels.Label{
 		{
 			Key:   "Label1OG",
 			Value: "LabelValue1OG",
@@ -95,7 +95,7 @@ func TestObjectGroup(t *testing.T) {
 		},
 	}
 
-	object1Metadata := []*v1.Metadata{
+	object1Metadata := []*v1storagemodels.Metadata{
 		{
 			Key:      "Key1O1",
 			Metadata: []byte("dasddasdO1"),
@@ -106,7 +106,7 @@ func TestObjectGroup(t *testing.T) {
 		},
 	}
 
-	object1Label := []*v1.Label{
+	object1Label := []*v1storagemodels.Label{
 		{
 			Key:   "Label1O1",
 			Value: "LabelValue1O1",
@@ -117,7 +117,7 @@ func TestObjectGroup(t *testing.T) {
 		},
 	}
 
-	object2Metadata := []*v1.Metadata{
+	object2Metadata := []*v1storagemodels.Metadata{
 		{
 			Key:      "Key1O2",
 			Metadata: []byte("dasddasdO2"),
@@ -128,7 +128,7 @@ func TestObjectGroup(t *testing.T) {
 		},
 	}
 
-	object2Label := []*v1.Label{
+	object2Label := []*v1storagemodels.Label{
 		{
 			Key:   "Label1O2",
 			Value: "LabelValue1O2",
@@ -141,12 +141,12 @@ func TestObjectGroup(t *testing.T) {
 
 	name := fmt.Sprintf("objectgroup-%v", uuid.New())
 
-	createObjectGroupRequest := &services.CreateObjectGroupRequest{
+	createObjectGroupRequest := &v1storageservices.CreateObjectGroupRequest{
 		Name:      name,
 		DatasetId: datasetCreateResponse.GetId(),
 		Labels:    objectGroupLabel,
 		Metadata:  objectGroupMetadata,
-		Objects: []*services.CreateObjectRequest{
+		Objects: []*v1storageservices.CreateObjectRequest{
 			{
 				Filename:   "testfile1",
 				Filetype:   "bin",
@@ -171,7 +171,7 @@ func TestObjectGroup(t *testing.T) {
 
 	assert.NotEqual(t, createObjectGroupResponse.ObjectGroupId, 0)
 
-	getObjectGroupResponse, err := ServerEndpoints.object.GetObjectGroup(context.Background(), &services.GetObjectGroupRequest{
+	getObjectGroupResponse, err := ServerEndpoints.object.GetObjectGroup(context.Background(), &v1storageservices.GetObjectGroupRequest{
 		Id: createObjectGroupResponse.ObjectGroupId,
 	})
 	if err != nil {
@@ -188,7 +188,7 @@ func TestObjectGroup(t *testing.T) {
 
 	object := getObjectGroupResponse.ObjectGroup.Objects[0]
 
-	uploadLink, err := ServerEndpoints.load.CreateUploadLink(context.Background(), &services.CreateUploadLinkRequest{
+	uploadLink, err := ServerEndpoints.load.CreateUploadLink(context.Background(), &v1storageservices.CreateUploadLinkRequest{
 		Id: object.GetId(),
 	})
 	if err != nil {
@@ -209,7 +209,7 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(response.Status)
 	}
 
-	downloadLink, err := ServerEndpoints.load.CreateDownloadLink(context.Background(), &services.CreateDownloadLinkRequest{
+	downloadLink, err := ServerEndpoints.load.CreateDownloadLink(context.Background(), &v1storageservices.CreateDownloadLinkRequest{
 		Id: object.GetId(),
 	})
 	if err != nil {
@@ -232,9 +232,9 @@ func TestObjectGroup(t *testing.T) {
 
 	assert.Equal(t, string(data), "foo")
 
-	downloadLinkRange, err := ServerEndpoints.load.CreateDownloadLink(context.Background(), &services.CreateDownloadLinkRequest{
+	downloadLinkRange, err := ServerEndpoints.load.CreateDownloadLink(context.Background(), &v1storageservices.CreateDownloadLinkRequest{
 		Id: object.GetId(),
-		Range: &services.CreateDownloadLinkRequest_Range{
+		Range: &v1storageservices.CreateDownloadLinkRequest_Range{
 			StartByte: 0,
 			EndByte:   1,
 		},
@@ -269,14 +269,14 @@ func TestObjectGroup(t *testing.T) {
 }
 
 func TestObjectGroupBatch(t *testing.T) {
-	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &services.CreateProjectRequest{
+	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &v1storageservices.CreateProjectRequest{
 		Name: "foo",
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	datasetID, err := ServerEndpoints.dataset.CreateDataset(context.Background(), &services.CreateDatasetRequest{
+	datasetID, err := ServerEndpoints.dataset.CreateDataset(context.Background(), &v1storageservices.CreateDatasetRequest{
 		Name:      "foo",
 		ProjectId: projectID.GetId(),
 	})
@@ -284,13 +284,13 @@ func TestObjectGroupBatch(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	var requests []*services.CreateObjectGroupRequest
+	var requests []*v1storageservices.CreateObjectGroupRequest
 
 	for i := 0; i < 10; i++ {
-		createObjectGroupRequest := &services.CreateObjectGroupRequest{
+		createObjectGroupRequest := &v1storageservices.CreateObjectGroupRequest{
 			Name:      fmt.Sprintf("foo-%v", i),
 			DatasetId: datasetID.GetId(),
-			Objects: []*services.CreateObjectRequest{
+			Objects: []*v1storageservices.CreateObjectRequest{
 				{
 					Filename: "ff.bin",
 				},
@@ -302,7 +302,7 @@ func TestObjectGroupBatch(t *testing.T) {
 		requests = append(requests, createObjectGroupRequest)
 	}
 
-	result, err := ServerEndpoints.object.CreateObjectGroupBatch(context.Background(), &services.CreateObjectGroupBatchRequest{
+	result, err := ServerEndpoints.object.CreateObjectGroupBatch(context.Background(), &v1storageservices.CreateObjectGroupBatchRequest{
 		Requests:          requests,
 		IncludeObjectLink: true,
 	})
@@ -337,14 +337,14 @@ func TestObjectGroupBatch(t *testing.T) {
 }
 
 func TestObjectGroupsDates(t *testing.T) {
-	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &services.CreateProjectRequest{
+	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &v1storageservices.CreateProjectRequest{
 		Name: "foo",
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	datasetID, err := ServerEndpoints.dataset.CreateDataset(context.Background(), &services.CreateDatasetRequest{
+	datasetID, err := ServerEndpoints.dataset.CreateDataset(context.Background(), &v1storageservices.CreateDatasetRequest{
 		Name:      "foo",
 		ProjectId: projectID.GetId(),
 	})
@@ -352,13 +352,13 @@ func TestObjectGroupsDates(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	objectGroupTooEarly1 := services.CreateObjectGroupRequest{
+	objectGroupTooEarly1 := v1storageservices.CreateObjectGroupRequest{
 		Name:      "early1",
 		DatasetId: datasetID.GetId(),
 		Generated: timestamppb.New(time.Date(1990, time.July, 27, 0, 0, 0, 0, time.Local)),
 	}
 
-	project, err := ServerEndpoints.project.GetProject(context.Background(), &services.GetProjectRequest{
+	project, err := ServerEndpoints.project.GetProject(context.Background(), &v1storageservices.GetProjectRequest{
 		Id: projectID.GetId(),
 	})
 	if err != nil {
@@ -370,7 +370,7 @@ func TestObjectGroupsDates(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	objectGroupTooEarly2 := services.CreateObjectGroupRequest{
+	objectGroupTooEarly2 := v1storageservices.CreateObjectGroupRequest{
 		Name:      "early2",
 		DatasetId: datasetID.GetId(),
 		Generated: timestamppb.New(time.Date(1992, time.July, 27, 0, 0, 0, 0, time.Local)),
@@ -381,7 +381,7 @@ func TestObjectGroupsDates(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	objectGroupInTime1 := services.CreateObjectGroupRequest{
+	objectGroupInTime1 := v1storageservices.CreateObjectGroupRequest{
 		Name:      "intime1",
 		DatasetId: datasetID.GetId(),
 		Generated: timestamppb.New(time.Date(2000, time.July, 27, 0, 0, 0, 0, time.Local)),
@@ -392,7 +392,7 @@ func TestObjectGroupsDates(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	objectGroupInTime2 := services.CreateObjectGroupRequest{
+	objectGroupInTime2 := v1storageservices.CreateObjectGroupRequest{
 		Name:      "intime2",
 		DatasetId: datasetID.GetId(),
 		Generated: timestamppb.New(time.Date(2000, time.December, 27, 0, 0, 0, 0, time.Local)),
@@ -403,7 +403,7 @@ func TestObjectGroupsDates(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	objectGroupTooLate1 := services.CreateObjectGroupRequest{
+	objectGroupTooLate1 := v1storageservices.CreateObjectGroupRequest{
 		Name:      "late1",
 		DatasetId: datasetID.GetId(),
 		Generated: timestamppb.Now(),
@@ -414,7 +414,7 @@ func TestObjectGroupsDates(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	objectGroupTooLate2 := services.CreateObjectGroupRequest{
+	objectGroupTooLate2 := v1storageservices.CreateObjectGroupRequest{
 		Name:      "late2",
 		DatasetId: datasetID.GetId(),
 		Generated: timestamppb.Now(),

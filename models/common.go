@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	protomodels "github.com/ScienceObjectsDB/go-api/api/models/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -29,14 +29,14 @@ type Metadata struct {
 	ParentID uuid.UUID `gorm:"index"`
 }
 
-func (metadata *Metadata) ToProtoModel() *protomodels.Metadata {
-	return &protomodels.Metadata{
+func (metadata *Metadata) ToProtoModel() *v1storagemodels.Metadata {
+	return &v1storagemodels.Metadata{
 		Key:      metadata.Name,
 		Metadata: []byte(metadata.Metadata),
 	}
 }
 
-func (metadata *Metadata) FromProtoModel(metadataProto *protomodels.Metadata) *Metadata {
+func (metadata *Metadata) FromProtoModel(metadataProto *v1storagemodels.Metadata) *Metadata {
 	metadata.Metadata = string(metadataProto.Metadata)
 	metadata.Name = metadataProto.Key
 
@@ -50,14 +50,14 @@ type Label struct {
 	ParentID uuid.UUID `gorm:"index"`
 }
 
-func (label *Label) ToProtoModel() *protomodels.Label {
-	return &protomodels.Label{
+func (label *Label) ToProtoModel() *v1storagemodels.Label {
+	return &v1storagemodels.Label{
 		Key:   label.Key,
 		Value: label.Value,
 	}
 }
 
-func (label *Label) FromProtoModel(labelProto *protomodels.Label) *Label {
+func (label *Label) FromProtoModel(labelProto *v1storagemodels.Label) *Label {
 	label.Key = labelProto.Key
 	label.Value = labelProto.Value
 
@@ -72,10 +72,10 @@ type Location struct {
 	Key      string
 }
 
-func (location *Location) toProtoModel() *protomodels.Location {
-	return &protomodels.Location{
-		Location: &protomodels.Location_ObjectLocation{
-			ObjectLocation: &protomodels.ObjectLocation{
+func (location *Location) toProtoModel() *v1storagemodels.Location {
+	return &v1storagemodels.Location{
+		Location: &v1storagemodels.Location_ObjectLocation{
+			ObjectLocation: &v1storagemodels.ObjectLocation{
 				Bucket: location.Bucket,
 				Key:    location.Key,
 				Url:    location.Endpoint,

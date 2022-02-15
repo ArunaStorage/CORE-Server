@@ -1,7 +1,7 @@
 package authz
 
 import (
-	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/metadata"
 )
@@ -13,7 +13,7 @@ func (projectHandler *TestHandler) GetUserID(metadata metadata.MD) (uuid.UUID, e
 	return uuid.UUID{}, nil
 }
 
-func (projectHandler *TestHandler) Authorize(projectID uuid.UUID, requestedRight protoModels.Right, metadata metadata.MD) error {
+func (projectHandler *TestHandler) Authorize(projectID uuid.UUID, requestedRight v1storagemodels.Right, metadata metadata.MD) error {
 	return nil
 }
 

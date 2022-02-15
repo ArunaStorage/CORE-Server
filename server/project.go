@@ -6,8 +6,9 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	protoModels "github.com/ScienceObjectsDB/go-api/api/models/v1"
-	services "github.com/ScienceObjectsDB/go-api/api/services/v1"
+	v1notficationservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/notification/services/v1"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
+	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -28,7 +29,7 @@ func NewProjectEndpoints(endpoints *Endpoints) (*ProjectEndpoints, error) {
 }
 
 //CreateProject creates a new projects
-func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *services.CreateProjectRequest) (*services.CreateProjectResponse, error) {
+func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *v1storageservices.CreateProjectRequest) (*v1storageservices.CreateProjectResponse, error) {
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	if err := endpoint.AuthzHandler.AuthorizeCreateProject(metadata); err != nil {
@@ -48,15 +49,15 @@ func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *se
 		return nil, err
 	}
 
-	response := &services.CreateProjectResponse{
+	response := &v1storageservices.CreateProjectResponse{
 		Id: projectID,
 	}
 
-	err = endpoint.EventStreamMgmt.PublishMessage(&services.EventNotificationMessage{
-		Resource:    protoModels.Resource_PROJECT_RESOURCE,
+	err = endpoint.EventStreamMgmt.PublishMessage(&v1notficationservices.EventNotificationMessage{
+		Resource:    v1storagemodels.Resource(v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE),
 		ResourceId:  projectID,
-		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_CREATED,
-	}, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
+		UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
+	}, v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -67,7 +68,7 @@ func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *se
 }
 
 //AddUserToProject Adds a new user to a given project
-func (endpoint *ProjectEndpoints) AddUserToProject(ctx context.Context, request *services.AddUserToProjectRequest) (*services.AddUserToProjectResponse, error) {
+func (endpoint *ProjectEndpoints) AddUserToProject(ctx context.Context, request *v1storageservices.AddUserToProjectRequest) (*v1storageservices.AddUserToProjectResponse, error) {
 	projectID, err := uuid.Parse(request.GetProjectId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -78,7 +79,7 @@ func (endpoint *ProjectEndpoints) AddUserToProject(ctx context.Context, request 
 
 	err = endpoint.AuthzHandler.Authorize(
 		projectID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -91,12 +92,12 @@ func (endpoint *ProjectEndpoints) AddUserToProject(ctx context.Context, request 
 		return nil, err
 	}
 
-	response := &services.AddUserToProjectResponse{}
+	response := &v1storageservices.AddUserToProjectResponse{}
 
 	return response, nil
 }
 
-func (endpoint *ProjectEndpoints) CreateAPIToken(ctx context.Context, request *services.CreateAPITokenRequest) (*services.CreateAPITokenResponse, error) {
+func (endpoint *ProjectEndpoints) CreateAPIToken(ctx context.Context, request *v1storageservices.CreateAPITokenRequest) (*v1storageservices.CreateAPITokenResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -107,7 +108,7 @@ func (endpoint *ProjectEndpoints) CreateAPIToken(ctx context.Context, request *s
 
 	err = endpoint.AuthzHandler.Authorize(
 		requestID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -126,13 +127,13 @@ func (endpoint *ProjectEndpoints) CreateAPIToken(ctx context.Context, request *s
 		return nil, err
 	}
 
-	response := &services.CreateAPITokenResponse{
-		Token: &protoModels.APIToken{
+	response := &v1storageservices.CreateAPITokenResponse{
+		Token: &v1storagemodels.APIToken{
 			Token:     token,
 			ProjectId: request.GetId(),
-			Rights: []protoModels.Right{
-				protoModels.Right_READ,
-				protoModels.Right_WRITE,
+			Rights: []v1storagemodels.Right{
+				v1storagemodels.Right_RIGHT_READ,
+				v1storagemodels.Right_RIGHT_WRITE,
 			},
 		},
 	}
@@ -141,7 +142,7 @@ func (endpoint *ProjectEndpoints) CreateAPIToken(ctx context.Context, request *s
 }
 
 //GetProjectDatasets Returns all datasets that belong to a certain project
-func (endpoint *ProjectEndpoints) GetProjectDatasets(ctx context.Context, request *services.GetProjectDatasetsRequest) (*services.GetProjectDatasetsResponse, error) {
+func (endpoint *ProjectEndpoints) GetProjectDatasets(ctx context.Context, request *v1storageservices.GetProjectDatasetsRequest) (*v1storageservices.GetProjectDatasetsResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -152,7 +153,7 @@ func (endpoint *ProjectEndpoints) GetProjectDatasets(ctx context.Context, reques
 
 	err = endpoint.AuthzHandler.Authorize(
 		requestID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -165,21 +166,21 @@ func (endpoint *ProjectEndpoints) GetProjectDatasets(ctx context.Context, reques
 		return nil, err
 	}
 
-	var protoDatasets []*protoModels.Dataset
+	var protoDatasets []*v1storagemodels.Dataset
 	for _, dataset := range datasets {
 		protoDataset := dataset.ToProtoModel()
 		protoDatasets = append(protoDatasets, &protoDataset)
 	}
 
-	response := &services.GetProjectDatasetsResponse{
-		Dataset: protoDatasets,
+	response := &v1storageservices.GetProjectDatasetsResponse{
+		Datasets: protoDatasets,
 	}
 
 	return response, nil
 }
 
 //GetUserProjects Returns all projects that a specified user has access to
-func (endpoint *ProjectEndpoints) GetUserProjects(ctx context.Context, request *services.GetUserProjectsRequest) (*services.GetUserProjectsResponse, error) {
+func (endpoint *ProjectEndpoints) GetUserProjects(ctx context.Context, request *v1storageservices.GetUserProjectsRequest) (*v1storageservices.GetUserProjectsResponse, error) {
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	userOauth2ID, err := endpoint.AuthzHandler.GetUserID(metadata)
@@ -194,20 +195,20 @@ func (endpoint *ProjectEndpoints) GetUserProjects(ctx context.Context, request *
 		return nil, err
 	}
 
-	var protoProjects []*protoModels.Project
+	var protoProjects []*v1storagemodels.Project
 
 	for _, project := range projects {
 		protoProjects = append(protoProjects, project.ToProtoModel())
 	}
 
-	response := &services.GetUserProjectsResponse{
+	response := &v1storageservices.GetUserProjectsResponse{
 		Projects: protoProjects,
 	}
 
 	return response, nil
 }
 
-func (endpoint *ProjectEndpoints) GetProject(ctx context.Context, request *services.GetProjectRequest) (*services.GetProjectResponse, error) {
+func (endpoint *ProjectEndpoints) GetProject(ctx context.Context, request *v1storageservices.GetProjectRequest) (*v1storageservices.GetProjectResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -218,7 +219,7 @@ func (endpoint *ProjectEndpoints) GetProject(ctx context.Context, request *servi
 
 	err = endpoint.AuthzHandler.Authorize(
 		requestID,
-		protoModels.Right_READ,
+		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -233,14 +234,14 @@ func (endpoint *ProjectEndpoints) GetProject(ctx context.Context, request *servi
 
 	protoProject := project.ToProtoModel()
 
-	response := services.GetProjectResponse{
+	response := v1storageservices.GetProjectResponse{
 		Project: protoProject,
 	}
 
 	return &response, nil
 }
 
-func (endpoint *ProjectEndpoints) GetAPIToken(ctx context.Context, request *services.GetAPITokenRequest) (*services.GetAPITokenResponse, error) {
+func (endpoint *ProjectEndpoints) GetAPIToken(ctx context.Context, request *v1storageservices.GetAPITokenRequest) (*v1storageservices.GetAPITokenResponse, error) {
 	metadata, _ := metadata.FromIncomingContext(ctx)
 	userID, err := endpoint.AuthzHandler.GetUserID(metadata)
 	if err != nil {
@@ -254,13 +255,13 @@ func (endpoint *ProjectEndpoints) GetAPIToken(ctx context.Context, request *serv
 		return nil, err
 	}
 
-	var protoTokens []*protoModels.APIToken
+	var protoTokens []*v1storagemodels.APIToken
 	for _, token := range tokens {
 		protoToken := token.ToProtoModel()
 		protoTokens = append(protoTokens, protoToken)
 	}
 
-	response := &services.GetAPITokenResponse{
+	response := &v1storageservices.GetAPITokenResponse{
 		Token: protoTokens,
 	}
 
@@ -269,7 +270,7 @@ func (endpoint *ProjectEndpoints) GetAPIToken(ctx context.Context, request *serv
 
 //DeleteProject Deletes a specific project
 //Will also delete all associated resources (Datasets/Objects/etc...) both from objects storage and the database
-func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *services.DeleteProjectRequest) (*services.DeleteProjectResponse, error) {
+func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *v1storageservices.DeleteProjectRequest) (*v1storageservices.DeleteProjectResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -280,7 +281,7 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *se
 
 	err = endpoint.AuthzHandler.Authorize(
 		requestID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -299,11 +300,11 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *se
 		return nil, err
 	}
 
-	err = endpoint.EventStreamMgmt.PublishMessage(&services.EventNotificationMessage{
-		Resource:    protoModels.Resource_PROJECT_RESOURCE,
+	err = endpoint.EventStreamMgmt.PublishMessage(&v1notficationservices.EventNotificationMessage{
+		Resource:    v1storagemodels.Resource_RESOURCE_PROJECT,
 		ResourceId:  request.GetId(),
-		UpdatedType: services.EventNotificationMessage_UPDATE_TYPE_DELETED,
-	}, services.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
+		UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_DELETED,
+	}, v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
 
 	if err != nil {
 		log.Println(err.Error())
@@ -316,10 +317,10 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *se
 		return nil, err
 	}
 
-	return &services.DeleteProjectResponse{}, nil
+	return &v1storageservices.DeleteProjectResponse{}, nil
 }
 
-func (endpoint *ProjectEndpoints) DeleteAPIToken(ctx context.Context, request *services.DeleteAPITokenRequest) (*services.DeleteAPITokenResponse, error) {
+func (endpoint *ProjectEndpoints) DeleteAPIToken(ctx context.Context, request *v1storageservices.DeleteAPITokenRequest) (*v1storageservices.DeleteAPITokenResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -330,7 +331,7 @@ func (endpoint *ProjectEndpoints) DeleteAPIToken(ctx context.Context, request *s
 
 	err = endpoint.AuthzHandler.Authorize(
 		requestID,
-		protoModels.Right_WRITE,
+		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
 		log.Println(err.Error())
@@ -343,5 +344,5 @@ func (endpoint *ProjectEndpoints) DeleteAPIToken(ctx context.Context, request *s
 		return nil, err
 	}
 
-	return &services.DeleteAPITokenResponse{}, nil
+	return &v1storageservices.DeleteAPITokenResponse{}, nil
 }
