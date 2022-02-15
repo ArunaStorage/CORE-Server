@@ -160,7 +160,7 @@ func (eventStreamManager *NatsEventStreamMgmt) PublishMessage(request *v1notific
 func (eventStreamManager *NatsEventStreamMgmt) EnableTestMode() error {
 	targetSubject := fmt.Sprintf("%v.>", viper.GetString(config.EVENTNOTIFICATION_NATS_SUBJECTPREFIX))
 
-	_, err := eventStreamManager.JetStreamContext.AddStream(&nats.StreamConfig{Name: viper.GetString(config.EVENTNOTIFICATION_NATS_STREAM_NAME), Subjects: []string{targetSubject}})
+	_, err := eventStreamManager.JetStreamContext.AddStream(&nats.StreamConfig{Name: viper.GetString(config.EVENTNOTIFICATION_NATS_STREAM_NAME), Subjects: []string{targetSubject}, Storage: nats.MemoryStorage})
 	if err != nil {
 		log.Errorln(err.Error())
 		return err

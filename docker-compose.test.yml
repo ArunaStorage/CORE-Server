@@ -65,7 +65,7 @@ services:
     image: cockroachdb/cockroach
     entrypoint: >
       /bin/sh -c "
-      cockroach start-single-node --insecure --accept-sql-without-tls;
+      cockroach start-single-node --insecure --accept-sql-without-tls --store=type=mem,size=5GB
       "
     restart: always
   postgres:
