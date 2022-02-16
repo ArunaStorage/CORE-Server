@@ -3,7 +3,7 @@ module github.com/ScienceObjectsDB/CORE-Server
 go 1.17
 
 require (
-	github.com/ScienceObjectsDB/go-api v0.1.2-0.20220215192207-c032576806d6
+	github.com/ScienceObjectsDB/go-api v0.2.0
 	github.com/aws/aws-sdk-go-v2 v1.13.0
 	github.com/aws/aws-sdk-go-v2/config v1.13.1
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.9.1
@@ -83,7 +83,7 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.2.0 // indirect
-	github.com/nats-io/nats-server/v2 v2.6.6 // indirect
+	github.com/nats-io/nats-server/v2 v2.7.2 // indirect
 	github.com/nats-io/nkeys v0.3.0 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 )
