@@ -67,7 +67,7 @@ type ObjectGroup struct {
 	Labels          []Label          `gorm:"many2many:object_group_label;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata        []Metadata       `gorm:"many2many:object_group_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	DatasetVersions []DatasetVersion `gorm:"many2many:dataset_version_object_groups;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Status          string
+	Status          string           `gorm:"index"`
 	Generated       time.Time
 	Objects         []Object `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }

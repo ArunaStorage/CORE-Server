@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -415,6 +416,20 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
+	}
+
+	objectGroups, err := endpoint.ReadHandler.GetObjectGroupsByStatus(request.ObjectGroupIds, []string{v1storagemodels.Status_STATUS_AVAILABLE.String()})
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "error when reading the requested object groups")
+	}
+
+	if len(objectGroups) != 0 {
+		var nonAvailableObjectGroupIDs []string
+		for _, objectGroup := range objectGroups {
+			nonAvailableObjectGroupIDs = append(nonAvailableObjectGroupIDs, objectGroup.ID.String())
+		}
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("the following object groups are not in available status: %v", nonAvailableObjectGroupIDs))
 	}
 
 	id, err := endpoint.CreateHandler.CreateDatasetVersion(request, dataset.ProjectID)

@@ -380,7 +380,6 @@ func (read *Read) GetObjectsBatch(ids []uuid.UUID) ([]*models.Object, error) {
 }
 
 // BatchedReads
-
 func (read *Read) GetDatasetObjectGroupsBatches(datasetID uuid.UUID, objectGroupsChan chan []*models.ObjectGroup) error {
 	objectGroups := make([]*models.ObjectGroup, 0)
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
@@ -422,6 +421,21 @@ func (read *Read) GetObjectGroupsInDateRangeBatches(datasetID uuid.UUID, startDa
 	}
 
 	return nil
+}
+
+func (read *Read) GetObjectGroupsByStatus(objectGroupID []string, status []string) ([]models.ObjectGroup, error) {
+	var datasetVersions []models.ObjectGroup
+
+	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
+		return tx.Preload("Metadata").Preload("Labels").Where("id in ? and status not in ?", objectGroupID, status).Find(&datasetVersions).Error
+	})
+
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	return datasetVersions, nil
 }
 
 func (read *Read) GetStreamGroup(streamGroupID uuid.UUID) (*models.StreamGroup, error) {

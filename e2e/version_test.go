@@ -162,6 +162,41 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
+	createObjectGroupRequest2 := &v1storageservices.CreateObjectGroupRequest{
+		Name:      "testog2",
+		DatasetId: datasetCreateResponse.GetId(),
+		Labels:    objectGroupLabel,
+		Metadata:  objectGroupMetadata,
+		Objects: []*v1storageservices.CreateObjectRequest{
+			{
+				Filename:   "testfile1",
+				Filetype:   "bin",
+				Labels:     object1Label,
+				Metadata:   object1Metadata,
+				ContentLen: 3,
+			},
+			{
+				Filename:   "testfile3",
+				Filetype:   "bin",
+				Labels:     object2Label,
+				Metadata:   object2Metadata,
+				ContentLen: 3,
+			},
+		},
+	}
+
+	createObjectGroupResponse2, err := ServerEndpoints.object.CreateObjectGroup(context.Background(), createObjectGroupRequest2)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	_, err = ServerEndpoints.object.FinishObjectGroupUpload(context.Background(), &v1storageservices.FinishObjectGroupUploadRequest{
+		Id: createObjectGroupResponse.ObjectGroupId,
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
 	assert.NotEqual(t, createObjectGroupResponse.ObjectGroupId, 0)
 
 	getObjectGroupResponse, err := ServerEndpoints.object.GetObjectGroup(context.Background(), &v1storageservices.GetObjectGroupRequest{
@@ -213,6 +248,27 @@ func TestDatasetVersion(t *testing.T) {
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+
+	releaseVersionRequest2 := &v1storageservices.ReleaseDatasetVersionRequest{
+		Name:      "foo",
+		DatasetId: datasetCreateResponse.GetId(),
+		Version: &v1storagemodels.Version{
+			Major:    1,
+			Minor:    0,
+			Patch:    2,
+			Revision: 1,
+			Stage:    v1storagemodels.Version_VERSION_STAGE_STABLE,
+		},
+		Description:    "testrelease",
+		ObjectGroupIds: []string{getObjectGroupResponse.ObjectGroup.Id, createObjectGroupResponse2.ObjectGroupId},
+		Labels:         versionLabel,
+		Metadata:       versionMetadata,
+	}
+
+	_, err = ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest2)
+	assert.Error(t, err)
+
+	err = nil
 
 	response, err := ServerEndpoints.dataset.GetDatasetVersions(context.Background(), &v1storageservices.GetDatasetVersionsRequest{
 		Id: datasetCreateResponse.GetId(),
