@@ -3,7 +3,7 @@ module github.com/ScienceObjectsDB/CORE-Server
 go 1.17
 
 require (
-	github.com/ScienceObjectsDB/go-api v0.1.2-0.20220215192207-c032576806d6
+	github.com/ScienceObjectsDB/go-api v0.2.0
 	github.com/aws/aws-sdk-go-v2 v1.13.0
 	github.com/aws/aws-sdk-go-v2/config v1.13.1
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.9.1
@@ -24,11 +24,11 @@ require (
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20220215190005-e57b466719ef // indirect
+	google.golang.org/genproto v0.0.0-20220222213610-43724f9ea8cf // indirect
 	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1
-	gorm.io/driver/postgres v1.2.3
-	gorm.io/gorm v1.22.5
+	gorm.io/driver/postgres v1.3.1
+	gorm.io/gorm v1.23.1
 )
 
 require (
@@ -75,7 +75,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
-	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
+	golang.org/x/sys v0.0.0-20220222200937-f2425489ef4c // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
