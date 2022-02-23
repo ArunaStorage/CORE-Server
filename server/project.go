@@ -57,7 +57,7 @@ func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *v1
 		Resource:    v1storagemodels.Resource(v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE),
 		ResourceId:  projectID,
 		UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
-	}, v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
+	})
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -304,7 +304,7 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *v1
 		Resource:    v1storagemodels.Resource_RESOURCE_PROJECT,
 		ResourceId:  request.GetId(),
 		UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_DELETED,
-	}, v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
+	})
 
 	if err != nil {
 		log.Println(err.Error())

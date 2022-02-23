@@ -61,6 +61,7 @@ type DatasetVersion struct {
 	Project         Project
 	DatasetID       uuid.UUID `gorm:"index"`
 	Dataset         Dataset
+	Status          string
 }
 
 func (version *DatasetVersion) ToProtoModel() *v1storagemodels.DatasetVersion {
@@ -97,6 +98,7 @@ func (version *DatasetVersion) ToProtoModel() *v1storagemodels.DatasetVersion {
 		},
 		ObjectGroupIds: objectGroupIDs,
 		Name:           version.Name,
+		Status:         v1storagemodels.Status_STATUS_AVAILABLE,
 	}
 
 	return protoVersion

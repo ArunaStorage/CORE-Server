@@ -14,6 +14,7 @@ type Object struct {
 	Filename      string    `gorm:"index"`
 	Filetype      string
 	ContentLen    int64
+	Status        string
 	Location      Location   `gorm:"foreignKey:ObjectID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Labels        []Label    `gorm:"many2many:object_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata      []Metadata `gorm:"many2many:object_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`

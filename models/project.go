@@ -10,6 +10,7 @@ type Project struct {
 	Description string
 	Users       []User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Name        string
+	Status      string
 	Labels      []Label    `gorm:"many2many:project_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata    []Metadata `gorm:"many2many:project_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	APIToken    []APIToken `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`

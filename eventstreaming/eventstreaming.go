@@ -32,7 +32,7 @@ func New(dbRead *database.Read, dbCreate *database.Create) (EventStreamMgmt, err
 type EventStreamMgmt interface {
 	CreateMessageStreamGroupHandler(streamGroup *models.StreamGroup) (EventStreamer, error)
 	CreateStreamGroup(projectID uuid.UUID, resourceID uuid.UUID, resourceType *v1notificationservices.CreateEventStreamingGroupRequest_EventResources, includeSubResources bool) (*models.StreamGroup, error)
-	PublishMessage(request *v1notificationservices.EventNotificationMessage, resource v1notificationservices.CreateEventStreamingGroupRequest_EventResources) error
+	PublishMessage(request *v1notificationservices.EventNotificationMessage) error
 	EnableTestMode() error
 }
 

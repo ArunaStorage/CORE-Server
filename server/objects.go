@@ -83,7 +83,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 		Resource:    v1storagemodels.Resource_RESOURCE_OBJECT_GROUP,
 		ResourceId:  objectGroupResponse.GetObjectGroupId(),
 		UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
-	}, v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
+	})
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -167,7 +167,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 			Resource:    v1storagemodels.Resource_RESOURCE_OBJECT_GROUP,
 			ResourceId:  createdObjectGroup.GetObjectGroupId(),
 			UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
-		}, v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
+		})
 
 		if err != nil {
 			log.Println(err.Error())
@@ -241,6 +241,56 @@ func (endpoint *ObjectServerEndpoints) FinishObjectUpload(ctx context.Context, r
 	return finished, nil
 }
 
+//FinishObjectUpload Finishes the upload process for an object
+func (endpoint *ObjectServerEndpoints) FinishObjectGroupUpload(ctx context.Context, request *v1storageservices.FinishObjectGroupUploadRequest) (*v1storageservices.FinishObjectGroupUploadResponse, error) {
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
+	}
+
+	object, err := endpoint.ReadHandler.GetObjectGroup(requestID)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	metadata, _ := metadata.FromIncomingContext(ctx)
+
+	err = endpoint.AuthzHandler.Authorize(
+		object.ProjectID,
+		v1storagemodels.Right_RIGHT_WRITE,
+		metadata)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	uuid, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	err = endpoint.UpdateHandler.UpdateStatus(v1storagemodels.Status_STATUS_AVAILABLE, uuid, v1storagemodels.Resource_RESOURCE_OBJECT_GROUP)
+	if err != nil {
+		log.Debugln(err.Error())
+		return nil, status.Error(codes.Internal, "could not update status of objectgroup")
+	}
+
+	msg := &v1notficationservices.EventNotificationMessage{Resource: v1storagemodels.Resource_RESOURCE_OBJECT_GROUP, ResourceId: request.GetId(), UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_AVAILABLE}
+
+	err = endpoint.EventStreamMgmt.PublishMessage(msg)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	finished := &v1storageservices.FinishObjectGroupUploadResponse{}
+
+	return finished, nil
+}
+
 func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, request *v1storageservices.DeleteObjectGroupRequest) (*v1storageservices.DeleteObjectGroupResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
@@ -283,7 +333,7 @@ func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, re
 		Resource:    v1storagemodels.Resource_RESOURCE_OBJECT_GROUP,
 		ResourceId:  request.GetId(),
 		UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_DELETED,
-	}, v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_OBJECT_GROUP_RESOURCE)
+	})
 
 	if err != nil {
 		log.Println(err.Error())

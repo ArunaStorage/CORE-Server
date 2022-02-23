@@ -135,7 +135,7 @@ func (eventStreamManager *NatsEventStreamMgmt) CreateStreamGroup(projectID uuid.
 	return group, err
 }
 
-func (eventStreamManager *NatsEventStreamMgmt) PublishMessage(request *v1notificationservices.EventNotificationMessage, resource v1notificationservices.CreateEventStreamingGroupRequest_EventResources) error {
+func (eventStreamManager *NatsEventStreamMgmt) PublishMessage(request *v1notificationservices.EventNotificationMessage) error {
 	data, err := protojson.Marshal(request)
 	if err != nil {
 		log.Errorln(err.Error())

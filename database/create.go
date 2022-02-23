@@ -12,6 +12,7 @@ import (
 
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	"github.com/ScienceObjectsDB/CORE-Server/util"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 )
 
@@ -43,6 +44,7 @@ func (create *Create) CreateProject(request *v1storageservices.CreateProjectRequ
 		},
 		Labels:   labels,
 		Metadata: metadataList,
+		Status:   v1storagemodels.Status_STATUS_AVAILABLE.String(),
 	}
 
 	err := crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
@@ -82,6 +84,7 @@ func (create *Create) CreateDataset(request *v1storageservices.CreateDatasetRequ
 		Labels:      labels,
 		ProjectID:   projectID,
 		IsPublic:    false,
+		Status:      v1storagemodels.Status_STATUS_AVAILABLE.String(),
 	}
 
 	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
@@ -227,6 +230,7 @@ func (create *Create) prepareObjectGroupForInsert(request *v1storageservices.Cre
 		Metadata:    metadataList,
 		Labels:      labels,
 		Generated:   request.Generated.AsTime(),
+		Status:      v1storagemodels.Status_STATUS_INITIATING.String(),
 	}
 
 	objects := make([]models.Object, 0)
@@ -258,6 +262,7 @@ func (create *Create) prepareObjectGroupForInsert(request *v1storageservices.Cre
 			ProjectID:  dataset.ProjectID,
 			DatasetID:  dataset.ID,
 			Index:      uint64(i),
+			Status:     v1storagemodels.Status_STATUS_INITIATING.String(),
 		}
 
 		objects = append(objects, object)
@@ -312,6 +317,7 @@ func (create *Create) CreateDatasetVersion(request *v1storageservices.ReleaseDat
 		RevisionVersion: uint(request.GetVersion().Revision),
 		ProjectID:       projectID,
 		ObjectGroups:    objectGroups,
+		Status:          v1storagemodels.Status_STATUS_AVAILABLE.String(),
 	}
 
 	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {

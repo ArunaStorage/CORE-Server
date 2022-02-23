@@ -59,7 +59,7 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *v1
 		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
 	}
 
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
@@ -377,7 +377,7 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *v1
 		Resource:    v1storagemodels.Resource_RESOURCE_DATASET,
 		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_DELETED,
 	}
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
@@ -432,7 +432,7 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 		Resource:    v1storagemodels.Resource_RESOURCE_DATASET_VERSION,
 		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
 	}
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_VERSION_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
@@ -539,7 +539,7 @@ func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, requ
 		Resource:    v1storagemodels.Resource_RESOURCE_DATASET,
 		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_DELETED,
 	}
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
