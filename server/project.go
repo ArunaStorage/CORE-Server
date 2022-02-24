@@ -57,7 +57,7 @@ func (endpoint *ProjectEndpoints) CreateProject(ctx context.Context, request *v1
 		Resource:    v1storagemodels.Resource(v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE),
 		ResourceId:  projectID,
 		UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
-	}, v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
+	})
 
 	if err != nil {
 		log.Errorln(err.Error())
@@ -168,8 +168,12 @@ func (endpoint *ProjectEndpoints) GetProjectDatasets(ctx context.Context, reques
 
 	var protoDatasets []*v1storagemodels.Dataset
 	for _, dataset := range datasets {
-		protoDataset := dataset.ToProtoModel()
-		protoDatasets = append(protoDatasets, &protoDataset)
+		protoDataset, err := dataset.ToProtoModel()
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not create dataset protobuf representation")
+		}
+		protoDatasets = append(protoDatasets, protoDataset)
 	}
 
 	response := &v1storageservices.GetProjectDatasetsResponse{
@@ -185,20 +189,26 @@ func (endpoint *ProjectEndpoints) GetUserProjects(ctx context.Context, request *
 
 	userOauth2ID, err := endpoint.AuthzHandler.GetUserID(metadata)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return nil, err
 	}
 
 	projects, err := endpoint.ReadHandler.GetUserProjects(userOauth2ID.String())
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return nil, err
 	}
 
 	var protoProjects []*v1storagemodels.Project
 
 	for _, project := range projects {
-		protoProjects = append(protoProjects, project.ToProtoModel())
+		project, err := project.ToProtoModel()
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not create project protobuf representation")
+		}
+
+		protoProjects = append(protoProjects, project)
 	}
 
 	response := &v1storageservices.GetUserProjectsResponse{
@@ -232,7 +242,11 @@ func (endpoint *ProjectEndpoints) GetProject(ctx context.Context, request *v1sto
 		return nil, err
 	}
 
-	protoProject := project.ToProtoModel()
+	protoProject, err := project.ToProtoModel()
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not create project protobuf representation")
+	}
 
 	response := v1storageservices.GetProjectResponse{
 		Project: protoProject,
@@ -304,7 +318,7 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *v1
 		Resource:    v1storagemodels.Resource_RESOURCE_PROJECT,
 		ResourceId:  request.GetId(),
 		UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_DELETED,
-	}, v1notficationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_PROJECT_RESOURCE)
+	})
 
 	if err != nil {
 		log.Println(err.Error())

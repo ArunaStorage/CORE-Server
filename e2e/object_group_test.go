@@ -209,6 +209,20 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(response.Status)
 	}
 
+	_, err = ServerEndpoints.object.FinishObjectUpload(context.Background(), &v1storageservices.FinishObjectUploadRequest{
+		Id: object.Id,
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	_, err = ServerEndpoints.object.FinishObjectGroupUpload(context.Background(), &v1storageservices.FinishObjectGroupUploadRequest{
+		Id: object.ObjectGroupId,
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
 	downloadLink, err := ServerEndpoints.load.CreateDownloadLink(context.Background(), &v1storageservices.CreateDownloadLinkRequest{
 		Id: object.GetId(),
 	})

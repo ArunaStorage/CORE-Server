@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -59,7 +60,7 @@ func (endpoint *DatasetEndpoints) CreateDataset(ctx context.Context, request *v1
 		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
 	}
 
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
@@ -93,13 +94,17 @@ func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *v1sto
 		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return nil, err
 	}
 
-	protoDataset := dataset.ToProtoModel()
+	protoDataset, err := dataset.ToProtoModel()
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not create dataset protobuf representation")
+	}
 	response := v1storageservices.GetDatasetResponse{
-		Dataset: &protoDataset,
+		Dataset: protoDataset,
 	}
 
 	return &response, nil
@@ -138,7 +143,12 @@ func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, reques
 
 	var protoVersions []*v1storagemodels.DatasetVersion
 	for _, version := range versions {
-		protoVersion := version.ToProtoModel()
+		protoVersion, err := version.ToProtoModel()
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not transform datasetversion into protobuf representation")
+		}
+
 		protoVersions = append(protoVersions, protoVersion)
 	}
 
@@ -181,7 +191,11 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 
 	var protoObjectGroups []*v1storagemodels.ObjectGroup
 	for _, objectGroup := range objectGroups {
-		protoObjectGroup := objectGroup.ToProtoModel()
+		protoObjectGroup, err := objectGroup.ToProtoModel()
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
+		}
 		protoObjectGroups = append(protoObjectGroups, protoObjectGroup)
 	}
 
@@ -223,8 +237,13 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 	}
 
 	var protoObjectGroups []*v1storagemodels.ObjectGroup
-	for _, object := range objectGroups {
-		protoObjectGroups = append(protoObjectGroups, object.ToProtoModel())
+	for _, objectGroup := range objectGroups {
+		protoObjectGroup, err := objectGroup.ToProtoModel()
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
+		}
+		protoObjectGroups = append(protoObjectGroups, protoObjectGroup)
 	}
 
 	response := &v1storageservices.GetObjectGroupsInDateRangeResponse{
@@ -377,7 +396,7 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *v1
 		Resource:    v1storagemodels.Resource_RESOURCE_DATASET,
 		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_DELETED,
 	}
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
@@ -417,6 +436,20 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 		return nil, err
 	}
 
+	objectGroups, err := endpoint.ReadHandler.GetObjectGroupsByStatus(request.ObjectGroupIds, []string{v1storagemodels.Status_STATUS_AVAILABLE.String()})
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "error when reading the requested object groups")
+	}
+
+	if len(objectGroups) != 0 {
+		var nonAvailableObjectGroupIDs []string
+		for _, objectGroup := range objectGroups {
+			nonAvailableObjectGroupIDs = append(nonAvailableObjectGroupIDs, objectGroup.ID.String())
+		}
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("the following object groups are not in available status: %v", nonAvailableObjectGroupIDs))
+	}
+
 	id, err := endpoint.CreateHandler.CreateDatasetVersion(request, dataset.ProjectID)
 	if err != nil {
 		log.Println(err.Error())
@@ -432,7 +465,7 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 		Resource:    v1storagemodels.Resource_RESOURCE_DATASET_VERSION,
 		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
 	}
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_VERSION_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")
@@ -461,11 +494,15 @@ func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request
 		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return nil, err
 	}
 
-	protoVersion := version.ToProtoModel()
+	protoVersion, err := version.ToProtoModel()
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not transform datasetversion into protobuf representation")
+	}
 
 	response := &v1storageservices.GetDatasetVersionResponse{
 		DatasetVersion: protoVersion,
@@ -500,7 +537,12 @@ func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Cont
 
 	var protoObjectGroups []*v1storagemodels.ObjectGroup
 	for _, objectGroup := range version.ObjectGroups {
-		protoObjectGroups = append(protoObjectGroups, objectGroup.ToProtoModel())
+		protoObjectGroup, err := objectGroup.ToProtoModel()
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
+		}
+		protoObjectGroups = append(protoObjectGroups, protoObjectGroup)
 	}
 
 	response := &v1storageservices.GetDatasetVersionObjectGroupsResponse{
@@ -539,7 +581,7 @@ func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, requ
 		Resource:    v1storagemodels.Resource_RESOURCE_DATASET,
 		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_DELETED,
 	}
-	err = endpoint.EventStreamMgmt.PublishMessage(msg, v1notificationservices.CreateEventStreamingGroupRequest_EVENT_RESOURCES_DATASET_RESOURCE)
+	err = endpoint.EventStreamMgmt.PublishMessage(msg)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not publish notification event")

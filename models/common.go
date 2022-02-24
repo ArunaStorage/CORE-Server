@@ -1,10 +1,12 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -82,4 +84,19 @@ func (location *Location) toProtoModel() *v1storagemodels.Location {
 			},
 		},
 	}
+}
+
+func ToStatus(status string) (v1storagemodels.Status, error) {
+
+	var statusEnum v1storagemodels.Status
+
+	if val, ok := v1storagemodels.Status_value[status]; !ok {
+		err := fmt.Errorf("status %v not recognized", status)
+		log.Debug(err)
+		return -1, err
+	} else {
+		statusEnum = v1storagemodels.Status(val)
+	}
+
+	return statusEnum, nil
 }

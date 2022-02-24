@@ -3,6 +3,7 @@ package models
 import (
 	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -21,7 +22,7 @@ type Dataset struct {
 	DatasetVersions []DatasetVersion `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
-func (dataset *Dataset) ToProtoModel() v1storagemodels.Dataset {
+func (dataset *Dataset) ToProtoModel() (*v1storagemodels.Dataset, error) {
 	labels := []*v1storagemodels.Label{}
 	for _, label := range dataset.Labels {
 		labels = append(labels, label.ToProtoModel())
@@ -32,7 +33,13 @@ func (dataset *Dataset) ToProtoModel() v1storagemodels.Dataset {
 		metadataList = append(metadataList, metadata.ToProtoModel())
 	}
 
-	return v1storagemodels.Dataset{
+	status, err := ToStatus(dataset.Status)
+	if err != nil {
+		log.Debugln(err)
+		return nil, err
+	}
+
+	return &v1storagemodels.Dataset{
 		Id:          dataset.ID.String(),
 		Name:        dataset.Name,
 		Description: dataset.Description,
@@ -42,7 +49,8 @@ func (dataset *Dataset) ToProtoModel() v1storagemodels.Dataset {
 		ProjectId:   dataset.ProjectID.String(),
 		IsPublic:    dataset.IsPublic,
 		Bucket:      dataset.Bucket,
-	}
+		Status:      status,
+	}, nil
 }
 
 type DatasetVersion struct {
@@ -61,9 +69,10 @@ type DatasetVersion struct {
 	Project         Project
 	DatasetID       uuid.UUID `gorm:"index"`
 	Dataset         Dataset
+	Status          string
 }
 
-func (version *DatasetVersion) ToProtoModel() *v1storagemodels.DatasetVersion {
+func (version *DatasetVersion) ToProtoModel() (*v1storagemodels.DatasetVersion, error) {
 	labels := []*v1storagemodels.Label{}
 	for _, label := range version.Labels {
 		labels = append(labels, label.ToProtoModel())
@@ -81,6 +90,12 @@ func (version *DatasetVersion) ToProtoModel() *v1storagemodels.DatasetVersion {
 
 	versionTag := v1storagemodels.Version_VersionStage_value[version.Stage]
 
+	status, err := ToStatus(version.Status)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
 	protoVersion := &v1storagemodels.DatasetVersion{
 		Id:          version.ID.String(),
 		DatasetId:   version.DatasetID.String(),
@@ -97,7 +112,8 @@ func (version *DatasetVersion) ToProtoModel() *v1storagemodels.DatasetVersion {
 		},
 		ObjectGroupIds: objectGroupIDs,
 		Name:           version.Name,
+		Status:         status,
 	}
 
-	return protoVersion
+	return protoVersion, nil
 }

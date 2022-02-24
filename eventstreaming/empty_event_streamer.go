@@ -28,7 +28,7 @@ func (mgmt *emptyEventStreamMgmt) CreateMessageStreamGroupHandler(streamGroup *m
 	return emptyEventStreamer{}, nil
 }
 
-func (mgmt *emptyEventStreamMgmt) PublishMessage(request *v1notificationservices.EventNotificationMessage, resource v1notificationservices.CreateEventStreamingGroupRequest_EventResources) error {
+func (mgmt *emptyEventStreamMgmt) PublishMessage(request *v1notificationservices.EventNotificationMessage) error {
 	return nil
 }
 
