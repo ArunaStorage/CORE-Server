@@ -203,7 +203,11 @@ func (endpoint *ObjectServerEndpoints) GetObjectGroup(ctx context.Context, reque
 		return nil, err
 	}
 
-	protoObjectGroup := objectGroup.ToProtoModel()
+	protoObjectGroup, err := objectGroup.ToProtoModel()
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
+	}
 	response := v1storageservices.GetObjectGroupResponse{
 		ObjectGroup: protoObjectGroup,
 	}

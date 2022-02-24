@@ -38,7 +38,6 @@ func (update *Update) UpdateLabels() error {
 }
 
 func (update *Update) UpdateStatus(status v1storagemodels.Status, resourceID uuid.UUID, resourceType v1storagemodels.Resource) error {
-
 	var model interface{}
 
 	switch resourceType {

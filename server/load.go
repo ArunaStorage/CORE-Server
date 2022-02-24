@@ -94,13 +94,19 @@ func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *
 
 	downloadLink, err := endpoint.ObjectHandler.CreateDownloadLink(object, request)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return nil, err
+	}
+
+	protoObject, err := object.ToProtoModel()
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not transform object into protobuf representation")
 	}
 
 	response := v1storageservices.CreateDownloadLinkResponse{
 		DownloadLink: downloadLink,
-		Object:       object.ToProtoModel(),
+		Object:       protoObject,
 	}
 
 	return &response, nil
@@ -146,9 +152,15 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, requ
 			return nil, err
 		}
 
+		protoObject, err := object.ToProtoModel()
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not transform object into protobuf representation")
+		}
+
 		dlLinks[i] = &v1storageservices.CreateDownloadLinkResponse{
 			DownloadLink: link,
-			Object:       object.ToProtoModel(),
+			Object:       protoObject,
 		}
 	}
 
@@ -264,7 +276,12 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *v1storageservic
 		objectGroups := make([]*v1storagemodels.ObjectGroup, len(objectGroupBatch))
 		links := make([]*v1storageservices.InnerLinksResponse, len(objectGroupBatch))
 		for i, objectGroup := range objectGroupBatch {
-			objectGroups = append(objectGroups, objectGroup.ToProtoModel())
+			protoObjectGroup, err := objectGroup.ToProtoModel()
+			if err != nil {
+				log.Errorln(err.Error())
+				return status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
+			}
+			objectGroups = append(objectGroups, protoObjectGroup)
 			objectLinks := make([]string, len(objectGroup.Objects))
 			for j, object := range objectGroup.Objects {
 				link, err := endpoint.ObjectHandler.CreateDownloadLink(&object, &v1storageservices.CreateDownloadLinkRequest{})
@@ -333,8 +350,14 @@ func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request
 	}
 	object.UploadID = uploadID
 
+	protoObject, err := object.ToProtoModel()
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not transform object into protobuf representation")
+	}
+
 	response := &v1storageservices.StartMultipartUploadResponse{
-		Object: object.ToProtoModel(),
+		Object: protoObject,
 	}
 
 	return response, nil

@@ -3,6 +3,7 @@ package models
 import (
 	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 type Project struct {
@@ -17,7 +18,7 @@ type Project struct {
 	Datasets    []Dataset  `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
-func (project *Project) ToProtoModel() *v1storagemodels.Project {
+func (project *Project) ToProtoModel() (*v1storagemodels.Project, error) {
 	users := []*v1storagemodels.User{}
 
 	for _, user := range project.Users {
@@ -34,6 +35,12 @@ func (project *Project) ToProtoModel() *v1storagemodels.Project {
 		metadataList = append(metadataList, metadata.ToProtoModel())
 	}
 
+	status, err := ToStatus(project.Status)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
 	return &v1storagemodels.Project{
 		Id:          project.ID.String(),
 		Name:        project.Name,
@@ -41,7 +48,8 @@ func (project *Project) ToProtoModel() *v1storagemodels.Project {
 		Users:       users,
 		Labels:      labels,
 		Metadata:    metadataList,
-	}
+		Status:      status,
+	}, nil
 }
 
 type User struct {
