@@ -11,8 +11,6 @@ services:
       - minioConf
       - cockroach
       - nats
-
-
   minio:
     image: minio/minio
     command: server /data
