@@ -449,3 +449,62 @@ func TestObjectGroupsDates(t *testing.T) {
 
 	assert.Equal(t, len(objectGroups), 2)
 }
+
+func TestObjectGroupDuplicates(t *testing.T) {
+	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &v1storageservices.CreateProjectRequest{
+		Name: "foo",
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	datasetID1, err := ServerEndpoints.dataset.CreateDataset(context.Background(), &v1storageservices.CreateDatasetRequest{
+		Name:      "foo-1",
+		ProjectId: projectID.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	datasetID2, err := ServerEndpoints.dataset.CreateDataset(context.Background(), &v1storageservices.CreateDatasetRequest{
+		Name:      "foo-2",
+		ProjectId: projectID.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	_, err = ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
+		Name:      "test-1",
+		DatasetId: datasetID1.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	_, err = ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
+		Name:      "test-2",
+		DatasetId: datasetID1.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	_, err = ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
+		Name:      "test-1",
+		DatasetId: datasetID1.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	//assert.Error(t, err)
+
+	_, err = ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
+		Name:      "test-1",
+		DatasetId: datasetID2.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+}
