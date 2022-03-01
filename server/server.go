@@ -124,7 +124,7 @@ func createGenericEndpoint() (*Endpoints, error) {
 	var db *gorm.DB
 	var err error
 
-	db, err = database.InitDatabaseConnection()
+	db, err = database.InitDatabaseConnection(false)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

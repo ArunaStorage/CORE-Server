@@ -20,7 +20,7 @@ const (
 	Postgres
 )
 
-func InitDatabaseConnection() (*gorm.DB, error) {
+func InitDatabaseConnection(doMigrations bool) (*gorm.DB, error) {
 	var db *gorm.DB
 	var err error
 
@@ -53,7 +53,9 @@ func InitDatabaseConnection() (*gorm.DB, error) {
 		return nil, err
 	}
 
-	//db = makeMigrations(db)
+	if doMigrations {
+		db = makeMigrations(db)
+	}
 
 	return db, nil
 
