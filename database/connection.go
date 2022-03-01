@@ -123,7 +123,5 @@ func makeMigrations(db *gorm.DB) *gorm.DB {
 		log.Fatalln(err.Error())
 	}
 
-	log.Fatalln("End")
-
 	return db
 }
