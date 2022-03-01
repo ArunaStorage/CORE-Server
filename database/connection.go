@@ -53,7 +53,7 @@ func InitDatabaseConnection() (*gorm.DB, error) {
 		return nil, err
 	}
 
-	db = makeMigrations(db)
+	//db = makeMigrations(db)
 
 	return db, nil
 
@@ -120,6 +120,8 @@ func makeMigrations(db *gorm.DB) *gorm.DB {
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+
+	log.Fatalln("End")
 
 	return db
 }

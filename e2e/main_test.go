@@ -29,6 +29,7 @@ var ServerEndpoints = &ServerEndpointsTest{}
 func TestMain(m *testing.M) {
 	log.SetReportCaller(true)
 	init_test_endpoints()
+	log.SetLevel(log.DebugLevel)
 	//local_init_test_endpoints()
 	code := m.Run()
 	os.Exit(code)
@@ -48,12 +49,12 @@ func init_test_endpoints() {
 		os.Setenv("AWS_SECRET_ACCESS_KEY", "minioadmin")
 	}
 
+	config.SetDefaults()
+
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
 		panic(fmt.Errorf("fatal error config file: %w", err))
 	}
-
-	config.SetDefaults()
 
 	os.Setenv("PSQL_PASSWORD", "test123")
 
