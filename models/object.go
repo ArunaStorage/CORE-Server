@@ -66,9 +66,9 @@ func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
 
 type ObjectGroup struct {
 	BaseModel
-	Name            string `gorm:"uniqueIndex:unique_group_name"`
+	Name            string `gorm:"index:unique_group_name,unique"`
 	Description     string
-	DatasetID       uuid.UUID `gorm:"uniqueIndex:unique_group_name"`
+	DatasetID       uuid.UUID `gorm:"index:unique_group_name,unique"`
 	Dataset         Dataset
 	ProjectID       uuid.UUID `gorm:"index"`
 	Project         Project
