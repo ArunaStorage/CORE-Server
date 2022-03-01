@@ -124,7 +124,7 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		createObjectGroup := &v1storageservices.CreateObjectGroupRequest{
-			Name:        fmt.Sprintf("foo-%v", i),
+			Name:        fmt.Sprintf("foobar-%v", i),
 			Description: "foo",
 			DatasetId:   datasetCreateResponse.GetId(),
 		}
