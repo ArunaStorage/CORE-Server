@@ -50,6 +50,7 @@ const (
 const envLogLevel = "LOG_LEVEL"
 const defaultLogLevel = log.WarnLevel
 
+var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "scienceobjectsdb",
 	Short: "Scienceobjectsdb is a general purpose and scalable data management service.",
@@ -68,6 +69,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(HandleConfigFile)
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "./config/config.yaml", "config file (default is ./config/config.yaml)")
 }
 
 func HandleConfigFile() {
@@ -77,6 +79,9 @@ func HandleConfigFile() {
 
 	log.SetLevel(logLevel)
 	log.SetReportCaller(true)
+
+	log.Errorln(cfgFile)
+	viper.SetConfigFile(cfgFile)
 
 	viper.SetConfigName("config") // name of config file (without extension)
 	viper.SetConfigType("yaml")   // REQUIRED if the config file does not have the extension in the name

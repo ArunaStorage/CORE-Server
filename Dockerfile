@@ -12,4 +12,4 @@ FROM scratch
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /CORE-Server/CORE-Server .
 
-ENTRYPOINT [ "/CORE-Server", "-c", "/config/config.yaml" ]
+ENTRYPOINT [ "/CORE-Server", "-c", "/config/config.yaml", "run" ]
