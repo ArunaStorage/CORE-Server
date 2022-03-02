@@ -3,6 +3,7 @@ package database
 import (
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 func MakeMigrationsStandalone() error {
@@ -11,7 +12,16 @@ func MakeMigrationsStandalone() error {
 		log.Fatalln(err.Error())
 	}
 
-	err = db.AutoMigrate(
+	err = MakeMigrationsStandaloneFromDB(db)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	return nil
+}
+
+func MakeMigrationsStandaloneFromDB(db *gorm.DB) error {
+	err := db.AutoMigrate(
 		&models.Project{},
 		&models.Dataset{},
 		&models.DatasetVersion{},
@@ -30,5 +40,5 @@ func MakeMigrationsStandalone() error {
 		log.Fatalln(err.Error())
 	}
 
-	return nil
+	return err
 }

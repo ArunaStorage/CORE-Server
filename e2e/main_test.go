@@ -63,6 +63,11 @@ func init_test_endpoints() {
 		log.Fatalln(err.Error())
 	}
 
+	err = database.MakeMigrationsStandaloneFromDB(db)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
 	bucketName := viper.GetString(config.S3_BUCKET_PREFIX)
 
 	objectHandler := &objectstorage.S3ObjectStorageHandler{}
