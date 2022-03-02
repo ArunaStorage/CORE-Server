@@ -58,7 +58,7 @@ func init_test_endpoints() {
 
 	os.Setenv("PSQL_PASSWORD", "test123")
 
-	db, err := database.InitDatabaseConnection(true)
+	db, err := database.InitDatabaseConnection()
 	if err != nil {
 		log.Fatalln(err.Error())
 	}

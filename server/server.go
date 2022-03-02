@@ -42,7 +42,10 @@ type Server struct {
 }
 
 // Starts the gRPC and the data streaming server.
-func Run(host string, gRPCPort uint16) error {
+func Run() error {
+	host := viper.GetString(config.SERVER_HOST)
+	gRPCPort := viper.GetUint(config.SERVER_PORT)
+
 	grpcListener, err := net.Listen("tcp", fmt.Sprintf("%v:%v", host, gRPCPort))
 	if err != nil {
 		log.Errorln(err.Error())
@@ -124,7 +127,7 @@ func createGenericEndpoint() (*Endpoints, error) {
 	var db *gorm.DB
 	var err error
 
-	db, err = database.InitDatabaseConnection(false)
+	db, err = database.InitDatabaseConnection()
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
