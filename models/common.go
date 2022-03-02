@@ -93,7 +93,7 @@ func ToStatus(status string) (v1storagemodels.Status, error) {
 	if val, ok := v1storagemodels.Status_value[status]; !ok {
 		err := fmt.Errorf("status %v not recognized", status)
 		log.Debug(err)
-		return -1, err
+		statusEnum = v1storagemodels.Status_STATUS_UNSPECIFIED
 	} else {
 		statusEnum = v1storagemodels.Status(val)
 	}
