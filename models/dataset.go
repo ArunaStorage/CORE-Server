@@ -9,11 +9,11 @@ import (
 
 type Dataset struct {
 	BaseModel
-	Name            string
+	Name            string `gorm:"index"`
 	Description     string
 	Bucket          string
 	IsPublic        bool
-	Status          string
+	Status          string     `gorm:"index"`
 	Labels          []Label    `gorm:"many2many:dataset_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Metadata        []Metadata `gorm:"many2many:dataset_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	ProjectID       uuid.UUID  `gorm:"index"`
