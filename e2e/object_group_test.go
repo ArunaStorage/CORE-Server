@@ -494,11 +494,7 @@ func TestObjectGroupDuplicates(t *testing.T) {
 		Name:      "test-1",
 		DatasetId: datasetID1.GetId(),
 	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	//assert.Error(t, err)
+	assert.Error(t, err)
 
 	_, err = ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
 		Name:      "test-1",
