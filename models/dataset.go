@@ -22,7 +22,7 @@ type Dataset struct {
 	DatasetVersions []DatasetVersion `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
-func (dataset *Dataset) ToProtoModel() (*v1storagemodels.Dataset, error) {
+func (dataset *Dataset) ToProtoModel(stats *v1storagemodels.DatasetStats) (*v1storagemodels.Dataset, error) {
 	labels := []*v1storagemodels.Label{}
 	for _, label := range dataset.Labels {
 		labels = append(labels, label.ToProtoModel())
@@ -50,6 +50,7 @@ func (dataset *Dataset) ToProtoModel() (*v1storagemodels.Dataset, error) {
 		IsPublic:    dataset.IsPublic,
 		Bucket:      dataset.Bucket,
 		Status:      status,
+		Stats:       stats,
 	}, nil
 }
 
@@ -72,7 +73,7 @@ type DatasetVersion struct {
 	Status          string
 }
 
-func (version *DatasetVersion) ToProtoModel() (*v1storagemodels.DatasetVersion, error) {
+func (version *DatasetVersion) ToProtoModel(stats *v1storagemodels.DatasetVersionStats) (*v1storagemodels.DatasetVersion, error) {
 	labels := []*v1storagemodels.Label{}
 	for _, label := range version.Labels {
 		labels = append(labels, label.ToProtoModel())
@@ -113,6 +114,7 @@ func (version *DatasetVersion) ToProtoModel() (*v1storagemodels.DatasetVersion, 
 		ObjectGroupIds: objectGroupIDs,
 		Name:           version.Name,
 		Status:         status,
+		Stats:          stats,
 	}
 
 	return protoVersion, nil

@@ -270,14 +270,25 @@ func TestDatasetVersion(t *testing.T) {
 
 	err = nil
 
-	response, err := ServerEndpoints.dataset.GetDatasetVersions(context.Background(), &v1storageservices.GetDatasetVersionsRequest{
+	datasetVersions, err := ServerEndpoints.dataset.GetDatasetVersions(context.Background(), &v1storageservices.GetDatasetVersionsRequest{
 		Id: datasetCreateResponse.GetId(),
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, len(response.GetDatasetVersions()), 1)
+	assert.Equal(t, len(datasetVersions.GetDatasetVersions()), 1)
+
+	datasetVersion, err := ServerEndpoints.dataset.GetDatasetVersion(context.Background(), &v1storageservices.GetDatasetVersionRequest{
+		Id: versionResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, int64(2), datasetVersion.GetDatasetVersion().GetStats().GetObjectCount())
+	assert.Equal(t, int64(6), datasetVersion.GetDatasetVersion().GetStats().GetAccSize())
+	assert.Equal(t, float64(3), datasetVersion.GetDatasetVersion().GetStats().GetAvgObjectSize())
 
 	versionRevisions, err := ServerEndpoints.dataset.GetDatasetVersionObjectGroups(context.Background(), &v1storageservices.GetDatasetVersionObjectGroupsRequest{
 		Id: versionResponse.Id,
@@ -288,12 +299,12 @@ func TestDatasetVersion(t *testing.T) {
 
 	assert.Equal(t, 1, len(versionRevisions.GetObjectGroup()))
 
-	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
-		Id: datasetCreateResponse.GetId(),
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
+	//_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
+	//	Id: datasetCreateResponse.GetId(),
+	//})
+	//if err != nil {
+	//	log.Fatalln(err.Error())
+	//}
 }
 
 func TestDatasetVersionPaginated(t *testing.T) {
