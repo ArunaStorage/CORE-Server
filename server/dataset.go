@@ -98,7 +98,13 @@ func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *v1sto
 		return nil, err
 	}
 
-	protoDataset, err := dataset.ToProtoModel()
+	stats, err := endpoint.StatsHandler.GetDatasetStats(dataset.ID)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "error while reading dataset statistics")
+	}
+
+	protoDataset, err := dataset.ToProtoModel(stats)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not create dataset protobuf representation")
@@ -143,7 +149,13 @@ func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, reques
 
 	var protoVersions []*v1storagemodels.DatasetVersion
 	for _, version := range versions {
-		protoVersion, err := version.ToProtoModel()
+		versionStats, err := endpoint.StatsHandler.GetDatasetVersionStats(&version)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not read dataset version statistics from the database")
+		}
+
+		protoVersion, err := version.ToProtoModel(versionStats)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not transform datasetversion into protobuf representation")
@@ -191,7 +203,13 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 
 	var protoObjectGroups []*v1storagemodels.ObjectGroup
 	for _, objectGroup := range objectGroups {
-		protoObjectGroup, err := objectGroup.ToProtoModel()
+		stats, objectStatsList, err := endpoint.StatsHandler.GetObjectGroupStats(objectGroup)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not read objectgroup stats")
+		}
+
+		protoObjectGroup, err := objectGroup.ToProtoModel(stats, objectStatsList)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
@@ -238,7 +256,13 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 
 	var protoObjectGroups []*v1storagemodels.ObjectGroup
 	for _, objectGroup := range objectGroups {
-		protoObjectGroup, err := objectGroup.ToProtoModel()
+		stats, objectStatsList, err := endpoint.StatsHandler.GetObjectGroupStats(objectGroup)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not read objectgroup stats")
+		}
+
+		protoObjectGroup, err := objectGroup.ToProtoModel(stats, objectStatsList)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
@@ -498,7 +522,13 @@ func (endpoint *DatasetEndpoints) GetDatasetVersion(ctx context.Context, request
 		return nil, err
 	}
 
-	protoVersion, err := version.ToProtoModel()
+	versionStats, err := endpoint.StatsHandler.GetDatasetVersionStats(version)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not read dataset version statistics from the database")
+	}
+
+	protoVersion, err := version.ToProtoModel(versionStats)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not transform datasetversion into protobuf representation")
@@ -537,7 +567,13 @@ func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Cont
 
 	var protoObjectGroups []*v1storagemodels.ObjectGroup
 	for _, objectGroup := range version.ObjectGroups {
-		protoObjectGroup, err := objectGroup.ToProtoModel()
+		stats, objectStatsList, err := endpoint.StatsHandler.GetObjectGroupStats(&objectGroup)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not read objectgroup stats")
+		}
+
+		protoObjectGroup, err := objectGroup.ToProtoModel(stats, objectStatsList)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")

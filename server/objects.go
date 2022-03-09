@@ -203,7 +203,13 @@ func (endpoint *ObjectServerEndpoints) GetObjectGroup(ctx context.Context, reque
 		return nil, err
 	}
 
-	protoObjectGroup, err := objectGroup.ToProtoModel()
+	objectGroupStats, objectStatsList, err := endpoint.StatsHandler.GetObjectGroupStats(objectGroup)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.Error(codes.Internal, "could not read objectgroup stats")
+	}
+
+	protoObjectGroup, err := objectGroup.ToProtoModel(objectGroupStats, objectStatsList)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")

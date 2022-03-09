@@ -306,10 +306,12 @@ func TestObjectGroupBatch(t *testing.T) {
 			DatasetId: datasetID.GetId(),
 			Objects: []*v1storageservices.CreateObjectRequest{
 				{
-					Filename: "ff.bin",
+					Filename:   "ff.bin",
+					ContentLen: 3,
 				},
 				{
-					Filename: "fu.bin",
+					Filename:   "fu.bin",
+					ContentLen: 3,
 				},
 			},
 		}
@@ -347,6 +349,48 @@ func TestObjectGroupBatch(t *testing.T) {
 				log.Fatalln(response.Status)
 			}
 		}
+	}
+
+	project, err := ServerEndpoints.project.GetProject(context.Background(), &v1storageservices.GetProjectRequest{
+		Id: projectID.GetId(),
+	})
+
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, int64(20), project.GetProject().GetStats().ObjectCount)
+	assert.Equal(t, int64(10), project.GetProject().GetStats().ObjectGroupCount)
+	assert.Equal(t, float64(3), project.GetProject().GetStats().AvgObjectSize)
+	assert.Equal(t, int64(60), project.GetProject().GetStats().GetAccSize())
+	assert.Equal(t, int64(1), project.GetProject().GetStats().GetUserCount())
+
+	dataset, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
+		Id: datasetID.GetId(),
+	})
+
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, int64(20), dataset.GetDataset().GetStats().ObjectCount)
+	assert.Equal(t, int64(10), dataset.GetDataset().GetStats().ObjectGroupCount)
+	assert.Equal(t, float64(3), dataset.GetDataset().GetStats().AvgObjectSize)
+	assert.Equal(t, int64(60), dataset.GetDataset().GetStats().GetAccSize())
+
+	datasetobjectGroups, err := ServerEndpoints.dataset.GetDatasetObjectGroups(context.Background(), &v1storageservices.GetDatasetObjectGroupsRequest{
+		Id: datasetID.GetId(),
+	})
+
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	for _, objectGroup := range datasetobjectGroups.ObjectGroups {
+		objectGroupStats := objectGroup.GetStats()
+		assert.Equal(t, int64(2), objectGroupStats.GetObjectCount())
+		assert.Equal(t, float64(3), objectGroupStats.GetAvgObjectSize())
+		assert.Equal(t, int64(6), objectGroupStats.GetAccSize())
 	}
 }
 

@@ -98,7 +98,13 @@ func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *
 		return nil, err
 	}
 
-	protoObject, err := object.ToProtoModel()
+	objectStats, err := endpoint.StatsHandler.GetObjectStats(object.ID)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	protoObject, err := object.ToProtoModel(objectStats)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not transform object into protobuf representation")
@@ -152,7 +158,13 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, requ
 			return nil, err
 		}
 
-		protoObject, err := object.ToProtoModel()
+		objectStats, err := endpoint.StatsHandler.GetObjectStats(object.ID)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+
+		protoObject, err := object.ToProtoModel(objectStats)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not transform object into protobuf representation")
@@ -276,7 +288,13 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *v1storageservic
 		objectGroups := make([]*v1storagemodels.ObjectGroup, len(objectGroupBatch))
 		links := make([]*v1storageservices.InnerLinksResponse, len(objectGroupBatch))
 		for i, objectGroup := range objectGroupBatch {
-			protoObjectGroup, err := objectGroup.ToProtoModel()
+			objectGroupStats, objectStatsList, err := endpoint.StatsHandler.GetObjectGroupStats(objectGroup)
+			if err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			protoObjectGroup, err := objectGroup.ToProtoModel(objectGroupStats, objectStatsList)
 			if err != nil {
 				log.Errorln(err.Error())
 				return status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
@@ -350,7 +368,13 @@ func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request
 	}
 	object.UploadID = uploadID
 
-	protoObject, err := object.ToProtoModel()
+	objectStats, err := endpoint.StatsHandler.GetObjectStats(object.ID)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	protoObject, err := object.ToProtoModel(objectStats)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not transform object into protobuf representation")
