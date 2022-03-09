@@ -18,7 +18,7 @@ type Project struct {
 	Datasets    []Dataset  `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
-func (project *Project) ToProtoModel() (*v1storagemodels.Project, error) {
+func (project *Project) ToProtoModel(stats *v1storagemodels.ProjectStats) (*v1storagemodels.Project, error) {
 	users := []*v1storagemodels.User{}
 
 	for _, user := range project.Users {
@@ -49,6 +49,7 @@ func (project *Project) ToProtoModel() (*v1storagemodels.Project, error) {
 		Labels:      labels,
 		Metadata:    metadataList,
 		Status:      status,
+		Stats:       stats,
 	}, nil
 }
 

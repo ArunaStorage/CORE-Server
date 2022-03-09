@@ -29,7 +29,7 @@ var ServerEndpoints = &ServerEndpointsTest{}
 func TestMain(m *testing.M) {
 	log.SetReportCaller(true)
 	init_test_endpoints()
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.ErrorLevel)
 	//local_init_test_endpoints()
 	code := m.Run()
 	os.Exit(code)
@@ -103,6 +103,9 @@ func init_test_endpoints() {
 			Common: &commonHandler,
 		},
 		DeleteHandler: &database.Delete{
+			Common: &commonHandler,
+		},
+		StatsHandler: &database.Stats{
 			Common: &commonHandler,
 		},
 		AuthzHandler:    authzHandler,

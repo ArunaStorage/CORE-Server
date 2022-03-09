@@ -57,6 +57,14 @@ github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/ScienceObjectsDB/go-api v0.2.1-0.20220224131955-9ecd453f0a92 h1:lO3RiWoHLvTxSWkRzTiyQW8nLVo9Y04OPsAxcvbvWpU=
 github.com/ScienceObjectsDB/go-api v0.2.1-0.20220224131955-9ecd453f0a92/go.mod h1:Pjr9hQhJFJr82MimdmIUu1PynExZ9RbkM8NTo3Y2dGc=
+github.com/ScienceObjectsDB/go-api v0.2.1-0.20220307093635-493423c82111 h1:Bo2nFbd+Q9n7fSn6Vpfq3QZCiXYst1D4PoaDYnkIlIk=
+github.com/ScienceObjectsDB/go-api v0.2.1-0.20220307093635-493423c82111/go.mod h1:Pjr9hQhJFJr82MimdmIUu1PynExZ9RbkM8NTo3Y2dGc=
+github.com/ScienceObjectsDB/go-api v0.2.1-0.20220307130450-470e5e71c5fd h1:yncMNLaPfUTu2wWw6XrsdCzXPGirJ/Bw01VOsjiJ3ZA=
+github.com/ScienceObjectsDB/go-api v0.2.1-0.20220307130450-470e5e71c5fd/go.mod h1:Pjr9hQhJFJr82MimdmIUu1PynExZ9RbkM8NTo3Y2dGc=
+github.com/ScienceObjectsDB/go-api v0.2.1-0.20220308105302-8698cccca651 h1:gpXXpXl8kQiISOkj7HmuYnLxGmIuwPj+Zzi2WDb+Y3g=
+github.com/ScienceObjectsDB/go-api v0.2.1-0.20220308105302-8698cccca651/go.mod h1:Pjr9hQhJFJr82MimdmIUu1PynExZ9RbkM8NTo3Y2dGc=
+github.com/ScienceObjectsDB/go-api v0.2.1-0.20220308123329-a02d156def8f h1:U4z2yUNh5fiCw4tA0NKWmn44HApwAKphZR3regrLIvc=
+github.com/ScienceObjectsDB/go-api v0.2.1-0.20220308123329-a02d156def8f/go.mod h1:Pjr9hQhJFJr82MimdmIUu1PynExZ9RbkM8NTo3Y2dGc=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=

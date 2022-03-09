@@ -168,7 +168,13 @@ func (endpoint *ProjectEndpoints) GetProjectDatasets(ctx context.Context, reques
 
 	var protoDatasets []*v1storagemodels.Dataset
 	for _, dataset := range datasets {
-		protoDataset, err := dataset.ToProtoModel()
+		stats, err := endpoint.StatsHandler.GetDatasetStats(dataset.ID)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "error while reading dataset statistics")
+		}
+
+		protoDataset, err := dataset.ToProtoModel(stats)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not create dataset protobuf representation")
@@ -202,7 +208,13 @@ func (endpoint *ProjectEndpoints) GetUserProjects(ctx context.Context, request *
 	var protoProjects []*v1storagemodels.Project
 
 	for _, project := range projects {
-		project, err := project.ToProtoModel()
+		stats, err := endpoint.StatsHandler.GetProjectStats(project.ID)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+
+		project, err := project.ToProtoModel(stats)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not create project protobuf representation")
@@ -242,7 +254,13 @@ func (endpoint *ProjectEndpoints) GetProject(ctx context.Context, request *v1sto
 		return nil, err
 	}
 
-	protoProject, err := project.ToProtoModel()
+	stats, err := endpoint.StatsHandler.GetProjectStats(requestID)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	protoProject, err := project.ToProtoModel(stats)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not create project protobuf representation")

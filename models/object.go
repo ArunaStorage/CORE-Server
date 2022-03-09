@@ -29,7 +29,7 @@ type Object struct {
 	ObjectGroup   ObjectGroup
 }
 
-func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
+func (object *Object) ToProtoModel(stats *v1storagemodels.ObjectStats) (*v1storagemodels.Object, error) {
 	labels := []*v1storagemodels.Label{}
 	for _, label := range object.Labels {
 		labels = append(labels, label.ToProtoModel())
@@ -60,15 +60,16 @@ func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
 		ProjectId:     object.ProjectID.String(),
 		ObjectGroupId: object.ObjectGroupID.String(),
 		Status:        status,
+		Stats:         stats,
 	}, nil
 
 }
 
 type ObjectGroup struct {
 	BaseModel
-	Name            string //`gorm:"index:unique_group_name,unique"`
+	Name            string `gorm:"index:unique_group_name,unique"`
 	Description     string
-	DatasetID       uuid.UUID //`gorm:"index:unique_group_name,unique"`
+	DatasetID       uuid.UUID `gorm:"index:unique_group_name,unique"`
 	Dataset         Dataset
 	ProjectID       uuid.UUID `gorm:"index"`
 	Project         Project
@@ -80,7 +81,7 @@ type ObjectGroup struct {
 	Objects         []Object `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
-func (objectGroup *ObjectGroup) ToProtoModel() (*v1storagemodels.ObjectGroup, error) {
+func (objectGroup *ObjectGroup) ToProtoModel(stats *v1storagemodels.ObjectGroupStats, objectStats []*v1storagemodels.ObjectStats) (*v1storagemodels.ObjectGroup, error) {
 	labels := []*v1storagemodels.Label{}
 	for _, label := range objectGroup.Labels {
 		labels = append(labels, label.ToProtoModel())
@@ -92,8 +93,9 @@ func (objectGroup *ObjectGroup) ToProtoModel() (*v1storagemodels.ObjectGroup, er
 	}
 
 	objectsList := make([]*v1storagemodels.Object, len(objectGroup.Objects))
-	for _, object := range objectGroup.Objects {
-		protoObject, err := object.ToProtoModel()
+	for i, object := range objectGroup.Objects {
+
+		protoObject, err := object.ToProtoModel(objectStats[i])
 		if err != nil {
 			log.Errorln(err)
 			return nil, err
@@ -119,5 +121,6 @@ func (objectGroup *ObjectGroup) ToProtoModel() (*v1storagemodels.ObjectGroup, er
 		Created:     timestamppb.New(objectGroup.CreatedAt),
 		Generated:   timestamppb.New(objectGroup.Generated),
 		Status:      status,
+		Stats:       stats,
 	}, nil
 }

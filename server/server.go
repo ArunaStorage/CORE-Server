@@ -32,6 +32,7 @@ type Endpoints struct {
 	CreateHandler       *database.Create
 	UpdateHandler       *database.Update
 	DeleteHandler       *database.Delete
+	StatsHandler        *database.Stats
 	AuthzHandler        authz.AuthInterface
 	ObjectHandler       *objectstorage.S3ObjectStorageHandler
 	ObjectStreamhandler *database.Streaming
@@ -175,6 +176,9 @@ func createGenericEndpoint() (*Endpoints, error) {
 			Common: &commonHandler,
 		},
 		DeleteHandler: &database.Delete{
+			Common: &commonHandler,
+		},
+		StatsHandler: &database.Stats{
 			Common: &commonHandler,
 		},
 		AuthzHandler: authzHandler,

@@ -2,12 +2,12 @@ Server:
   Host: "0.0.0.0"
   Port: 50051
 DB:
-  DatabaseType: Postgres
-  Postgres:
+  DatabaseType: CockroachDB
+  Cockroach:
     Hostname: "localhost"
-    Port: 5432
-    Username: "test"
-    Databasename: "test"
+    Port: 61567
+    Username: "sciobjdsdbuser"
+    Databasename: "sciobjsdb"
 S3:
   BucketPrefix: "test-bucket"
   Endpoint: "http://localhost:9000"
