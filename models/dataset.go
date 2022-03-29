@@ -13,13 +13,13 @@ type Dataset struct {
 	Description     string
 	Bucket          string
 	IsPublic        bool
-	Status          string     `gorm:"index"`
-	Labels          []Label    `gorm:"many2many:dataset_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Metadata        []Metadata `gorm:"many2many:dataset_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	ProjectID       uuid.UUID  `gorm:"index"`
+	Status          string    `gorm:"index"`
+	Labels          []Label   `gorm:"many2many:dataset_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ProjectID       uuid.UUID `gorm:"index"`
 	Project         Project
 	ObjectGroups    []ObjectGroup    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	DatasetVersions []DatasetVersion `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	MetaObjects     []Object         `gorm:"many2many:dataset_meta_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (dataset *Dataset) ToProtoModel(stats *v1storagemodels.DatasetStats) (*v1storagemodels.Dataset, error) {
@@ -28,9 +28,15 @@ func (dataset *Dataset) ToProtoModel(stats *v1storagemodels.DatasetStats) (*v1st
 		labels = append(labels, label.ToProtoModel())
 	}
 
-	metadataList := []*v1storagemodels.Metadata{}
-	for _, metadata := range dataset.Metadata {
-		metadataList = append(metadataList, metadata.ToProtoModel())
+	metaObjectsList := make([]*v1storagemodels.Object, len(dataset.MetaObjects))
+	for _, metaObject := range dataset.MetaObjects {
+
+		protoObject, err := metaObject.ToProtoModel()
+		if err != nil {
+			log.Errorln(err)
+			return nil, err
+		}
+		metaObjectsList[metaObject.Index] = protoObject
 	}
 
 	status, err := ToStatus(dataset.Status)
@@ -45,7 +51,6 @@ func (dataset *Dataset) ToProtoModel(stats *v1storagemodels.DatasetStats) (*v1st
 		Description: dataset.Description,
 		Created:     timestamppb.New(dataset.CreatedAt),
 		Labels:      labels,
-		Metadata:    metadataList,
 		ProjectId:   dataset.ProjectID.String(),
 		IsPublic:    dataset.IsPublic,
 		Bucket:      dataset.Bucket,
@@ -59,7 +64,6 @@ type DatasetVersion struct {
 	Name            string
 	Description     string
 	Labels          []Label       `gorm:"many2many:dataset_version_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Metadata        []Metadata    `gorm:"many2many:dataset_version_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	ObjectGroups    []ObjectGroup `gorm:"many2many:dataset_version_object_groups;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	MajorVersion    uint
 	MinorVersion    uint
@@ -77,11 +81,6 @@ func (version *DatasetVersion) ToProtoModel(stats *v1storagemodels.DatasetVersio
 	labels := []*v1storagemodels.Label{}
 	for _, label := range version.Labels {
 		labels = append(labels, label.ToProtoModel())
-	}
-
-	metadataList := []*v1storagemodels.Metadata{}
-	for _, metadata := range version.Metadata {
-		metadataList = append(metadataList, metadata.ToProtoModel())
 	}
 
 	var objectGroupIDs []string
@@ -102,7 +101,6 @@ func (version *DatasetVersion) ToProtoModel(stats *v1storagemodels.DatasetVersio
 		DatasetId:   version.DatasetID.String(),
 		Description: version.Description,
 		Labels:      labels,
-		Metadata:    metadataList,
 		Created:     timestamppb.New(version.CreatedAt),
 		Version: &v1storagemodels.Version{
 			Major:    int32(version.MajorVersion),

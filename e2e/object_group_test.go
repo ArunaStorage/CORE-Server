@@ -22,32 +22,11 @@ func TestObjectGroup(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "testproject_dataset",
 		Description: "test",
-		Metadata: []*v1storagemodels.Metadata{
-			{
-				Key:      "TestKey1",
-				Metadata: []byte("mymetadata1"),
-			},
-			{
-				Key:      "TestKey2",
-				Metadata: []byte("mymetadata2"),
-			},
-		},
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
 	if err != nil {
 		log.Fatalln(err.Error())
-	}
-
-	datasetMetadata := []*v1storagemodels.Metadata{
-		{
-			Key:      "Key1",
-			Metadata: []byte("dasddasd"),
-		},
-		{
-			Key:      "Key2",
-			Metadata: []byte("asdasd"),
-		},
 	}
 
 	datasetLabel := []*v1storagemodels.Label{
@@ -64,24 +43,12 @@ func TestObjectGroup(t *testing.T) {
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
 		Name:      "testdataset",
 		ProjectId: createResponse.GetId(),
-		Metadata:  datasetMetadata,
 		Labels:    datasetLabel,
 	}
 
 	datasetCreateResponse, err := ServerEndpoints.dataset.CreateDataset(context.Background(), createDatasetRequest)
 	if err != nil {
 		log.Fatalln(err.Error())
-	}
-
-	objectGroupMetadata := []*v1storagemodels.Metadata{
-		{
-			Key:      "Key1OG",
-			Metadata: []byte("dasddasdOG"),
-		},
-		{
-			Key:      "Key2OG",
-			Metadata: []byte("asdasdOG"),
-		},
 	}
 
 	objectGroupLabel := []*v1storagemodels.Label{
@@ -95,17 +62,6 @@ func TestObjectGroup(t *testing.T) {
 		},
 	}
 
-	object1Metadata := []*v1storagemodels.Metadata{
-		{
-			Key:      "Key1O1",
-			Metadata: []byte("dasddasdO1"),
-		},
-		{
-			Key:      "Key2OG1",
-			Metadata: []byte("asdasdO1"),
-		},
-	}
-
 	object1Label := []*v1storagemodels.Label{
 		{
 			Key:   "Label1O1",
@@ -114,17 +70,6 @@ func TestObjectGroup(t *testing.T) {
 		{
 			Key:   "Label2O1",
 			Value: "LabelValue2O1",
-		},
-	}
-
-	object2Metadata := []*v1storagemodels.Metadata{
-		{
-			Key:      "Key1O2",
-			Metadata: []byte("dasddasdO2"),
-		},
-		{
-			Key:      "Key2O2",
-			Metadata: []byte("asdasdO2"),
 		},
 	}
 
@@ -145,20 +90,17 @@ func TestObjectGroup(t *testing.T) {
 		Name:      name,
 		DatasetId: datasetCreateResponse.GetId(),
 		Labels:    objectGroupLabel,
-		Metadata:  objectGroupMetadata,
 		Objects: []*v1storageservices.CreateObjectRequest{
 			{
 				Filename:   "testfile1",
 				Filetype:   "bin",
 				Labels:     object1Label,
-				Metadata:   object1Metadata,
 				ContentLen: 3,
 			},
 			{
 				Filename:   "testfile2",
 				Filetype:   "bin",
 				Labels:     object2Label,
-				Metadata:   object2Metadata,
 				ContentLen: 3,
 			},
 		},
@@ -182,7 +124,6 @@ func TestObjectGroup(t *testing.T) {
 	assert.Equal(t, createObjectGroupRequest.DatasetId, getObjectGroupResponse.ObjectGroup.DatasetId)
 	assert.Equal(t, createDatasetRequest.Description, getObjectGroupResponse.GetObjectGroup().Description)
 	assert.ElementsMatch(t, createObjectGroupRequest.Labels, getObjectGroupResponse.ObjectGroup.Labels)
-	assert.ElementsMatch(t, createObjectGroupRequest.Metadata, getObjectGroupResponse.ObjectGroup.Metadata)
 
 	assert.Equal(t, "testfile1", getObjectGroupResponse.ObjectGroup.Objects[0].Filename)
 

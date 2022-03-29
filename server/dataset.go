@@ -203,13 +203,13 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 
 	var protoObjectGroups []*v1storagemodels.ObjectGroup
 	for _, objectGroup := range objectGroups {
-		stats, objectStatsList, err := endpoint.StatsHandler.GetObjectGroupStats(objectGroup)
+		stats, err := endpoint.StatsHandler.GetObjectGroupStats(objectGroup)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not read objectgroup stats")
 		}
 
-		protoObjectGroup, err := objectGroup.ToProtoModel(stats, objectStatsList)
+		protoObjectGroup, err := objectGroup.ToProtoModel(stats)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
@@ -256,13 +256,13 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 
 	var protoObjectGroups []*v1storagemodels.ObjectGroup
 	for _, objectGroup := range objectGroups {
-		stats, objectStatsList, err := endpoint.StatsHandler.GetObjectGroupStats(objectGroup)
+		stats, err := endpoint.StatsHandler.GetObjectGroupStats(objectGroup)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not read objectgroup stats")
 		}
 
-		protoObjectGroup, err := objectGroup.ToProtoModel(stats, objectStatsList)
+		protoObjectGroup, err := objectGroup.ToProtoModel(stats)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
@@ -567,13 +567,13 @@ func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Cont
 
 	var protoObjectGroups []*v1storagemodels.ObjectGroup
 	for _, objectGroup := range version.ObjectGroups {
-		stats, objectStatsList, err := endpoint.StatsHandler.GetObjectGroupStats(&objectGroup)
+		stats, err := endpoint.StatsHandler.GetObjectGroupStats(&objectGroup)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not read objectgroup stats")
 		}
 
-		protoObjectGroup, err := objectGroup.ToProtoModel(stats, objectStatsList)
+		protoObjectGroup, err := objectGroup.ToProtoModel(stats)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")

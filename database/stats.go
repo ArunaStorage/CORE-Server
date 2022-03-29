@@ -152,7 +152,7 @@ func (stats *Stats) GetDatasetStats(datasetID uuid.UUID) (*v1storagemodels.Datas
 	return datasetStats, nil
 }
 
-func (stats *Stats) GetObjectGroupStats(objectgroup *models.ObjectGroup) (*v1storagemodels.ObjectGroupStats, []*v1storagemodels.ObjectStats, error) {
+func (stats *Stats) GetObjectGroupStats(objectgroup *models.ObjectGroup) (*v1storagemodels.ObjectGroupStats, error) {
 	var objects_count int64
 	var acc_object_size int64
 	var avg_objects_size float64
@@ -160,7 +160,7 @@ func (stats *Stats) GetObjectGroupStats(objectgroup *models.ObjectGroup) (*v1sto
 	wg := errgroup.Group{}
 
 	wg.Go(func() error {
-		err := stats.DB.Model(&models.Object{}).Where("object_group_id = ?", objectgroup.ID.String()).Select("count(*) as objects_count").Find(&objects_count).Error
+		err := stats.DB.Model(&models.Object{}).Where("parent_id = ?", objectgroup.ID.String()).Select("count(*) as objects_count").Find(&objects_count).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return err
@@ -170,7 +170,7 @@ func (stats *Stats) GetObjectGroupStats(objectgroup *models.ObjectGroup) (*v1sto
 	})
 
 	wg.Go(func() error {
-		err := stats.DB.Model(&models.Object{}).Where("object_group_id = ? and content_len is not null", objectgroup.ID.String()).Select("coalesce(avg(content_len), -1) as avg_objects_size").Find(&avg_objects_size).Error
+		err := stats.DB.Model(&models.Object{}).Where("parent_id = ? and content_len is not null", objectgroup.ID.String()).Select("coalesce(avg(content_len), -1) as avg_objects_size").Find(&avg_objects_size).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return err
@@ -180,7 +180,7 @@ func (stats *Stats) GetObjectGroupStats(objectgroup *models.ObjectGroup) (*v1sto
 	})
 
 	wg.Go(func() error {
-		err := stats.DB.Model(&models.Object{}).Where("object_group_id = ? and content_len is not null", objectgroup.ID.String()).Select("coalesce(sum(content_len), -1) as acc_object_size").Find(&acc_object_size).Error
+		err := stats.DB.Model(&models.Object{}).Where("parent_id = ? and content_len is not null", objectgroup.ID.String()).Select("coalesce(sum(content_len), -1) as acc_object_size").Find(&acc_object_size).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return err
@@ -188,27 +188,11 @@ func (stats *Stats) GetObjectGroupStats(objectgroup *models.ObjectGroup) (*v1sto
 
 		return nil
 	})
-
-	objectStatsList := make([]*v1storagemodels.ObjectStats, len(objectgroup.Objects))
-
-	for i, object := range objectgroup.Objects {
-		wg.Go(func() error {
-			objectStats, err := stats.GetObjectStats(object.ID)
-			if err != nil {
-				log.Errorln(err.Error())
-				return err
-			}
-
-			objectStatsList[i] = objectStats
-
-			return nil
-		})
-	}
 
 	err := wg.Wait()
 	if err != nil {
 		log.Errorln(err.Error())
-		return nil, nil, err
+		return nil, err
 	}
 
 	objectgroupStats := &v1storagemodels.ObjectGroupStats{
@@ -217,7 +201,7 @@ func (stats *Stats) GetObjectGroupStats(objectgroup *models.ObjectGroup) (*v1sto
 		AvgObjectSize: avg_objects_size,
 	}
 
-	return objectgroupStats, objectStatsList, nil
+	return objectgroupStats, nil
 }
 
 func (stats *Stats) GetObjectStats(objectID uuid.UUID) (*v1storagemodels.ObjectStats, error) {
@@ -244,7 +228,7 @@ func (stats *Stats) GetDatasetVersionStats(datasetVersion *models.DatasetVersion
 	})
 
 	wg.Go(func() error {
-		err := stats.DB.Model(&models.Object{}).Select("sum(content_len) as acc_object_size").Joins("inner join dataset_version_object_groups on objects.object_group_id = dataset_version_object_groups.object_group_id").Where("dataset_version_id=?", datasetVersion.ID).Find(&acc_object_size).Error
+		err := stats.DB.Model(&models.Object{}).Select("COALESCE(sum(content_len),0) as acc_object_size").Joins("inner join dataset_version_object_groups on objects.object_group_id = dataset_version_object_groups.object_group_id").Where("dataset_version_id=?", datasetVersion.ID).Find(&acc_object_size).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return err
@@ -254,7 +238,7 @@ func (stats *Stats) GetDatasetVersionStats(datasetVersion *models.DatasetVersion
 	})
 
 	wg.Go(func() error {
-		err := stats.DB.Model(&models.Object{}).Select("avg(content_len) as acc_object_size").Joins("inner join dataset_version_object_groups on objects.object_group_id = dataset_version_object_groups.object_group_id").Where("dataset_version_id=?", datasetVersion.ID).Find(&avg_objects_size).Error
+		err := stats.DB.Model(&models.Object{}).Select("COALESCE(avg(content_len),0) as acc_object_size").Joins("inner join dataset_version_object_groups on objects.object_group_id = dataset_version_object_groups.object_group_id").Where("dataset_version_id=?", datasetVersion.ID).Find(&avg_objects_size).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return err
