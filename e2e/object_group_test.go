@@ -460,15 +460,7 @@ func TestObjectGroupDuplicates(t *testing.T) {
 	}
 
 	_, err = ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
-		Name:      "test-1",
-		DatasetId: datasetID1.GetId(),
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	_, err = ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
-		Name:      "test-2",
+		Name:      uuid.New().String(),
 		DatasetId: datasetID1.GetId(),
 	})
 	if err != nil {
@@ -479,10 +471,12 @@ func TestObjectGroupDuplicates(t *testing.T) {
 		Name:      "test-1",
 		DatasetId: datasetID1.GetId(),
 	})
-	assert.Error(t, err)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
 	_, err = ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
-		Name:      "test-1",
+		Name:      uuid.New().String(),
 		DatasetId: datasetID2.GetId(),
 	})
 	if err != nil {

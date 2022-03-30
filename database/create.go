@@ -108,6 +108,7 @@ func (create *Create) CreateDataset(request *v1storageservices.CreateDatasetRequ
 		ProjectID:   projectID,
 		IsPublic:    false,
 		Status:      v1storagemodels.Status_STATUS_AVAILABLE.String(),
+		MetaObjects: metadataObjects,
 	}
 
 	dataset.ID = datasetID
@@ -257,18 +258,17 @@ func (create *Create) prepareObjectGroupForInsert(request *v1storageservices.Cre
 		}
 
 		object := models.Object{
-			Filename:      protoObject.Filename,
-			Filetype:      protoObject.Filetype,
-			ContentLen:    protoObject.ContentLen,
-			Location:      location,
-			Labels:        labels,
-			ObjectUUID:    uuid,
-			ProjectID:     dataset.ProjectID,
-			DatasetID:     dataset.ID,
-			ObjectGroupID: objectGroupID,
-			Index:         uint64(i),
-			Status:        v1storagemodels.Status_STATUS_INITIATING.String(),
-			ParentID:      objectGroupID,
+			Filename:   protoObject.Filename,
+			Filetype:   protoObject.Filetype,
+			ContentLen: protoObject.ContentLen,
+			Location:   location,
+			Labels:     labels,
+			ObjectUUID: uuid,
+			ProjectID:  dataset.ProjectID,
+			DatasetID:  dataset.ID,
+			Index:      uint64(i),
+			Status:     v1storagemodels.Status_STATUS_INITIATING.String(),
+			ParentID:   objectGroupID,
 		}
 
 		objects = append(objects, object)

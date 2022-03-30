@@ -39,7 +39,7 @@ func (read *Read) GetDataset(datasetID uuid.UUID) (*models.Dataset, error) {
 	dataset.ID = datasetID
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Labels").First(dataset).Error
+		return tx.Preload("Labels").Preload("MetaObjects").First(dataset).Error
 	})
 	if err != nil {
 		log.Println(err.Error())

@@ -79,8 +79,10 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
+	objectgroupuuidname := uuid.New().String()
+
 	createObjectGroupRequest := &v1storageservices.CreateObjectGroupRequest{
-		Name:      "testog",
+		Name:      objectgroupuuidname,
 		DatasetId: datasetCreateResponse.GetId(),
 		Labels:    objectGroupLabel,
 		Objects: []*v1storageservices.CreateObjectRequest{
@@ -104,8 +106,10 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
+	objectgroupuuidname2 := uuid.New().String()
+
 	createObjectGroupRequest2 := &v1storageservices.CreateObjectGroupRequest{
-		Name:      "testog2",
+		Name:      objectgroupuuidname2,
 		DatasetId: datasetCreateResponse.GetId(),
 		Labels:    objectGroupLabel,
 		Objects: []*v1storageservices.CreateObjectRequest{

@@ -46,16 +46,17 @@ func (dataset *Dataset) ToProtoModel(stats *v1storagemodels.DatasetStats) (*v1st
 	}
 
 	return &v1storagemodels.Dataset{
-		Id:          dataset.ID.String(),
-		Name:        dataset.Name,
-		Description: dataset.Description,
-		Created:     timestamppb.New(dataset.CreatedAt),
-		Labels:      labels,
-		ProjectId:   dataset.ProjectID.String(),
-		IsPublic:    dataset.IsPublic,
-		Bucket:      dataset.Bucket,
-		Status:      status,
-		Stats:       stats,
+		Id:              dataset.ID.String(),
+		Name:            dataset.Name,
+		Description:     dataset.Description,
+		Created:         timestamppb.New(dataset.CreatedAt),
+		Labels:          labels,
+		ProjectId:       dataset.ProjectID.String(),
+		IsPublic:        dataset.IsPublic,
+		Bucket:          dataset.Bucket,
+		Status:          status,
+		Stats:           stats,
+		MetadataObjects: metaObjectsList,
 	}, nil
 }
 

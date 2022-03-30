@@ -1,8 +1,11 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -13,6 +16,11 @@ import (
 	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 )
+
+type TestMetadata struct {
+	Testdata1 string
+	Testdata2 int
+}
 
 func TestDataset(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
@@ -36,13 +44,41 @@ func TestDataset(t *testing.T) {
 		},
 	}
 
+	metadataEntries := []*v1storageservices.CreateObjectRequest{
+		&v1storageservices.CreateObjectRequest{
+			Filename: "metadata1.json",
+			Filetype: "json",
+			Labels: []*v1storagemodels.Label{
+				&v1storagemodels.Label{Key: "label1key", Value: "label1value"},
+			},
+		},
+		&v1storageservices.CreateObjectRequest{
+			Filename: "metadata2.json",
+			Filetype: "json",
+			Labels: []*v1storagemodels.Label{
+				&v1storagemodels.Label{Key: "label1key", Value: "label1value"},
+			},
+		},
+	}
+
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
-		Name:      "testdataset",
-		ProjectId: createResponse.GetId(),
-		Labels:    datasetLabel,
+		Name:            "testdataset",
+		ProjectId:       createResponse.GetId(),
+		Labels:          datasetLabel,
+		MetadataObjects: metadataEntries,
 	}
 
 	datasetCreateResponse, err := ServerEndpoints.dataset.CreateDataset(context.Background(), createDatasetRequest)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	testmetadata := TestMetadata{
+		Testdata1: "foo",
+		Testdata2: 15,
+	}
+
+	metadatabytes, err := json.Marshal(testmetadata)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -53,6 +89,38 @@ func TestDataset(t *testing.T) {
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+
+	for _, object := range datasetGetResponse.GetDataset().MetadataObjects {
+		linkResponse, err := ServerEndpoints.load.CreateUploadLink(context.Background(), &v1storageservices.CreateUploadLinkRequest{
+			Id: object.GetId(),
+		})
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+		req, err := http.NewRequest("PUT", linkResponse.UploadLink, bytes.NewBuffer(metadatabytes))
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			log.Fatalln("error when uploading data")
+		}
+	}
+
+	datasetGetResponseWithMetadata, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 2, len(datasetGetResponseWithMetadata.Dataset.MetadataObjects))
 
 	assert.Equal(t, createDatasetRequest.Name, datasetGetResponse.Dataset.Name)
 	assert.Equal(t, createDatasetRequest.Description, datasetGetResponse.GetDataset().Description)
