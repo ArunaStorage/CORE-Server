@@ -107,7 +107,6 @@ func makeMigrations(db *gorm.DB) *gorm.DB {
 		&models.ObjectGroup{},
 		&models.Object{},
 		&models.Location{},
-		&models.Metadata{},
 		&models.Label{},
 		&models.APIToken{},
 		&models.User{},

@@ -17,32 +17,11 @@ func TestDatasetVersion(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "testproject_dataset",
 		Description: "test",
-		Metadata: []*v1storagemodels.Metadata{
-			{
-				Key:      "TestKey1",
-				Metadata: []byte("mymetadata1"),
-			},
-			{
-				Key:      "TestKey2",
-				Metadata: []byte("mymetadata2"),
-			},
-		},
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
 	if err != nil {
 		log.Fatalln(err.Error())
-	}
-
-	datasetMetadata := []*v1storagemodels.Metadata{
-		{
-			Key:      "Key1",
-			Metadata: []byte("dasddasd"),
-		},
-		{
-			Key:      "Key2",
-			Metadata: []byte("asdasd"),
-		},
 	}
 
 	datasetLabel := []*v1storagemodels.Label{
@@ -59,24 +38,12 @@ func TestDatasetVersion(t *testing.T) {
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
 		Name:      "testdataset",
 		ProjectId: createResponse.GetId(),
-		Metadata:  datasetMetadata,
 		Labels:    datasetLabel,
 	}
 
 	datasetCreateResponse, err := ServerEndpoints.dataset.CreateDataset(context.Background(), createDatasetRequest)
 	if err != nil {
 		log.Fatalln(err.Error())
-	}
-
-	objectGroupMetadata := []*v1storagemodels.Metadata{
-		{
-			Key:      "Key1OG",
-			Metadata: []byte("dasddasdOG"),
-		},
-		{
-			Key:      "Key2OG",
-			Metadata: []byte("asdasdOG"),
-		},
 	}
 
 	objectGroupLabel := []*v1storagemodels.Label{
@@ -87,17 +54,6 @@ func TestDatasetVersion(t *testing.T) {
 		{
 			Key:   "Label2OG",
 			Value: "LabelValue2OG",
-		},
-	}
-
-	object1Metadata := []*v1storagemodels.Metadata{
-		{
-			Key:      "Key1O1",
-			Metadata: []byte("dasddasdO1"),
-		},
-		{
-			Key:      "Key2OG1",
-			Metadata: []byte("asdasdO1"),
 		},
 	}
 
@@ -112,17 +68,6 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
-	object2Metadata := []*v1storagemodels.Metadata{
-		{
-			Key:      "Key1O2",
-			Metadata: []byte("dasddasdO2"),
-		},
-		{
-			Key:      "Key2O2",
-			Metadata: []byte("asdasdO2"),
-		},
-	}
-
 	object2Label := []*v1storagemodels.Label{
 		{
 			Key:   "Label1O2",
@@ -134,24 +79,23 @@ func TestDatasetVersion(t *testing.T) {
 		},
 	}
 
+	objectgroupuuidname := uuid.New().String()
+
 	createObjectGroupRequest := &v1storageservices.CreateObjectGroupRequest{
-		Name:      "testog",
+		Name:      objectgroupuuidname,
 		DatasetId: datasetCreateResponse.GetId(),
 		Labels:    objectGroupLabel,
-		Metadata:  objectGroupMetadata,
 		Objects: []*v1storageservices.CreateObjectRequest{
 			{
 				Filename:   "testfile1",
 				Filetype:   "bin",
 				Labels:     object1Label,
-				Metadata:   object1Metadata,
 				ContentLen: 3,
 			},
 			{
 				Filename:   "testfile2",
 				Filetype:   "bin",
 				Labels:     object2Label,
-				Metadata:   object2Metadata,
 				ContentLen: 3,
 			},
 		},
@@ -162,24 +106,23 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
+	objectgroupuuidname2 := uuid.New().String()
+
 	createObjectGroupRequest2 := &v1storageservices.CreateObjectGroupRequest{
-		Name:      "testog2",
+		Name:      objectgroupuuidname2,
 		DatasetId: datasetCreateResponse.GetId(),
 		Labels:    objectGroupLabel,
-		Metadata:  objectGroupMetadata,
 		Objects: []*v1storageservices.CreateObjectRequest{
 			{
 				Filename:   "testfile1",
 				Filetype:   "bin",
 				Labels:     object1Label,
-				Metadata:   object1Metadata,
 				ContentLen: 3,
 			},
 			{
 				Filename:   "testfile3",
 				Filetype:   "bin",
 				Labels:     object2Label,
-				Metadata:   object2Metadata,
 				ContentLen: 3,
 			},
 		},
@@ -206,17 +149,6 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	versionMetadata := []*v1storagemodels.Metadata{
-		{
-			Key:      "Key1V",
-			Metadata: []byte("dasddasdV"),
-		},
-		{
-			Key:      "Key2V",
-			Metadata: []byte("asdasdV"),
-		},
-	}
-
 	versionLabel := []*v1storagemodels.Label{
 		{
 			Key:   "Label1",
@@ -241,7 +173,6 @@ func TestDatasetVersion(t *testing.T) {
 		Description:    "testrelease",
 		ObjectGroupIds: []string{getObjectGroupResponse.ObjectGroup.Id},
 		Labels:         versionLabel,
-		Metadata:       versionMetadata,
 	}
 
 	versionResponse, err := ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest)
@@ -262,7 +193,6 @@ func TestDatasetVersion(t *testing.T) {
 		Description:    "testrelease",
 		ObjectGroupIds: []string{getObjectGroupResponse.ObjectGroup.Id, createObjectGroupResponse2.ObjectGroupId},
 		Labels:         versionLabel,
-		Metadata:       versionMetadata,
 	}
 
 	_, err = ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest2)
@@ -311,16 +241,6 @@ func TestDatasetVersionPaginated(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "testproject_dataset",
 		Description: "test",
-		Metadata: []*v1storagemodels.Metadata{
-			{
-				Key:      "TestKey1",
-				Metadata: []byte("mymetadata1"),
-			},
-			{
-				Key:      "TestKey2",
-				Metadata: []byte("mymetadata2"),
-			},
-		},
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -423,4 +343,65 @@ func TestDatasetVersionPaginated(t *testing.T) {
 			log.Fatalln("found duplicate object group in pagination")
 		}
 	}
+}
+
+func TestDatasetVersionEmpty(t *testing.T) {
+	createProjectRequest := &v1storageservices.CreateProjectRequest{
+		Name:        "testproject_dataset",
+		Description: "test",
+	}
+
+	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	datasetLabel := []*v1storagemodels.Label{
+		{
+			Key:   "Label1",
+			Value: "LabelValue1",
+		},
+		{
+			Key:   "Label2",
+			Value: "LabelValue2",
+		},
+	}
+
+	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
+		Name:      "testdataset",
+		ProjectId: createResponse.GetId(),
+		Labels:    datasetLabel,
+	}
+
+	datasetCreateResponse, err := ServerEndpoints.dataset.CreateDataset(context.Background(), createDatasetRequest)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	createVersionRequest := &v1storageservices.ReleaseDatasetVersionRequest{
+		Name:      "testversion",
+		DatasetId: datasetCreateResponse.GetId(),
+		Version: &v1storagemodels.Version{
+			Major:    0,
+			Minor:    0,
+			Patch:    1,
+			Revision: 0,
+			Stage:    v1storagemodels.Version_VERSION_STAGE_RC,
+		},
+	}
+
+	versionCreateResponse, err := ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), createVersionRequest)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	version, err := ServerEndpoints.dataset.GetDatasetVersion(context.Background(), &v1storageservices.GetDatasetVersionRequest{
+		Id: versionCreateResponse.GetId(),
+	})
+
+	assert.Equal(t, int64(0), version.DatasetVersion.Stats.AccSize)
+	assert.Equal(t, float64(0), version.DatasetVersion.Stats.AvgObjectSize)
+	assert.Equal(t, int64(0), version.DatasetVersion.Stats.ObjectCount)
+	assert.Equal(t, int64(0), version.DatasetVersion.Stats.ObjectGroupCount)
+
 }

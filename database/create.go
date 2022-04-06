@@ -28,12 +28,6 @@ func (create *Create) CreateProject(request *v1storageservices.CreateProjectRequ
 		labels = append(labels, *label.FromProtoModel(protoLabel))
 	}
 
-	metadataList := []models.Metadata{}
-	for _, protoMetadata := range request.Metadata {
-		metadata := &models.Metadata{}
-		metadataList = append(metadataList, *metadata.FromProtoModel(protoMetadata))
-	}
-
 	project := models.Project{
 		Description: request.Description,
 		Name:        request.Name,
@@ -42,9 +36,8 @@ func (create *Create) CreateProject(request *v1storageservices.CreateProjectRequ
 				UserOauth2ID: userID,
 			},
 		},
-		Labels:   labels,
-		Metadata: metadataList,
-		Status:   v1storagemodels.Status_STATUS_AVAILABLE.String(),
+		Labels: labels,
+		Status: v1storagemodels.Status_STATUS_AVAILABLE.String(),
 	}
 
 	err := crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
@@ -59,33 +52,66 @@ func (create *Create) CreateProject(request *v1storageservices.CreateProjectRequ
 }
 
 func (create *Create) CreateDataset(request *v1storageservices.CreateDatasetRequest) (string, error) {
+	datasetID := uuid.New()
+
 	labels := []models.Label{}
 	for _, protoLabel := range request.Labels {
 		label := models.Label{}
 		labels = append(labels, *label.FromProtoModel(protoLabel))
 	}
 
-	metadataList := []models.Metadata{}
-	for _, protoMetadata := range request.Metadata {
-		metadata := &models.Metadata{}
-		metadataList = append(metadataList, *metadata.FromProtoModel(protoMetadata))
-	}
-
 	projectID, err := uuid.Parse(request.ProjectId)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Errorln(err.Error())
 		return "", err
+	}
+
+	bucket, err := create.S3Handler.CreateBucket(datasetID)
+	if err != nil {
+		log.Println(err.Error())
+		return "", err
+	}
+
+	metadataObjects := make([]models.Object, len(request.GetMetadataObjects()))
+	for i, metadataObjectProto := range request.GetMetadataObjects() {
+		objectID := uuid.New()
+
+		labels := []models.Label{}
+		for _, protoLabel := range request.Labels {
+			label := models.Label{}
+			labels = append(labels, *label.FromProtoModel(protoLabel))
+		}
+
+		location := create.S3Handler.CreateLocation(projectID, datasetID, objectID, metadataObjectProto.Filename, bucket)
+
+		metadataObject := models.Object{
+			Filename:   metadataObjectProto.Filename,
+			Filetype:   metadataObjectProto.Filetype,
+			ContentLen: metadataObjectProto.GetContentLen(),
+			Status:     v1storagemodels.Status_STATUS_INITIATING.String(),
+			Location:   location,
+			DatasetID:  datasetID,
+			ProjectID:  projectID,
+			Labels:     labels,
+			Index:      uint64(i),
+			ParentID:   datasetID,
+		}
+
+		metadataObjects[i] = metadataObject
+
 	}
 
 	dataset := models.Dataset{
 		Name:        request.Name,
 		Description: request.Description,
-		Metadata:    metadataList,
 		Labels:      labels,
 		ProjectID:   projectID,
 		IsPublic:    false,
 		Status:      v1storagemodels.Status_STATUS_AVAILABLE.String(),
+		MetaObjects: metadataObjects,
 	}
+
+	dataset.ID = datasetID
 
 	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
 		return tx.Create(&dataset).Error
@@ -93,17 +119,6 @@ func (create *Create) CreateDataset(request *v1storageservices.CreateDatasetRequ
 
 	if err != nil {
 		log.Println(err.Error())
-		return "", err
-	}
-
-	bucket, err := create.S3Handler.CreateBucket(dataset.ID)
-	if err != nil {
-		log.Println(err.Error())
-		err = create.DB.Delete(&dataset).Error
-		if err != nil {
-			log.Error(err.Error())
-			return "", err
-		}
 		return "", err
 	}
 
@@ -210,16 +225,12 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *v1storageservices.Cre
 }
 
 func (create *Create) prepareObjectGroupForInsert(request *v1storageservices.CreateObjectGroupRequest, dataset *models.Dataset, bucket string) (models.ObjectGroup, []models.Object, error) {
+	objectGroupID := uuid.New()
+
 	labels := []models.Label{}
 	for _, protoLabel := range request.Labels {
 		label := models.Label{}
 		labels = append(labels, *label.FromProtoModel(protoLabel))
-	}
-
-	metadataList := []models.Metadata{}
-	for _, protoMetadata := range request.Metadata {
-		metadata := &models.Metadata{}
-		metadataList = append(metadataList, *metadata.FromProtoModel(protoMetadata))
 	}
 
 	objectGroupModel := models.ObjectGroup{
@@ -227,11 +238,12 @@ func (create *Create) prepareObjectGroupForInsert(request *v1storageservices.Cre
 		ProjectID:   dataset.ProjectID,
 		Name:        request.Name,
 		Description: request.Description,
-		Metadata:    metadataList,
 		Labels:      labels,
 		Generated:   request.Generated.AsTime(),
 		Status:      v1storagemodels.Status_STATUS_INITIATING.String(),
 	}
+
+	objectGroupModel.ID = objectGroupID
 
 	objects := make([]models.Object, 0)
 
@@ -245,24 +257,18 @@ func (create *Create) prepareObjectGroupForInsert(request *v1storageservices.Cre
 			labels = append(labels, *label.FromProtoModel(protoLabel))
 		}
 
-		metadataList := []models.Metadata{}
-		for _, protoMetadata := range protoObject.Metadata {
-			metadata := &models.Metadata{}
-			metadataList = append(metadataList, *metadata.FromProtoModel(protoMetadata))
-		}
-
 		object := models.Object{
 			Filename:   protoObject.Filename,
 			Filetype:   protoObject.Filetype,
 			ContentLen: protoObject.ContentLen,
 			Location:   location,
 			Labels:     labels,
-			Metadata:   metadataList,
 			ObjectUUID: uuid,
 			ProjectID:  dataset.ProjectID,
 			DatasetID:  dataset.ID,
 			Index:      uint64(i),
 			Status:     v1storagemodels.Status_STATUS_INITIATING.String(),
+			ParentID:   objectGroupID,
 		}
 
 		objects = append(objects, object)
@@ -276,12 +282,6 @@ func (create *Create) CreateDatasetVersion(request *v1storageservices.ReleaseDat
 	for _, protoLabel := range request.Labels {
 		label := models.Label{}
 		labels = append(labels, *label.FromProtoModel(protoLabel))
-	}
-
-	metadataList := []models.Metadata{}
-	for _, protoMetadata := range request.Metadata {
-		metadata := &models.Metadata{}
-		metadataList = append(metadataList, *metadata.FromProtoModel(protoMetadata))
 	}
 
 	objectGroups := make([]models.ObjectGroup, 0)
@@ -307,7 +307,6 @@ func (create *Create) CreateDatasetVersion(request *v1storageservices.ReleaseDat
 	version := &models.DatasetVersion{
 		Name:            request.Name,
 		Labels:          labels,
-		Metadata:        metadataList,
 		Description:     request.Description,
 		DatasetID:       datasetID,
 		MajorVersion:    uint(request.Version.Major),

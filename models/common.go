@@ -18,31 +18,12 @@ type BaseModel struct {
 }
 
 func (base *BaseModel) BeforeCreate(tx *gorm.DB) error {
-	id := uuid.New()
-	tx.Statement.SetColumn("ID", id)
+	if base.ID == uuid.Nil {
+		id := uuid.New()
+		tx.Statement.SetColumn("ID", id)
+	}
 
 	return nil
-}
-
-type Metadata struct {
-	BaseModel
-	Name     string
-	Metadata string
-	ParentID uuid.UUID `gorm:"index"`
-}
-
-func (metadata *Metadata) ToProtoModel() *v1storagemodels.Metadata {
-	return &v1storagemodels.Metadata{
-		Key:      metadata.Name,
-		Metadata: []byte(metadata.Metadata),
-	}
-}
-
-func (metadata *Metadata) FromProtoModel(metadataProto *v1storagemodels.Metadata) *Metadata {
-	metadata.Metadata = string(metadataProto.Metadata)
-	metadata.Name = metadataProto.Key
-
-	return metadata
 }
 
 type Label struct {
@@ -67,8 +48,6 @@ func (label *Label) FromProtoModel(labelProto *v1storagemodels.Label) *Label {
 }
 
 type Location struct {
-	BaseModel
-	ObjectID uuid.UUID `gorm:"index"`
 	Endpoint string
 	Bucket   string
 	Key      string

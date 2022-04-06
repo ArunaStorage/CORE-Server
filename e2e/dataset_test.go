@@ -1,8 +1,11 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -14,36 +17,20 @@ import (
 	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 )
 
+type TestMetadata struct {
+	Testdata1 string
+	Testdata2 int
+}
+
 func TestDataset(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "testproject_dataset",
 		Description: "test",
-		Metadata: []*v1storagemodels.Metadata{
-			{
-				Key:      "TestKey1",
-				Metadata: []byte("mymetadata1"),
-			},
-			{
-				Key:      "TestKey2",
-				Metadata: []byte("mymetadata2"),
-			},
-		},
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
 	if err != nil {
 		log.Fatalln(err.Error())
-	}
-
-	datasetMetadata := []*v1storagemodels.Metadata{
-		{
-			Key:      "Key1",
-			Metadata: []byte("dasddasd"),
-		},
-		{
-			Key:      "Key2",
-			Metadata: []byte("asdasd"),
-		},
 	}
 
 	datasetLabel := []*v1storagemodels.Label{
@@ -57,14 +44,41 @@ func TestDataset(t *testing.T) {
 		},
 	}
 
+	metadataEntries := []*v1storageservices.CreateObjectRequest{
+		{
+			Filename: "metadata1.json",
+			Filetype: "json",
+			Labels: []*v1storagemodels.Label{
+				{Key: "label1key", Value: "label1value"},
+			},
+		},
+		{
+			Filename: "metadata2.json",
+			Filetype: "json",
+			Labels: []*v1storagemodels.Label{
+				{Key: "label1key", Value: "label1value"},
+			},
+		},
+	}
+
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
-		Name:      "testdataset",
-		ProjectId: createResponse.GetId(),
-		Metadata:  datasetMetadata,
-		Labels:    datasetLabel,
+		Name:            "testdataset",
+		ProjectId:       createResponse.GetId(),
+		Labels:          datasetLabel,
+		MetadataObjects: metadataEntries,
 	}
 
 	datasetCreateResponse, err := ServerEndpoints.dataset.CreateDataset(context.Background(), createDatasetRequest)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	testmetadata := TestMetadata{
+		Testdata1: "foo",
+		Testdata2: 15,
+	}
+
+	metadatabytes, err := json.Marshal(testmetadata)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -76,10 +90,41 @@ func TestDataset(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
+	for _, object := range datasetGetResponse.GetDataset().MetadataObjects {
+		linkResponse, err := ServerEndpoints.load.CreateUploadLink(context.Background(), &v1storageservices.CreateUploadLinkRequest{
+			Id: object.GetId(),
+		})
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+		req, err := http.NewRequest("PUT", linkResponse.UploadLink, bytes.NewBuffer(metadatabytes))
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			log.Fatalln("error when uploading data")
+		}
+	}
+
+	datasetGetResponseWithMetadata, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 2, len(datasetGetResponseWithMetadata.Dataset.MetadataObjects))
+
 	assert.Equal(t, createDatasetRequest.Name, datasetGetResponse.Dataset.Name)
 	assert.Equal(t, createDatasetRequest.Description, datasetGetResponse.GetDataset().Description)
 	assert.ElementsMatch(t, createDatasetRequest.Labels, datasetGetResponse.Dataset.Labels)
-	assert.ElementsMatch(t, createDatasetRequest.Metadata, datasetGetResponse.Dataset.Metadata)
 
 	//_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &services.DeleteDatasetRequest{
 	//	Id: datasetCreateResponse.GetId(),
@@ -95,16 +140,6 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "testproject_dataset",
 		Description: "test",
-		Metadata: []*v1storagemodels.Metadata{
-			{
-				Key:      "TestKey1",
-				Metadata: []byte("mymetadata1"),
-			},
-			{
-				Key:      "TestKey2",
-				Metadata: []byte("mymetadata2"),
-			},
-		},
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)

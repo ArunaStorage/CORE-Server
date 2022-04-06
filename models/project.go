@@ -13,7 +13,6 @@ type Project struct {
 	Name        string
 	Status      string
 	Labels      []Label    `gorm:"many2many:project_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Metadata    []Metadata `gorm:"many2many:project_metadata;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	APIToken    []APIToken `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Datasets    []Dataset  `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
@@ -30,11 +29,6 @@ func (project *Project) ToProtoModel(stats *v1storagemodels.ProjectStats) (*v1st
 		labels = append(labels, label.ToProtoModel())
 	}
 
-	metadataList := []*v1storagemodels.Metadata{}
-	for _, metadata := range project.Metadata {
-		metadataList = append(metadataList, metadata.ToProtoModel())
-	}
-
 	status, err := ToStatus(project.Status)
 	if err != nil {
 		log.Errorln(err.Error())
@@ -47,7 +41,6 @@ func (project *Project) ToProtoModel(stats *v1storagemodels.ProjectStats) (*v1st
 		Description: project.Description,
 		Users:       users,
 		Labels:      labels,
-		Metadata:    metadataList,
 		Status:      status,
 		Stats:       stats,
 	}, nil
