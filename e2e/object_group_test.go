@@ -90,6 +90,13 @@ func TestObjectGroup(t *testing.T) {
 		Name:      name,
 		DatasetId: datasetCreateResponse.GetId(),
 		Labels:    objectGroupLabel,
+		MetadataObjects: []*v1storageservices.CreateObjectRequest{
+			{
+				Filename:   "metadata1",
+				Filetype:   "meta",
+				ContentLen: 8,
+			},
+		},
 		Objects: []*v1storageservices.CreateObjectRequest{
 			{
 				Filename:   "testfile1",
@@ -129,30 +136,12 @@ func TestObjectGroup(t *testing.T) {
 
 	object := getObjectGroupResponse.ObjectGroup.Objects[0]
 
-	uploadLink, err := ServerEndpoints.load.CreateUploadLink(context.Background(), &v1storageservices.CreateUploadLinkRequest{
-		Id: object.GetId(),
-	})
+	err = UploadObjects(getObjectGroupResponse.ObjectGroup.GetObjects(), []string{"foo", "baa"}, ServerEndpoints.load, ServerEndpoints.object)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	uploadHttpRequest, err := http.NewRequest("PUT", uploadLink.UploadLink, bytes.NewBufferString("foo"))
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	response, err := http.DefaultClient.Do(uploadHttpRequest)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	if response.StatusCode != 200 {
-		log.Fatalln(response.Status)
-	}
-
-	_, err = ServerEndpoints.object.FinishObjectUpload(context.Background(), &v1storageservices.FinishObjectUploadRequest{
-		Id: object.Id,
-	})
+	err = UploadObjects(getObjectGroupResponse.ObjectGroup.GetMetadataObjects(), []string{"metadata"}, ServerEndpoints.load, ServerEndpoints.object)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -164,28 +153,10 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	downloadLink, err := ServerEndpoints.load.CreateDownloadLink(context.Background(), &v1storageservices.CreateDownloadLinkRequest{
-		Id: object.GetId(),
-	})
+	err = DownloadObjects(t, getObjectGroupResponse.ObjectGroup.Objects, []string{"foo", "baa"}, ServerEndpoints.load, ServerEndpoints.object)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
-
-	dlResponse, err := http.DefaultClient.Get(downloadLink.GetDownloadLink())
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	if response.StatusCode != 200 {
-		log.Fatalln(response.Status)
-	}
-
-	data, err := ioutil.ReadAll(dlResponse.Body)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	assert.Equal(t, string(data), "foo")
 
 	downloadLinkRange, err := ServerEndpoints.load.CreateDownloadLink(context.Background(), &v1storageservices.CreateDownloadLinkRequest{
 		Id: object.GetId(),
@@ -210,8 +181,8 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	if response.StatusCode != 200 {
-		log.Fatalln(response.Status)
+	if dlResponseRange.StatusCode != 206 {
+		log.Fatalln(dlResponseRange.Status)
 	}
 
 	dataRange, err := ioutil.ReadAll(dlResponseRange.Body)

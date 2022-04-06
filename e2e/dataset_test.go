@@ -45,18 +45,18 @@ func TestDataset(t *testing.T) {
 	}
 
 	metadataEntries := []*v1storageservices.CreateObjectRequest{
-		&v1storageservices.CreateObjectRequest{
+		{
 			Filename: "metadata1.json",
 			Filetype: "json",
 			Labels: []*v1storagemodels.Label{
-				&v1storagemodels.Label{Key: "label1key", Value: "label1value"},
+				{Key: "label1key", Value: "label1value"},
 			},
 		},
-		&v1storageservices.CreateObjectRequest{
+		{
 			Filename: "metadata2.json",
 			Filetype: "json",
 			Labels: []*v1storagemodels.Label{
-				&v1storagemodels.Label{Key: "label1key", Value: "label1value"},
+				{Key: "label1key", Value: "label1value"},
 			},
 		},
 	}
