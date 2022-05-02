@@ -273,23 +273,23 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *v1storageservic
 	}
 
 	for objectGroupBatch := range objectGroupsChan {
-		objectGroups := make([]*v1storagemodels.ObjectGroup, len(objectGroupBatch))
+		objectGroupRevisions := make([]*v1storagemodels.ObjectGroupRevision, len(objectGroupBatch))
 		links := make([]*v1storageservices.InnerLinksResponse, len(objectGroupBatch))
 		for i, objectGroup := range objectGroupBatch {
-			objectGroupStats, err := endpoint.StatsHandler.GetObjectGroupStats(objectGroup)
+			objectGroupRevisionStats, err := endpoint.StatsHandler.GetObjectGroupRevisionStats(&objectGroup.CurrentObjectGroupRevision)
 			if err != nil {
 				log.Errorln(err.Error())
 				return err
 			}
 
-			protoObjectGroup, err := objectGroup.ToProtoModel(objectGroupStats)
+			protoObjectGroup, err := objectGroup.CurrentObjectGroupRevision.ToProtoModel(objectGroupRevisionStats)
 			if err != nil {
 				log.Errorln(err.Error())
 				return status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
 			}
-			objectGroups = append(objectGroups, protoObjectGroup)
-			objectLinks := make([]string, len(objectGroup.Objects))
-			for j, object := range objectGroup.Objects {
+			objectGroupRevisions = append(objectGroupRevisions, protoObjectGroup)
+			objectLinks := make([]string, len(objectGroup.CurrentObjectGroupRevision.Objects))
+			for j, object := range objectGroup.CurrentObjectGroupRevision.Objects {
 				link, err := endpoint.ObjectHandler.CreateDownloadLink(&object, &v1storageservices.CreateDownloadLinkRequest{})
 				if err != nil {
 					log.Println(err.Error())
@@ -304,8 +304,8 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *v1storageservic
 
 		batchResponse := &v1storageservices.CreateDownloadLinkStreamResponse{
 			Links: &v1storageservices.LinksResponse{
-				ObjectGroups:     objectGroups,
-				ObjectGroupLinks: links,
+				ObjectGroupRevisions:     objectGroupRevisions,
+				ObjectGroupRevisionLinks: links,
 			},
 		}
 

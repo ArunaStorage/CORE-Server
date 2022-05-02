@@ -12,5 +12,5 @@ type StreamingEntry struct {
 	Dataset      Dataset
 	ProjectID    uuid.UUID
 	Project      Project
-	ObjectGroups []ObjectGroup `gorm:"many2many:streaming_entry_object_groups;"`
+	ObjectGroups []ObjectGroupRevision `gorm:"many2many:streaming_entry_object_groups;"`
 }

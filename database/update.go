@@ -64,3 +64,50 @@ func (update *Update) UpdateStatus(status v1storagemodels.Status, resourceID uui
 
 	return nil
 }
+
+func (update *Update) FinishObjectGroupRevisionUpload(objectGroupRevisionID uuid.UUID) error {
+	objectGroupRevision := &models.ObjectGroupRevision{}
+	objectGroupRevision.ID = objectGroupRevisionID
+
+	objectGroup := &models.ObjectGroup{}
+
+	err := crdbgorm.ExecuteTx(context.Background(), update.DB, nil, func(tx *gorm.DB) error {
+		tx.Transaction(func(tx *gorm.DB) error {
+			if err := tx.First(objectGroupRevision).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			objectGroup.ID = objectGroupRevision.ObjectGroupID
+
+			if err := tx.First(objectGroup).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			if err := tx.Model(objectGroup).Update("current_revision_count", objectGroup.CurrentRevisionCount+1).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			objectGroupRevision.Status = v1storagemodels.Status_STATUS_AVAILABLE.String()
+			objectGroupRevision.RevisionNumber = objectGroup.CurrentRevisionCount
+
+			if err := tx.Save(objectGroupRevision).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			return nil
+		})
+
+		return nil
+	})
+
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+
+	return nil
+}

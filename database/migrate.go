@@ -33,6 +33,7 @@ func MakeMigrationsStandaloneFromDB(db *gorm.DB) error {
 		&models.User{},
 		&models.StreamingEntry{},
 		&models.StreamGroup{},
+		&models.ObjectGroupRevision{},
 	)
 
 	if err != nil {

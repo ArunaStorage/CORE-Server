@@ -185,8 +185,8 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 	var lastUUID uuid.UUID
 
 	for _, objectGroup := range objectGroups1 {
-		if _, ok := handledObjectGroups[objectGroup.Name]; !ok {
-			handledObjectGroups[objectGroup.Name] = struct{}{}
+		if _, ok := handledObjectGroups[objectGroup.CurrentObjectGroupRevision.Name]; !ok {
+			handledObjectGroups[objectGroup.CurrentObjectGroupRevision.Name] = struct{}{}
 			lastUUID = objectGroup.ID
 		} else {
 			log.Fatalln("found duplicate object group in pagination")
@@ -204,8 +204,8 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 	assert.Equal(t, 4, len(objectGroups2))
 
 	for _, objectGroup := range objectGroups2 {
-		if _, ok := handledObjectGroups[objectGroup.Name]; !ok {
-			handledObjectGroups[objectGroup.Name] = struct{}{}
+		if _, ok := handledObjectGroups[objectGroup.CurrentObjectGroupRevision.Name]; !ok {
+			handledObjectGroups[objectGroup.CurrentObjectGroupRevision.Name] = struct{}{}
 			lastUUID = objectGroup.ID
 		} else {
 			log.Fatalln("found duplicate object group in pagination")
@@ -223,8 +223,8 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 	assert.Equal(t, 2, len(objectGroups3))
 
 	for _, objectGroup := range objectGroups3 {
-		if _, ok := handledObjectGroups[objectGroup.Name]; !ok {
-			handledObjectGroups[objectGroup.Name] = struct{}{}
+		if _, ok := handledObjectGroups[objectGroup.CurrentObjectGroupRevision.Name]; !ok {
+			handledObjectGroups[objectGroup.CurrentObjectGroupRevision.Name] = struct{}{}
 		} else {
 			log.Fatalln("found duplicate object group in pagination")
 		}

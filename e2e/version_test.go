@@ -133,8 +133,8 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	_, err = ServerEndpoints.object.FinishObjectGroupUpload(context.Background(), &v1storageservices.FinishObjectGroupUploadRequest{
-		Id: createObjectGroupResponse.ObjectGroupId,
+	_, err = ServerEndpoints.object.FinishObjectGroupRevisionUpload(context.Background(), &v1storageservices.FinishObjectGroupRevisionUploadRequest{
+		Id: createObjectGroupResponse.ObjectGroupRevisionId,
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
@@ -170,9 +170,9 @@ func TestDatasetVersion(t *testing.T) {
 			Revision: 1,
 			Stage:    v1storagemodels.Version_VERSION_STAGE_STABLE,
 		},
-		Description:    "testrelease",
-		ObjectGroupIds: []string{getObjectGroupResponse.ObjectGroup.Id},
-		Labels:         versionLabel,
+		Description:            "testrelease",
+		ObjectGroupRevisionIds: []string{getObjectGroupResponse.ObjectGroup.CurrentRevision.Id},
+		Labels:                 versionLabel,
 	}
 
 	versionResponse, err := ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest)
@@ -190,9 +190,9 @@ func TestDatasetVersion(t *testing.T) {
 			Revision: 1,
 			Stage:    v1storagemodels.Version_VERSION_STAGE_STABLE,
 		},
-		Description:    "testrelease",
-		ObjectGroupIds: []string{getObjectGroupResponse.ObjectGroup.Id, createObjectGroupResponse2.ObjectGroupId},
-		Labels:         versionLabel,
+		Description:            "testrelease",
+		ObjectGroupRevisionIds: []string{getObjectGroupResponse.ObjectGroup.CurrentRevision.Id, createObjectGroupResponse2.ObjectGroupRevisionId},
+		Labels:                 versionLabel,
 	}
 
 	_, err = ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest2)
@@ -227,7 +227,7 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, 1, len(versionRevisions.GetObjectGroup()))
+	assert.Equal(t, 1, len(versionRevisions.GetObjectGroupRevisions()))
 
 	//_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
 	//	Id: datasetCreateResponse.GetId(),
@@ -271,16 +271,16 @@ func TestDatasetVersionPaginated(t *testing.T) {
 			log.Fatalln(err.Error())
 		}
 
-		objectIDs = append(objectIDs, object.ObjectGroupId)
+		objectIDs = append(objectIDs, object.ObjectGroupRevisionId)
 	}
 
 	handledObjectGroups := make(map[string]struct{})
 
 	versionID, err := ServerEndpoints.dataset.CreateHandler.CreateDatasetVersion(&v1storageservices.ReleaseDatasetVersionRequest{
-		Name:           "foo",
-		DatasetId:      datasetCreateResponse.GetId(),
-		ObjectGroupIds: objectIDs,
-		Version:        &v1storagemodels.Version{},
+		Name:                   "foo",
+		DatasetId:              datasetCreateResponse.GetId(),
+		ObjectGroupRevisionIds: objectIDs,
+		Version:                &v1storagemodels.Version{},
 	}, uuid.MustParse(createResponse.GetId()))
 	if err != nil {
 		log.Fatalln(err.Error())
@@ -294,11 +294,11 @@ func TestDatasetVersionPaginated(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, 4, len(objectGroups1.ObjectGroups))
+	assert.Equal(t, 4, len(objectGroups1.ObjectGroupRevisions))
 
 	var lastUUID uuid.UUID
 
-	for _, objectGroup := range objectGroups1.ObjectGroups {
+	for _, objectGroup := range objectGroups1.ObjectGroupRevisions {
 		if _, ok := handledObjectGroups[objectGroup.Name]; !ok {
 			handledObjectGroups[objectGroup.Name] = struct{}{}
 			lastUUID = objectGroup.ID
@@ -315,9 +315,9 @@ func TestDatasetVersionPaginated(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, 4, len(objectGroups2.ObjectGroups))
+	assert.Equal(t, 4, len(objectGroups2.ObjectGroupRevisions))
 
-	for _, objectGroup := range objectGroups2.ObjectGroups {
+	for _, objectGroup := range objectGroups2.ObjectGroupRevisions {
 		if _, ok := handledObjectGroups[objectGroup.Name]; !ok {
 			handledObjectGroups[objectGroup.Name] = struct{}{}
 			lastUUID = objectGroup.ID
@@ -334,9 +334,9 @@ func TestDatasetVersionPaginated(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, 2, len(objectGroups3.ObjectGroups))
+	assert.Equal(t, 2, len(objectGroups3.ObjectGroupRevisions))
 
-	for _, objectGroup := range objectGroups3.ObjectGroups {
+	for _, objectGroup := range objectGroups3.ObjectGroupRevisions {
 		if _, ok := handledObjectGroups[objectGroup.Name]; !ok {
 			handledObjectGroups[objectGroup.Name] = struct{}{}
 		} else {

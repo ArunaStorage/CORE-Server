@@ -154,18 +154,34 @@ func (create *Create) CreateObjectGroup(request *v1storageservices.CreateObjectG
 		return nil, fmt.Errorf("could not read datasetID")
 	}
 
-	objectGroupModel, objects, err := create.prepareObjectGroupForInsert(request, dataset, bucket)
+	objectGroupRevisionModel, objects, err := create.prepareObjectGroupRevisionForInsert(request, dataset, bucket)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
 
-	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
-		objectGroupModel.Objects = objects
+	objectGroup := models.ObjectGroup{
+		CurrentRevisionCount: 0,
+		DatasetID:            dataset.ID,
+		ProjectID:            dataset.ProjectID,
+	}
 
-		if err := tx.Create(&objectGroupModel).Error; err != nil {
-			return err
-		}
+	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
+		objectGroupRevisionModel.Objects = objects
+
+		tx.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(&objectGroup).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+			objectGroupRevisionModel.ObjectGroupID = objectGroup.ID
+
+			if err := tx.Create(&objectGroupRevisionModel).Error; err != nil {
+				return err
+			}
+
+			return nil
+		})
 
 		return nil
 	})
@@ -175,12 +191,14 @@ func (create *Create) CreateObjectGroup(request *v1storageservices.CreateObjectG
 		return nil, fmt.Errorf("error while creating entries for object group")
 	}
 
-	return &objectGroupModel, nil
+	objectGroup.CurrentObjectGroupRevision = objectGroupRevisionModel
+	objectGroup.CurrentObjectGroupRevisionID = objectGroupRevisionModel.ID
+
+	return &objectGroup, nil
 }
 
-func (create *Create) CreateObjectGroupBatch(batchRequest *v1storageservices.CreateObjectGroupBatchRequest, bucket string) ([]models.ObjectGroup, error) {
-	var objectgroups []models.ObjectGroup
-	var objectgroupsObjects [][]models.Object
+func (create *Create) CreateObjectGroupBatch(batchRequest *v1storageservices.CreateObjectGroupBatchRequest, bucket string) ([]*models.ObjectGroup, error) {
+	var objectGroups []*models.ObjectGroup
 
 	dataset := &models.Dataset{}
 
@@ -198,20 +216,37 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *v1storageservices.Cre
 	}
 
 	for _, request := range batchRequest.GetRequests() {
-		objectGroup, objects, err := create.prepareObjectGroupForInsert(request, dataset, bucket)
+		objectGroupUUID := uuid.New()
+
+		objectGroup := &models.ObjectGroup{
+			CurrentRevisionCount: 0,
+			DatasetID:            dataset.ID,
+			ProjectID:            dataset.ProjectID,
+			ObjectGroupRevisions: make([]models.ObjectGroupRevision, 1),
+		}
+
+		objectGroup.ID = objectGroupUUID
+
+		objectGroupRevision, objects, err := create.prepareObjectGroupRevisionForInsert(request, dataset, bucket)
 		if err != nil {
 			log.Println(err.Error())
 			return nil, err
 		}
-		objectGroup.Objects = objects
-		objectgroups = append(objectgroups, objectGroup)
-		objectgroupsObjects = append(objectgroupsObjects, objects)
+
+		objectGroupRevision.Objects = objects
+		objectGroup.ObjectGroupRevisions[0] = objectGroupRevision
+
+		objectGroups = append(objectGroups, objectGroup)
 	}
 
 	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
-		if err = tx.Create(&objectgroups).Error; err != nil {
-			return err
-		}
+		tx.Transaction(func(tx *gorm.DB) error {
+			if err = tx.Create(&objectGroups).Error; err != nil {
+				return err
+			}
+
+			return nil
+		})
 
 		return nil
 	})
@@ -221,10 +256,10 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *v1storageservices.Cre
 		return nil, fmt.Errorf("could not create error group")
 	}
 
-	return objectgroups, nil
+	return objectGroups, nil
 }
 
-func (create *Create) prepareObjectGroupForInsert(request *v1storageservices.CreateObjectGroupRequest, dataset *models.Dataset, bucket string) (models.ObjectGroup, []models.Object, error) {
+func (create *Create) prepareObjectGroupRevisionForInsert(request *v1storageservices.CreateObjectGroupRequest, dataset *models.Dataset, bucket string) (models.ObjectGroupRevision, []models.Object, error) {
 	objectGroupID := uuid.New()
 
 	labels := []models.Label{}
@@ -233,7 +268,7 @@ func (create *Create) prepareObjectGroupForInsert(request *v1storageservices.Cre
 		labels = append(labels, *label.FromProtoModel(protoLabel))
 	}
 
-	objectGroupModel := models.ObjectGroup{
+	objectGroupModel := models.ObjectGroupRevision{
 		DatasetID:   dataset.ID,
 		ProjectID:   dataset.ProjectID,
 		Name:        request.Name,
@@ -284,10 +319,10 @@ func (create *Create) CreateDatasetVersion(request *v1storageservices.ReleaseDat
 		labels = append(labels, *label.FromProtoModel(protoLabel))
 	}
 
-	objectGroups := make([]models.ObjectGroup, 0)
+	objectGroupRevisions := make([]models.ObjectGroupRevision, 0)
 	var err error
-	for _, objectGroupID := range request.ObjectGroupIds {
-		objectGroup := models.ObjectGroup{}
+	for _, objectGroupID := range request.ObjectGroupRevisionIds {
+		objectGroup := models.ObjectGroupRevision{}
 
 		objectGroup.ID, err = uuid.Parse(objectGroupID)
 		if err != nil {
@@ -295,7 +330,7 @@ func (create *Create) CreateDatasetVersion(request *v1storageservices.ReleaseDat
 			return uuid.UUID{}, err
 		}
 
-		objectGroups = append(objectGroups, objectGroup)
+		objectGroupRevisions = append(objectGroupRevisions, objectGroup)
 	}
 
 	datasetID, err := uuid.Parse(request.DatasetId)
@@ -305,22 +340,22 @@ func (create *Create) CreateDatasetVersion(request *v1storageservices.ReleaseDat
 	}
 
 	version := &models.DatasetVersion{
-		Name:            request.Name,
-		Labels:          labels,
-		Description:     request.Description,
-		DatasetID:       datasetID,
-		MajorVersion:    uint(request.Version.Major),
-		MinorVersion:    uint(request.Version.Minor),
-		PatchVersion:    uint(request.Version.Patch),
-		Stage:           request.Version.GetStage().String(),
-		RevisionVersion: uint(request.GetVersion().Revision),
-		ProjectID:       projectID,
-		ObjectGroups:    objectGroups,
-		Status:          v1storagemodels.Status_STATUS_AVAILABLE.String(),
+		Name:                 request.Name,
+		Labels:               labels,
+		Description:          request.Description,
+		DatasetID:            datasetID,
+		MajorVersion:         uint(request.Version.Major),
+		MinorVersion:         uint(request.Version.Minor),
+		PatchVersion:         uint(request.Version.Patch),
+		Stage:                request.Version.GetStage().String(),
+		RevisionVersion:      uint(request.GetVersion().Revision),
+		ProjectID:            projectID,
+		ObjectGroupRevisions: objectGroupRevisions,
+		Status:               v1storagemodels.Status_STATUS_AVAILABLE.String(),
 	}
 
 	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
-		if err := tx.Omit("ObjectGroups.*").Create(&version).Error; err != nil {
+		if err := tx.Omit("ObjectGroupRevisions.*").Create(&version).Error; err != nil {
 			log.Errorln(err.Error())
 			return err
 		}

@@ -58,13 +58,14 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 	}
 
 	objectGroupResponse := &v1storageservices.CreateObjectGroupResponse{
-		ObjectGroupId:   objectgroup.ID.String(),
-		ObjectGroupName: objectgroup.Name,
-		ObjectLinks:     []*v1storageservices.CreateObjectGroupResponse_ObjectLinks{},
+		ObjectGroupId:         objectgroup.ID.String(),
+		ObjectGroupName:       objectgroup.CurrentObjectGroupRevision.Name,
+		ObjectLinks:           []*v1storageservices.CreateObjectGroupResponse_ObjectLinks{},
+		ObjectGroupRevisionId: objectgroup.CurrentObjectGroupRevisionID.String(),
 	}
 
 	if request.IncludeObjectLink {
-		for i, object := range objectgroup.Objects {
+		for i, object := range objectgroup.CurrentObjectGroupRevision.Objects {
 			link, err := endpoint.ObjectHandler.CreateUploadLink(&object)
 			if err != nil {
 				log.Println(err.Error())
@@ -81,7 +82,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 
 	err = endpoint.EventStreamMgmt.PublishMessage(&v1notficationservices.EventNotificationMessage{
 		Resource:    v1storagemodels.Resource_RESOURCE_OBJECT_GROUP,
-		ResourceId:  objectGroupResponse.GetObjectGroupId(),
+		ResourceId:  objectGroupResponse.ObjectGroupId,
 		UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_CREATED,
 	})
 
@@ -137,12 +138,27 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 
 	for _, objectgroup := range objectgroups {
 		objectgroupResponse := &v1storageservices.CreateObjectGroupResponse{
-			ObjectGroupId:   objectgroup.ID.String(),
-			ObjectGroupName: objectgroup.Name,
-			ObjectLinks:     make([]*v1storageservices.CreateObjectGroupResponse_ObjectLinks, 0),
+			ObjectGroupId:         objectgroup.ID.String(),
+			ObjectGroupRevisionId: objectgroup.ObjectGroupRevisions[0].ID.String(),
+			ObjectGroupName:       objectgroup.ObjectGroupRevisions[0].Name,
+			ObjectLinks:           make([]*v1storageservices.CreateObjectGroupResponse_ObjectLinks, 0),
+			MetadataObjectLinks:   make([]*v1storageservices.CreateObjectGroupResponse_ObjectLinks, 0),
 		}
 		if requests.IncludeObjectLink {
-			for _, object := range objectgroup.Objects {
+			for _, object := range objectgroup.ObjectGroupRevisions[0].Objects {
+				link, err := endpoint.ObjectHandler.CreateUploadLink(&object)
+				if err != nil {
+					log.Println(err.Error())
+					return nil, err
+				}
+
+				objectgroupResponse.ObjectLinks = append(objectgroupResponse.ObjectLinks, &v1storageservices.CreateObjectGroupResponse_ObjectLinks{
+					Filename: object.Filename,
+					Link:     link,
+				})
+			}
+
+			for _, object := range objectgroup.ObjectGroupRevisions[0].MetaObjects {
 				link, err := endpoint.ObjectHandler.CreateUploadLink(&object)
 				if err != nil {
 					log.Println(err.Error())
@@ -199,17 +215,17 @@ func (endpoint *ObjectServerEndpoints) GetObjectGroup(ctx context.Context, reque
 		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return nil, err
 	}
 
-	objectGroupStats, err := endpoint.StatsHandler.GetObjectGroupStats(objectGroup)
+	stats, err := endpoint.StatsHandler.GetObjectGroupRevisionStats(&objectGroup.CurrentObjectGroupRevision)
 	if err != nil {
-		log.Println(err.Error())
-		return nil, status.Error(codes.Internal, "could not read objectgroup stats")
+		log.Errorln(err.Error())
+		return nil, err
 	}
 
-	protoObjectGroup, err := objectGroup.ToProtoModel(objectGroupStats)
+	protoObjectGroup, err := objectGroup.ToProtoModel(stats)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
@@ -219,6 +235,49 @@ func (endpoint *ObjectServerEndpoints) GetObjectGroup(ctx context.Context, reque
 	}
 
 	return &response, nil
+}
+
+func (endpoint *ObjectServerEndpoints) GetObjectGroupRevision(ctx context.Context, request *v1storageservices.GetObjectGroupRevisionRequest) (*v1storageservices.GetObjectGroupRevisionResponse, error) {
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
+	}
+
+	objectGroupRevision, err := endpoint.ReadHandler.GetObjectGroupRevision(requestID)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	metadata, _ := metadata.FromIncomingContext(ctx)
+
+	err = endpoint.AuthzHandler.Authorize(
+		objectGroupRevision.ProjectID,
+		v1storagemodels.Right_RIGHT_READ,
+		metadata)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	objectGroupRevisionStats, err := endpoint.StatsHandler.GetObjectGroupRevisionStats(objectGroupRevision)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not read stats for revision")
+	}
+
+	protoRevision, err := objectGroupRevision.ToProtoModel(objectGroupRevisionStats)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	response := &v1storageservices.GetObjectGroupRevisionResponse{
+		ObjectGroupRevision: protoRevision,
+	}
+
+	return response, nil
 }
 
 //FinishObjectUpload Finishes the upload process for an object
@@ -252,14 +311,14 @@ func (endpoint *ObjectServerEndpoints) FinishObjectUpload(ctx context.Context, r
 }
 
 //FinishObjectUpload Finishes the upload process for an object
-func (endpoint *ObjectServerEndpoints) FinishObjectGroupUpload(ctx context.Context, request *v1storageservices.FinishObjectGroupUploadRequest) (*v1storageservices.FinishObjectGroupUploadResponse, error) {
+func (endpoint *ObjectServerEndpoints) FinishObjectGroupRevisionUpload(ctx context.Context, request *v1storageservices.FinishObjectGroupRevisionUploadRequest) (*v1storageservices.FinishObjectGroupRevisionUploadResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
 	}
 
-	object, err := endpoint.ReadHandler.GetObjectGroup(requestID)
+	objectGroupRevision, err := endpoint.ReadHandler.GetObjectGroupRevision(requestID)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, err
@@ -268,7 +327,7 @@ func (endpoint *ObjectServerEndpoints) FinishObjectGroupUpload(ctx context.Conte
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err = endpoint.AuthzHandler.Authorize(
-		object.ProjectID,
+		objectGroupRevision.ProjectID,
 		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
@@ -276,19 +335,13 @@ func (endpoint *ObjectServerEndpoints) FinishObjectGroupUpload(ctx context.Conte
 		return nil, err
 	}
 
-	uuid, err := uuid.Parse(request.GetId())
+	err = endpoint.UpdateHandler.FinishObjectGroupRevisionUpload(requestID)
 	if err != nil {
-		log.Debug(err.Error())
-		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not finish objectgroup revision")
 	}
 
-	err = endpoint.UpdateHandler.UpdateStatus(v1storagemodels.Status_STATUS_AVAILABLE, uuid, v1storagemodels.Resource_RESOURCE_OBJECT_GROUP)
-	if err != nil {
-		log.Debugln(err.Error())
-		return nil, status.Error(codes.Internal, "could not update status of objectgroup")
-	}
-
-	msg := &v1notficationservices.EventNotificationMessage{Resource: v1storagemodels.Resource_RESOURCE_OBJECT_GROUP, ResourceId: request.GetId(), UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_AVAILABLE}
+	msg := &v1notficationservices.EventNotificationMessage{Resource: v1storagemodels.Resource_RESOURCE_OBJECT_GROUP, ResourceId: objectGroupRevision.ObjectGroupID.String(), UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_AVAILABLE}
 
 	err = endpoint.EventStreamMgmt.PublishMessage(msg)
 	if err != nil {
@@ -296,7 +349,7 @@ func (endpoint *ObjectServerEndpoints) FinishObjectGroupUpload(ctx context.Conte
 		return nil, err
 	}
 
-	finished := &v1storageservices.FinishObjectGroupUploadResponse{}
+	finished := &v1storageservices.FinishObjectGroupRevisionUploadResponse{}
 
 	return finished, nil
 }

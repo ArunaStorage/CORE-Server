@@ -58,21 +58,51 @@ func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
 
 type ObjectGroup struct {
 	BaseModel
+	CurrentRevisionCount         int64
+	CurrentObjectGroupRevision   ObjectGroupRevision
+	CurrentObjectGroupRevisionID uuid.UUID
+	ObjectGroupRevisions         []ObjectGroupRevision
+	DatasetID                    uuid.UUID
+	Dataset                      Dataset
+	ProjectID                    uuid.UUID `gorm:"index"`
+	Project                      Project
+}
+
+func (objectGroup *ObjectGroup) ToProtoModel(revisionStats *v1storagemodels.ObjectGroupStats) (*v1storagemodels.ObjectGroup, error) {
+	revisionObject, err := objectGroup.CurrentObjectGroupRevision.ToProtoModel(revisionStats)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	return &v1storagemodels.ObjectGroup{
+		Id:              objectGroup.ID.String(),
+		RevisionCounter: objectGroup.CurrentRevisionCount,
+		CurrentRevision: revisionObject,
+		DatasetId:       objectGroup.DatasetID.String(),
+		ProjectId:       objectGroup.ProjectID.String(),
+	}, nil
+}
+
+type ObjectGroupRevision struct {
+	BaseModel
 	Name            string
 	Description     string
 	DatasetID       uuid.UUID
 	Dataset         Dataset
 	ProjectID       uuid.UUID `gorm:"index"`
 	Project         Project
-	Labels          []Label          `gorm:"many2many:object_group_label;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	DatasetVersions []DatasetVersion `gorm:"many2many:dataset_version_object_groups;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Labels          []Label          `gorm:"many2many:object_group_revision_label;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	DatasetVersions []DatasetVersion `gorm:"many2many:dataset_version_object_group_revisions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Status          string           `gorm:"index"`
 	Generated       time.Time
-	Objects         []Object `gorm:"many2many:object_group_data_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	MetaObjects     []Object `gorm:"many2many:object_group_meta_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Objects         []Object `gorm:"many2many:object_group_revision_data_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	MetaObjects     []Object `gorm:"many2many:object_group_revision_meta_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ObjectGroupID   uuid.UUID
+	RevisionNumber  int64
 }
 
-func (objectGroup *ObjectGroup) ToProtoModel(stats *v1storagemodels.ObjectGroupStats) (*v1storagemodels.ObjectGroup, error) {
+func (objectGroup *ObjectGroupRevision) ToProtoModel(stats *v1storagemodels.ObjectGroupStats) (*v1storagemodels.ObjectGroupRevision, error) {
 	labels := []*v1storagemodels.Label{}
 	for _, label := range objectGroup.Labels {
 		labels = append(labels, label.ToProtoModel())
@@ -106,7 +136,7 @@ func (objectGroup *ObjectGroup) ToProtoModel(stats *v1storagemodels.ObjectGroupS
 		return nil, err
 	}
 
-	return &v1storagemodels.ObjectGroup{
+	return &v1storagemodels.ObjectGroupRevision{
 		Id:              objectGroup.ID.String(),
 		Name:            objectGroup.Name,
 		Description:     objectGroup.Description,

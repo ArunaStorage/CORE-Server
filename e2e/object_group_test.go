@@ -127,33 +127,33 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, createObjectGroupRequest.Name, getObjectGroupResponse.ObjectGroup.Name)
+	assert.Equal(t, createObjectGroupRequest.Name, getObjectGroupResponse.ObjectGroup.CurrentRevision.Name)
 	assert.Equal(t, createObjectGroupRequest.DatasetId, getObjectGroupResponse.ObjectGroup.DatasetId)
-	assert.Equal(t, createDatasetRequest.Description, getObjectGroupResponse.GetObjectGroup().Description)
-	assert.ElementsMatch(t, createObjectGroupRequest.Labels, getObjectGroupResponse.ObjectGroup.Labels)
+	assert.Equal(t, createDatasetRequest.Description, getObjectGroupResponse.GetObjectGroup().CurrentRevision.Description)
+	assert.ElementsMatch(t, createObjectGroupRequest.Labels, getObjectGroupResponse.ObjectGroup.CurrentRevision.Labels)
 
-	assert.Equal(t, "testfile1", getObjectGroupResponse.ObjectGroup.Objects[0].Filename)
+	assert.Equal(t, "testfile1", getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[0].Filename)
 
-	object := getObjectGroupResponse.ObjectGroup.Objects[0]
+	object := getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[0]
 
-	err = UploadObjects(getObjectGroupResponse.ObjectGroup.GetObjects(), []string{"foo", "baa"}, ServerEndpoints.load, ServerEndpoints.object)
+	err = UploadObjects(getObjectGroupResponse.ObjectGroup.CurrentRevision.GetObjects(), []string{"foo", "baa"}, ServerEndpoints.load, ServerEndpoints.object)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	err = UploadObjects(getObjectGroupResponse.ObjectGroup.GetMetadataObjects(), []string{"metadata"}, ServerEndpoints.load, ServerEndpoints.object)
+	err = UploadObjects(getObjectGroupResponse.ObjectGroup.CurrentRevision.GetMetadataObjects(), []string{"metadata"}, ServerEndpoints.load, ServerEndpoints.object)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	_, err = ServerEndpoints.object.FinishObjectGroupUpload(context.Background(), &v1storageservices.FinishObjectGroupUploadRequest{
-		Id: object.ObjectGroupId,
+	_, err = ServerEndpoints.object.FinishObjectGroupRevisionUpload(context.Background(), &v1storageservices.FinishObjectGroupRevisionUploadRequest{
+		Id: createObjectGroupResponse.ObjectGroupRevisionId,
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
-	err = DownloadObjects(t, getObjectGroupResponse.ObjectGroup.Objects, []string{"foo", "baa"}, ServerEndpoints.load, ServerEndpoints.object)
+	err = DownloadObjects(t, getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects, []string{"foo", "baa"}, ServerEndpoints.load, ServerEndpoints.object)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -299,7 +299,7 @@ func TestObjectGroupBatch(t *testing.T) {
 	}
 
 	for _, objectGroup := range datasetobjectGroups.ObjectGroups {
-		objectGroupStats := objectGroup.GetStats()
+		objectGroupStats := objectGroup.CurrentRevision.GetStats()
 		assert.Equal(t, int64(2), objectGroupStats.GetObjectCount())
 		assert.Equal(t, float64(3), objectGroupStats.GetAvgObjectSize())
 		assert.Equal(t, int64(6), objectGroupStats.GetAccSize())
