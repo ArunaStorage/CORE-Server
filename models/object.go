@@ -96,10 +96,10 @@ type ObjectGroupRevision struct {
 	DatasetVersions []DatasetVersion `gorm:"many2many:dataset_version_object_group_revisions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Status          string           `gorm:"index"`
 	Generated       time.Time
-	Objects         []Object `gorm:"many2many:object_group_revision_data_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	MetaObjects     []Object `gorm:"many2many:object_group_revision_meta_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	ObjectGroupID   uuid.UUID
-	RevisionNumber  int64
+	Objects         []Object  `gorm:"many2many:object_group_revision_data_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	MetaObjects     []Object  `gorm:"many2many:object_group_revision_meta_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ObjectGroupID   uuid.UUID `gorm:"index:revision_number,unique"`
+	RevisionNumber  int64     `gorm:"index:revision_number,unique"`
 }
 
 func (objectGroup *ObjectGroupRevision) ToProtoModel(stats *v1storagemodels.ObjectGroupStats) (*v1storagemodels.ObjectGroupRevision, error) {

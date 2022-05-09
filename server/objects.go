@@ -280,6 +280,37 @@ func (endpoint *ObjectServerEndpoints) GetObjectGroupRevision(ctx context.Contex
 	return response, nil
 }
 
+// Updates an ObjectGroup
+// This creates a new ObjectGroupRevisions
+// It needs to be finished via FinishObjectGroupRevisionUpload before it is actually available
+// Currently experimental
+func (endpoint *ObjectServerEndpoints) UpdateObjectGroup(ctx context.Context, request *v1storageservices.UpdateObjectGroupRequest) (*v1storageservices.UpdateObjectGroupResponse, error) {
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
+	}
+
+	objectGroup, err := endpoint.ReadHandler.GetObjectGroup(requestID)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	metadata, _ := metadata.FromIncomingContext(ctx)
+
+	err = endpoint.AuthzHandler.Authorize(
+		objectGroup.ProjectID,
+		v1storagemodels.Right_RIGHT_WRITE,
+		metadata)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	return &v1storageservices.UpdateObjectGroupResponse{}, nil
+}
+
 //FinishObjectUpload Finishes the upload process for an object
 func (endpoint *ObjectServerEndpoints) FinishObjectUpload(ctx context.Context, request *v1storageservices.FinishObjectUploadRequest) (*v1storageservices.FinishObjectUploadResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
