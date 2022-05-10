@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 
 	app_config "github.com/ScienceObjectsDB/CORE-Server/config"
+	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 )
 
@@ -148,21 +149,25 @@ func (s3Handler *S3ObjectStorageHandler) CreateBucket(projectID uuid.UUID) (stri
 func (s3Handler *S3ObjectStorageHandler) CreateLocation(projectID uuid.UUID, datasetID uuid.UUID, objectUUID uuid.UUID, filename string, bucketname string) models.Location {
 	objectKey := fmt.Sprintf("%v/%v/%v/%v", projectID, datasetID, objectUUID, filename)
 	location := models.Location{
-		Endpoint: s3Handler.S3Endpoint,
-		Bucket:   bucketname,
-		Key:      objectKey,
+		Endpoint:  s3Handler.S3Endpoint,
+		Bucket:    bucketname,
+		Key:       objectKey,
+		ProjectID: projectID,
+		DatasetID: datasetID,
+		ObjectID:  objectUUID,
+		Status:    v1storagemodels.Status_STATUS_INITIATING.String(),
 	}
 
 	return location
 }
 
 // CreateDownloadLink Generates a presigned download link for an object
-func (s3Handler *S3ObjectStorageHandler) CreateDownloadLink(object *models.Object, request *v1storageservices.CreateDownloadLinkRequest) (string, error) {
+func (s3Handler *S3ObjectStorageHandler) CreateDownloadLink(location *models.Location, request *v1storageservices.CreateDownloadLinkRequest) (string, error) {
 	ctx := context.Background()
 
 	objectInputConf := &s3.GetObjectInput{
-		Bucket: &object.Location.Bucket,
-		Key:    &object.Location.Key,
+		Bucket: &location.Bucket,
+		Key:    &location.Key,
 	}
 
 	if request.Range != nil {
@@ -180,11 +185,11 @@ func (s3Handler *S3ObjectStorageHandler) CreateDownloadLink(object *models.Objec
 }
 
 // CreateUploadLink Generates a presigned upload link for an object
-func (s3Handler *S3ObjectStorageHandler) CreateUploadLink(object *models.Object) (string, error) {
+func (s3Handler *S3ObjectStorageHandler) CreateUploadLink(location *models.Location) (string, error) {
 	ctx := context.Background()
 	presignReq, err := s3Handler.PresignClient.PresignPutObject(ctx, &s3.PutObjectInput{
-		Bucket: &object.Location.Bucket,
-		Key:    &object.Location.Key,
+		Bucket: &location.Bucket,
+		Key:    &location.Key,
 	})
 	if err != nil {
 		log.Println(err.Error())
@@ -197,11 +202,11 @@ func (s3Handler *S3ObjectStorageHandler) CreateUploadLink(object *models.Object)
 // InitMultipartUpload Initiates a multipart upload for an object
 // For details regarding multipart uploads please refer to the offical S3 documentation
 // In short multipart uploads are intended to upload larger files
-func (s3Handler *S3ObjectStorageHandler) InitMultipartUpload(object *models.Object) (string, error) {
+func (s3Handler *S3ObjectStorageHandler) InitMultipartUpload(location *models.Location) (string, error) {
 	ctx := context.Background()
 	out, err := s3Handler.S3Client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
-		Bucket: &object.Location.Bucket,
-		Key:    &object.Location.Key,
+		Bucket: &location.Bucket,
+		Key:    &location.Key,
 	})
 	if err != nil {
 		log.Println(err.Error())
@@ -212,12 +217,12 @@ func (s3Handler *S3ObjectStorageHandler) InitMultipartUpload(object *models.Obje
 }
 
 // CreateMultipartUploadRequest Generates a multipart upload link
-func (s3Handler *S3ObjectStorageHandler) CreateMultipartUploadRequest(object *models.Object, partnumber int32) (string, error) {
+func (s3Handler *S3ObjectStorageHandler) CreateMultipartUploadRequest(location *models.Location, partnumber int32) (string, error) {
 	resp, err := s3Handler.PresignClient.PresignUploadPart(context.Background(), &s3.UploadPartInput{
-		Bucket:     &object.Location.Bucket,
-		Key:        &object.Location.Key,
+		Bucket:     &location.Bucket,
+		Key:        &location.Key,
 		PartNumber: partnumber,
-		UploadId:   &object.UploadID,
+		UploadId:   &location.UploadID,
 	})
 	if err != nil {
 		log.Println(err.Error())
@@ -228,11 +233,11 @@ func (s3Handler *S3ObjectStorageHandler) CreateMultipartUploadRequest(object *mo
 }
 
 // CompleteMultipartUpload Completes a multipart upload and tells the object storage to assemble the final object from the uploaded parts-
-func (s3Handler *S3ObjectStorageHandler) CompleteMultipartUpload(object *models.Object, completedParts []types.CompletedPart) error {
+func (s3Handler *S3ObjectStorageHandler) CompleteMultipartUpload(location *models.Location, completedParts []types.CompletedPart) error {
 	_, err := s3Handler.S3Client.CompleteMultipartUpload(context.Background(), &s3.CompleteMultipartUploadInput{
-		Bucket:   &object.Location.Bucket,
-		Key:      &object.Location.Key,
-		UploadId: &object.UploadID,
+		Bucket:   &location.Bucket,
+		Key:      &location.Key,
+		UploadId: &location.UploadID,
 		MultipartUpload: &types.CompletedMultipartUpload{
 			Parts: completedParts,
 		},
@@ -245,22 +250,22 @@ func (s3Handler *S3ObjectStorageHandler) CompleteMultipartUpload(object *models.
 	return nil
 }
 
-func (s3Handler *S3ObjectStorageHandler) DeleteObjects(objects []*models.Object) error {
-	if len(objects) == 0 {
+func (s3Handler *S3ObjectStorageHandler) DeleteObjects(locations []*models.Location) error {
+	if len(locations) == 0 {
 		return nil
 	}
 
-	bucket := objects[0].Location.Bucket
+	bucket := locations[0].Bucket
 	var deleteObjects []types.ObjectIdentifier
-	for _, object := range objects {
-		if bucket != object.Location.Bucket && bucket != "" {
+	for _, location := range locations {
+		if bucket != location.Bucket && bucket != "" {
 			err := fmt.Errorf("objects in batch deletes need to have the same bucket")
 			log.Errorln(err.Error())
 			return err
 		}
-		bucket = object.Location.Bucket
+		bucket = location.Bucket
 		deleteObjects = append(deleteObjects, types.ObjectIdentifier{
-			Key: &object.Location.Key,
+			Key: &location.Key,
 		})
 	}
 
@@ -278,10 +283,10 @@ func (s3Handler *S3ObjectStorageHandler) DeleteObjects(objects []*models.Object)
 	return nil
 }
 
-func (objectLoader *S3ObjectStorageHandler) ChunkedObjectDowload(object *models.Object, data chan []byte) error {
+func (objectLoader *S3ObjectStorageHandler) ChunkedObjectDowload(location *models.Location, data chan []byte) error {
 	headObject, err := objectLoader.S3Client.HeadObject(context.Background(), &s3.HeadObjectInput{
-		Bucket: &object.Location.Bucket,
-		Key:    &object.Location.Key,
+		Bucket: &location.Bucket,
+		Key:    &location.Key,
 	})
 	if err != nil {
 		log.Println(err.Error())
@@ -306,8 +311,8 @@ func (objectLoader *S3ObjectStorageHandler) ChunkedObjectDowload(object *models.
 		buffer := make([]byte, readEndPos+sumReadBytes)
 		writerBuffer := manager.NewWriteAtBuffer(buffer)
 		readBytes, err := objectLoader.S3DownloadManager.Download(context.Background(), writerBuffer, &s3.GetObjectInput{
-			Bucket: &object.Location.Bucket,
-			Key:    &object.Location.Key,
+			Bucket: &location.Bucket,
+			Key:    &location.Key,
 			Range:  aws.String(rangeToRead),
 		})
 		if err != nil {

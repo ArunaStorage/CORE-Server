@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
+	"github.com/ScienceObjectsDB/CORE-Server/models"
 	v1notificationservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/notification/services/v1"
 	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
@@ -203,10 +204,10 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 
 	var protoObjectGroups []*v1storagemodels.ObjectGroup
 	for _, objectGroup := range objectGroups {
-		stats, err := endpoint.StatsHandler.GetObjectGroupStats(objectGroup)
+		stats, err := endpoint.StatsHandler.GetObjectGroupRevisionStats(&objectGroup.CurrentObjectGroupRevision)
 		if err != nil {
 			log.Errorln(err.Error())
-			return nil, status.Error(codes.Internal, "could not read objectgroup stats")
+			return nil, err
 		}
 
 		protoObjectGroup, err := objectGroup.ToProtoModel(stats)
@@ -224,7 +225,7 @@ func (endpoint *DatasetEndpoints) GetDatasetObjectGroups(ctx context.Context, re
 	return &response, nil
 }
 
-func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context, request *v1storageservices.GetObjectGroupsInDateRangeRequest) (*v1storageservices.GetObjectGroupsInDateRangeResponse, error) {
+func (endpoint *DatasetEndpoints) GetObjectGroupRevisionsInDateRange(ctx context.Context, request *v1storageservices.GetObjectGroupRevisionsInDateRangeRequest) (*v1storageservices.GetObjectGroupRevisionsInDateRangeResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
 		log.Debug(err.Error())
@@ -248,21 +249,21 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 		return nil, err
 	}
 
-	objectGroups, err := endpoint.ReadHandler.GetObjectGroupsInDateRange(dataset.ID, request.Start.AsTime(), request.End.AsTime())
+	objectGroupRevisions, err := endpoint.ReadHandler.GetObjectGroupsInDateRange(dataset.ID, request.Start.AsTime(), request.End.AsTime())
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
 
-	var protoObjectGroups []*v1storagemodels.ObjectGroup
-	for _, objectGroup := range objectGroups {
-		stats, err := endpoint.StatsHandler.GetObjectGroupStats(objectGroup)
+	var protoObjectGroups []*v1storagemodels.ObjectGroupRevision
+	for _, objectGroupRevision := range objectGroupRevisions {
+		stats, err := endpoint.StatsHandler.GetObjectGroupRevisionStats(objectGroupRevision)
 		if err != nil {
 			log.Errorln(err.Error())
-			return nil, status.Error(codes.Internal, "could not read objectgroup stats")
+			return nil, err
 		}
 
-		protoObjectGroup, err := objectGroup.ToProtoModel(stats)
+		protoObjectGroup, err := objectGroupRevision.ToProtoModel(stats)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
@@ -270,8 +271,8 @@ func (endpoint *DatasetEndpoints) GetObjectGroupsInDateRange(ctx context.Context
 		protoObjectGroups = append(protoObjectGroups, protoObjectGroup)
 	}
 
-	response := &v1storageservices.GetObjectGroupsInDateRangeResponse{
-		ObjectGroups: protoObjectGroups,
+	response := &v1storageservices.GetObjectGroupRevisionsInDateRangeResponse{
+		ObjectGroupRevisions: protoObjectGroups,
 	}
 
 	return response, nil
@@ -409,7 +410,12 @@ func (endpoint *DatasetEndpoints) DeleteDataset(ctx context.Context, request *v1
 		return nil, err
 	}
 
-	err = endpoint.ObjectHandler.DeleteObjects(objects)
+	var locations []*models.Location
+	for _, location := range objects {
+		locations = append(locations, &location.DefaultLocation)
+	}
+
+	err = endpoint.ObjectHandler.DeleteObjects(locations)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -460,15 +466,15 @@ func (endpoint *DatasetEndpoints) ReleaseDatasetVersion(ctx context.Context, req
 		return nil, err
 	}
 
-	objectGroups, err := endpoint.ReadHandler.GetObjectGroupsByStatus(request.ObjectGroupIds, []string{v1storagemodels.Status_STATUS_AVAILABLE.String()})
+	objectGroupRevisions, err := endpoint.ReadHandler.GetObjectGroupRevisionsByStatus(request.ObjectGroupRevisionIds, []string{v1storagemodels.Status_STATUS_AVAILABLE.String()})
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, status.Error(codes.Internal, "error when reading the requested object groups")
 	}
 
-	if len(objectGroups) != 0 {
+	if len(objectGroupRevisions) != 0 {
 		var nonAvailableObjectGroupIDs []string
-		for _, objectGroup := range objectGroups {
+		for _, objectGroup := range objectGroupRevisions {
 			nonAvailableObjectGroupIDs = append(nonAvailableObjectGroupIDs, objectGroup.ID.String())
 		}
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("the following object groups are not in available status: %v", nonAvailableObjectGroupIDs))
@@ -550,7 +556,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Cont
 
 	version, err := endpoint.ReadHandler.GetDatasetVersionWithObjectGroups(requestID, request.GetPageRequest())
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return nil, err
 	}
 
@@ -561,28 +567,28 @@ func (endpoint *DatasetEndpoints) GetDatasetVersionObjectGroups(ctx context.Cont
 		v1storagemodels.Right_RIGHT_READ,
 		metadata)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return nil, err
 	}
 
-	var protoObjectGroups []*v1storagemodels.ObjectGroup
-	for _, objectGroup := range version.ObjectGroups {
-		stats, err := endpoint.StatsHandler.GetObjectGroupStats(&objectGroup)
+	var protoObjectGroupRevisions []*v1storagemodels.ObjectGroupRevision
+	for _, objectGroupRevision := range version.ObjectGroupRevisions {
+		stats, err := endpoint.StatsHandler.GetObjectGroupRevisionStats(&objectGroupRevision)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not read objectgroup stats")
 		}
 
-		protoObjectGroup, err := objectGroup.ToProtoModel(stats)
+		protoObjectGroupRevision, err := objectGroupRevision.ToProtoModel(stats)
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
 		}
-		protoObjectGroups = append(protoObjectGroups, protoObjectGroup)
+		protoObjectGroupRevisions = append(protoObjectGroupRevisions, protoObjectGroupRevision)
 	}
 
 	response := &v1storageservices.GetDatasetVersionObjectGroupsResponse{
-		ObjectGroup: protoObjectGroups,
+		ObjectGroupRevisions: protoObjectGroupRevisions,
 	}
 
 	return response, nil

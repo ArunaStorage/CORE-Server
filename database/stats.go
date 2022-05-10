@@ -152,7 +152,7 @@ func (stats *Stats) GetDatasetStats(datasetID uuid.UUID) (*v1storagemodels.Datas
 	return datasetStats, nil
 }
 
-func (stats *Stats) GetObjectGroupStats(objectgroup *models.ObjectGroup) (*v1storagemodels.ObjectGroupStats, error) {
+func (stats *Stats) GetObjectGroupRevisionStats(objectgroup *models.ObjectGroupRevision) (*v1storagemodels.ObjectGroupStats, error) {
 	type ObjectGroupStats struct {
 		ObjectsCount  int
 		AccObjectSize int
@@ -167,7 +167,7 @@ func (stats *Stats) GetObjectGroupStats(objectgroup *models.ObjectGroup) (*v1sto
 		err := stats.DB.Raw(`select coalesce(sum(content_len)/count(*), 0) as avg_object_size, 
 		coalesce(sum(content_len), 0) as acc_object_size, 
 		coalesce(count(*), 0) as objects_count 
-		from object_group_data_objects inner join objects on object_group_data_objects.object_id=objects.id where object_group_id=?`,
+		from object_group_revision_data_objects inner join objects on object_group_revision_data_objects.object_id=objects.id where object_group_revision_id=?`,
 			objectgroup.ID.String()).Scan(&objectGroupStats).Error
 		if err != nil {
 			log.Errorln(err.Error())
@@ -211,10 +211,10 @@ func (stats *Stats) GetDatasetVersionStats(datasetVersion *models.DatasetVersion
 	var objectGroupStats ObjectGroupStats
 
 	wg.Go(func() error {
-		err := stats.DB.Raw(`select coalesce(sum(content_len)/count(*), 0) as avg_object_size, coalesce(sum(content_len), 0) as acc_object_size, coalesce(count(*), 0) as objects_count from dataset_version_object_groups 
-		inner join object_group_data_objects 
-		on dataset_version_object_groups.object_group_id=object_group_data_objects.object_group_id 
-		inner join objects on object_group_data_objects.object_id=objects.id 
+		err := stats.DB.Raw(`select coalesce(sum(content_len)/count(*), 0) as avg_object_size, coalesce(sum(content_len), 0) as acc_object_size, coalesce(count(*), 0) as objects_count from dataset_version_object_group_revisions 
+		inner join object_group_revision_data_objects 
+		on dataset_version_object_group_revisions.object_group_revision_id=object_group_revision_data_objects.object_group_revision_id 
+		inner join objects on object_group_revision_data_objects.object_id=objects.id 
 		where dataset_version_id=?;`, datasetVersion.ID).Scan(&objectGroupStats).Error
 
 		if err != nil {

@@ -11,20 +11,21 @@ import (
 
 type Object struct {
 	BaseModel
-	ObjectUUID uuid.UUID `gorm:"index,unique"`
-	Filename   string    `gorm:"index"`
-	Filetype   string
-	ContentLen int64
-	Status     string   `gorm:"index"`
-	Location   Location `gorm:"embedded"`
-	Labels     []Label  `gorm:"many2many:object_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	UploadID   string
-	Index      uint64
-	ProjectID  uuid.UUID `gorm:"index"`
-	Project    Project
-	DatasetID  uuid.UUID `gorm:"index"`
-	Dataset    Dataset
-	ParentID   uuid.UUID `gorm:"index"`
+	ObjectUUID      uuid.UUID `gorm:"index,unique"`
+	Filename        string    `gorm:"index"`
+	Filetype        string
+	ContentLen      int64
+	Status          string `gorm:"index"`
+	Locations       []Location
+	DefaultLocation Location
+	Labels          []Label `gorm:"many2many:object_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	UploadID        string
+	Index           uint64
+	ProjectID       uuid.UUID `gorm:"index"`
+	Project         Project
+	DatasetID       uuid.UUID `gorm:"index"`
+	Dataset         Dataset
+	ParentID        uuid.UUID `gorm:"index"`
 }
 
 func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
@@ -39,24 +40,68 @@ func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
 		return nil, err
 	}
 
+	locations := []*v1storagemodels.Location{}
+	for _, location := range object.Locations {
+		location_proto_model, err := location.toProtoModel()
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+		locations = append(locations, location_proto_model)
+	}
+
+	defaultLocation, err := object.DefaultLocation.toProtoModel()
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
 	return &v1storagemodels.Object{
-		Id:            object.ID.String(),
-		Filename:      object.Filename,
-		Filetype:      object.Filetype,
-		Labels:        labels,
-		Created:       timestamppb.New(object.CreatedAt),
-		Location:      object.Location.toProtoModel(),
-		ContentLen:    object.ContentLen,
-		UploadId:      object.UploadID,
-		DatasetId:     object.DatasetID.String(),
-		ProjectId:     object.ProjectID.String(),
-		ObjectGroupId: object.ParentID.String(),
-		Status:        status,
+		Id:              object.ID.String(),
+		Filename:        object.Filename,
+		Filetype:        object.Filetype,
+		Labels:          labels,
+		Created:         timestamppb.New(object.CreatedAt),
+		Locations:       locations,
+		DefaultLocation: defaultLocation,
+		ContentLen:      object.ContentLen,
+		DatasetId:       object.DatasetID.String(),
+		ProjectId:       object.ProjectID.String(),
+		ObjectGroupId:   object.ParentID.String(),
+		Status:          status,
 	}, nil
 
 }
 
 type ObjectGroup struct {
+	BaseModel
+	CurrentRevisionCount         int64
+	CurrentObjectGroupRevision   ObjectGroupRevision
+	CurrentObjectGroupRevisionID uuid.UUID
+	ObjectGroupRevisions         []ObjectGroupRevision
+	DatasetID                    uuid.UUID
+	Dataset                      Dataset
+	ProjectID                    uuid.UUID `gorm:"index"`
+	Project                      Project
+}
+
+func (objectGroup *ObjectGroup) ToProtoModel(revisionStats *v1storagemodels.ObjectGroupStats) (*v1storagemodels.ObjectGroup, error) {
+	revisionObject, err := objectGroup.CurrentObjectGroupRevision.ToProtoModel(revisionStats)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	return &v1storagemodels.ObjectGroup{
+		Id:              objectGroup.ID.String(),
+		RevisionCounter: objectGroup.CurrentRevisionCount,
+		CurrentRevision: revisionObject,
+		DatasetId:       objectGroup.DatasetID.String(),
+		ProjectId:       objectGroup.ProjectID.String(),
+	}, nil
+}
+
+type ObjectGroupRevision struct {
 	BaseModel
 	Name            string
 	Description     string
@@ -64,15 +109,17 @@ type ObjectGroup struct {
 	Dataset         Dataset
 	ProjectID       uuid.UUID `gorm:"index"`
 	Project         Project
-	Labels          []Label          `gorm:"many2many:object_group_label;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	DatasetVersions []DatasetVersion `gorm:"many2many:dataset_version_object_groups;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Labels          []Label          `gorm:"many2many:object_group_revision_label;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	DatasetVersions []DatasetVersion `gorm:"many2many:dataset_version_object_group_revisions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Status          string           `gorm:"index"`
 	Generated       time.Time
-	Objects         []Object `gorm:"many2many:object_group_data_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	MetaObjects     []Object `gorm:"many2many:object_group_meta_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Objects         []Object  `gorm:"many2many:object_group_revision_data_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	MetaObjects     []Object  `gorm:"many2many:object_group_revision_meta_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ObjectGroupID   uuid.UUID `gorm:"index:revision_number,unique"`
+	RevisionNumber  int64     `gorm:"index:revision_number,unique"`
 }
 
-func (objectGroup *ObjectGroup) ToProtoModel(stats *v1storagemodels.ObjectGroupStats) (*v1storagemodels.ObjectGroup, error) {
+func (objectGroup *ObjectGroupRevision) ToProtoModel(stats *v1storagemodels.ObjectGroupStats) (*v1storagemodels.ObjectGroupRevision, error) {
 	labels := []*v1storagemodels.Label{}
 	for _, label := range objectGroup.Labels {
 		labels = append(labels, label.ToProtoModel())
@@ -106,7 +153,7 @@ func (objectGroup *ObjectGroup) ToProtoModel(stats *v1storagemodels.ObjectGroupS
 		return nil, err
 	}
 
-	return &v1storagemodels.ObjectGroup{
+	return &v1storagemodels.ObjectGroupRevision{
 		Id:              objectGroup.ID.String(),
 		Name:            objectGroup.Name,
 		Description:     objectGroup.Description,

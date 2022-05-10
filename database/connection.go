@@ -112,6 +112,7 @@ func makeMigrations(db *gorm.DB) *gorm.DB {
 		&models.User{},
 		&models.StreamingEntry{},
 		&models.StreamGroup{},
+		&models.ObjectGroupRevision{},
 	)
 
 	if err != nil {

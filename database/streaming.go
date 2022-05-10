@@ -124,7 +124,7 @@ func (handler *Streaming) createObjectGroupsRequest(objectGroupIDs []string, dat
 
 	base64Secret := base64.StdEncoding.EncodeToString(rndBytes)
 
-	objectGroups := make([]models.ObjectGroup, len(objectGroupIDs))
+	objectRevisionGroups := make([]models.ObjectGroupRevision, len(objectGroupIDs))
 	for i, objectGroupID := range objectGroupIDs {
 		objectGroupIDParsed, err := uuid.Parse(objectGroupID)
 		if err != nil {
@@ -132,9 +132,9 @@ func (handler *Streaming) createObjectGroupsRequest(objectGroupIDs []string, dat
 			return "", err
 		}
 
-		objectGroup := models.ObjectGroup{}
-		objectGroup.ID = objectGroupIDParsed
-		objectGroups[i] = objectGroup
+		objectGroupRevisions := models.ObjectGroupRevision{}
+		objectGroupRevisions.ID = objectGroupIDParsed
+		objectRevisionGroups[i] = objectGroupRevisions
 	}
 
 	uuid := uuid.NewString()
@@ -144,7 +144,7 @@ func (handler *Streaming) createObjectGroupsRequest(objectGroupIDs []string, dat
 		Secret:       base64Secret,
 		DatasetID:    datasetID,
 		ProjectID:    projectID,
-		ObjectGroups: objectGroups,
+		ObjectGroups: objectRevisionGroups,
 	}
 
 	err = crdbgorm.ExecuteTx(context.Background(), handler.DB, nil, func(tx *gorm.DB) error {

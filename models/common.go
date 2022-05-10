@@ -48,21 +48,36 @@ func (label *Label) FromProtoModel(labelProto *v1storagemodels.Label) *Label {
 }
 
 type Location struct {
-	Endpoint string
-	Bucket   string
-	Key      string
+	BaseModel
+	Endpoint  string
+	Bucket    string
+	Key       string
+	UploadID  string
+	Status    string
+	ProjectID uuid.UUID `gorm:"index"`
+	Project   Project
+	DatasetID uuid.UUID `gorm:"index"`
+	Dataset   Dataset
+	ObjectID  uuid.UUID `gorm:"index"`
 }
 
-func (location *Location) toProtoModel() *v1storagemodels.Location {
-	return &v1storagemodels.Location{
-		Location: &v1storagemodels.Location_ObjectLocation{
-			ObjectLocation: &v1storagemodels.ObjectLocation{
-				Bucket: location.Bucket,
-				Key:    location.Key,
-				Url:    location.Endpoint,
-			},
-		},
+func (location *Location) toProtoModel() (*v1storagemodels.Location, error) {
+	protoStatus, err := ToStatus(location.Status)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
 	}
+
+	return &v1storagemodels.Location{
+		ObjectLocation: &v1storagemodels.ObjectLocation{
+			Id:       location.ID.String(),
+			Bucket:   location.Bucket,
+			Key:      location.Key,
+			Url:      location.Endpoint,
+			Status:   protoStatus,
+			UploadId: location.UploadID,
+		},
+	}, nil
 }
 
 func ToStatus(status string) (v1storagemodels.Status, error) {
