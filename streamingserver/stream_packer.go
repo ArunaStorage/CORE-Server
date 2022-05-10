@@ -75,7 +75,7 @@ func (packer *ObjectsPacker) handleTarGZStream(objectGroups chan *models.ObjectG
 			chunkChannel := make(chan []byte, 10)
 			chunkedLoaderWaitGrop := errgroup.Group{}
 			chunkedLoaderWaitGrop.Go(func() error {
-				err := packer.ObjectHandler.ChunkedObjectDowload(&object, chunkChannel)
+				err := packer.ObjectHandler.ChunkedObjectDowload(&object.Locations[0], chunkChannel)
 				if err != nil {
 					log.Println(err.Error())
 					return err

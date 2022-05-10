@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/ScienceObjectsDB/CORE-Server/models"
 	v1notficationservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/notification/services/v1"
 	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
@@ -66,7 +67,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 
 	if request.IncludeObjectLink {
 		for i, object := range objectgroup.CurrentObjectGroupRevision.Objects {
-			link, err := endpoint.ObjectHandler.CreateUploadLink(&object)
+			link, err := endpoint.ObjectHandler.CreateUploadLink(&object.DefaultLocation)
 			if err != nil {
 				log.Println(err.Error())
 				return nil, err
@@ -146,7 +147,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 		}
 		if requests.IncludeObjectLink {
 			for _, object := range objectgroup.ObjectGroupRevisions[0].Objects {
-				link, err := endpoint.ObjectHandler.CreateUploadLink(&object)
+				link, err := endpoint.ObjectHandler.CreateUploadLink(&object.DefaultLocation)
 				if err != nil {
 					log.Println(err.Error())
 					return nil, err
@@ -159,7 +160,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 			}
 
 			for _, object := range objectgroup.ObjectGroupRevisions[0].MetaObjects {
-				link, err := endpoint.ObjectHandler.CreateUploadLink(&object)
+				link, err := endpoint.ObjectHandler.CreateUploadLink(&object.DefaultLocation)
 				if err != nil {
 					log.Println(err.Error())
 					return nil, err
@@ -415,8 +416,13 @@ func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, re
 		return nil, err
 	}
 
+	var locations []*models.Location
+	for _, object := range objects {
+		locations = append(locations, &object.DefaultLocation)
+	}
+
 	if len(objects) != 0 {
-		err = endpoint.ObjectHandler.DeleteObjects(objects)
+		err = endpoint.ObjectHandler.DeleteObjects(locations)
 		if err != nil {
 			log.Println(err.Error())
 			return nil, err

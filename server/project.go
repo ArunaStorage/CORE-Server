@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/ScienceObjectsDB/CORE-Server/models"
 	v1notficationservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/notification/services/v1"
 	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
@@ -326,7 +327,12 @@ func (endpoint *ProjectEndpoints) DeleteProject(ctx context.Context, request *v1
 		return nil, err
 	}
 
-	err = endpoint.ObjectHandler.DeleteObjects(objects)
+	var locations []*models.Location
+	for _, object := range objects {
+		locations = append(locations, &object.Locations[0])
+	}
+
+	err = endpoint.ObjectHandler.DeleteObjects(locations)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

@@ -55,7 +55,7 @@ func (endpoint *LoadEndpoints) CreateUploadLink(ctx context.Context, request *v1
 		return nil, err
 	}
 
-	uploadLink, err := endpoint.ObjectHandler.CreateUploadLink(object)
+	uploadLink, err := endpoint.ObjectHandler.CreateUploadLink(&object.DefaultLocation)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -92,7 +92,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLink(ctx context.Context, request *
 		return nil, err
 	}
 
-	downloadLink, err := endpoint.ObjectHandler.CreateDownloadLink(object, request)
+	downloadLink, err := endpoint.ObjectHandler.CreateDownloadLink(&object.DefaultLocation, request)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, err
@@ -146,7 +146,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkBatch(ctx context.Context, requ
 	}
 
 	for i, object := range objects {
-		link, err := endpoint.ObjectHandler.CreateDownloadLink(object, request.GetRequests()[i])
+		link, err := endpoint.ObjectHandler.CreateDownloadLink(&object.DefaultLocation, request.GetRequests()[i])
 		if err != nil {
 			log.Println(err.Error())
 			return nil, err
@@ -290,7 +290,7 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *v1storageservic
 			objectGroupRevisions = append(objectGroupRevisions, protoObjectGroup)
 			objectLinks := make([]string, len(objectGroup.CurrentObjectGroupRevision.Objects))
 			for j, object := range objectGroup.CurrentObjectGroupRevision.Objects {
-				link, err := endpoint.ObjectHandler.CreateDownloadLink(&object, &v1storageservices.CreateDownloadLinkRequest{})
+				link, err := endpoint.ObjectHandler.CreateDownloadLink(&object.DefaultLocation, &v1storageservices.CreateDownloadLinkRequest{})
 				if err != nil {
 					log.Println(err.Error())
 					return err
@@ -343,7 +343,7 @@ func (endpoint *LoadEndpoints) StartMultipartUpload(ctx context.Context, request
 		return nil, err
 	}
 
-	uploadID, err := endpoint.ObjectHandler.InitMultipartUpload(object)
+	uploadID, err := endpoint.ObjectHandler.InitMultipartUpload(&object.DefaultLocation)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -393,7 +393,7 @@ func (endpoint *LoadEndpoints) GetMultipartUploadLink(ctx context.Context, reque
 		return nil, err
 	}
 
-	link, err := endpoint.ObjectHandler.CreateMultipartUploadRequest(object, int32(request.UploadPart))
+	link, err := endpoint.ObjectHandler.CreateMultipartUploadRequest(&object.DefaultLocation, int32(request.UploadPart))
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -438,7 +438,7 @@ func (endpoint *LoadEndpoints) CompleteMultipartUpload(ctx context.Context, requ
 		})
 	}
 
-	err = endpoint.ObjectHandler.CompleteMultipartUpload(object, completedParts)
+	err = endpoint.ObjectHandler.CompleteMultipartUpload(&object.DefaultLocation, completedParts)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err

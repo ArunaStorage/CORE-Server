@@ -11,20 +11,21 @@ import (
 
 type Object struct {
 	BaseModel
-	ObjectUUID uuid.UUID `gorm:"index,unique"`
-	Filename   string    `gorm:"index"`
-	Filetype   string
-	ContentLen int64
-	Status     string   `gorm:"index"`
-	Location   Location `gorm:"embedded"`
-	Labels     []Label  `gorm:"many2many:object_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	UploadID   string
-	Index      uint64
-	ProjectID  uuid.UUID `gorm:"index"`
-	Project    Project
-	DatasetID  uuid.UUID `gorm:"index"`
-	Dataset    Dataset
-	ParentID   uuid.UUID `gorm:"index"`
+	ObjectUUID      uuid.UUID `gorm:"index,unique"`
+	Filename        string    `gorm:"index"`
+	Filetype        string
+	ContentLen      int64
+	Status          string `gorm:"index"`
+	Locations       []Location
+	DefaultLocation Location
+	Labels          []Label `gorm:"many2many:object_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	UploadID        string
+	Index           uint64
+	ProjectID       uuid.UUID `gorm:"index"`
+	Project         Project
+	DatasetID       uuid.UUID `gorm:"index"`
+	Dataset         Dataset
+	ParentID        uuid.UUID `gorm:"index"`
 }
 
 func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
@@ -39,19 +40,35 @@ func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
 		return nil, err
 	}
 
+	locations := []*v1storagemodels.Location{}
+	for _, location := range object.Locations {
+		location_proto_model, err := location.toProtoModel()
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+		locations = append(locations, location_proto_model)
+	}
+
+	defaultLocation, err := object.DefaultLocation.toProtoModel()
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
 	return &v1storagemodels.Object{
-		Id:            object.ID.String(),
-		Filename:      object.Filename,
-		Filetype:      object.Filetype,
-		Labels:        labels,
-		Created:       timestamppb.New(object.CreatedAt),
-		Location:      object.Location.toProtoModel(),
-		ContentLen:    object.ContentLen,
-		UploadId:      object.UploadID,
-		DatasetId:     object.DatasetID.String(),
-		ProjectId:     object.ProjectID.String(),
-		ObjectGroupId: object.ParentID.String(),
-		Status:        status,
+		Id:              object.ID.String(),
+		Filename:        object.Filename,
+		Filetype:        object.Filetype,
+		Labels:          labels,
+		Created:         timestamppb.New(object.CreatedAt),
+		Locations:       locations,
+		DefaultLocation: defaultLocation,
+		ContentLen:      object.ContentLen,
+		DatasetId:       object.DatasetID.String(),
+		ProjectId:       object.ProjectID.String(),
+		ObjectGroupId:   object.ParentID.String(),
+		Status:          status,
 	}, nil
 
 }

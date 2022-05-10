@@ -3,7 +3,7 @@ module github.com/ScienceObjectsDB/CORE-Server
 go 1.17
 
 require (
-	github.com/ScienceObjectsDB/go-api v0.2.1-0.20220504080833-f2db7b179a1a
+	github.com/ScienceObjectsDB/go-api v0.2.1-0.20220510092433-9b080e4cb49f
 	github.com/aws/aws-sdk-go-v2 v1.16.3
 	github.com/aws/aws-sdk-go-v2/config v1.15.4
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.11.9
