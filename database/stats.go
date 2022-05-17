@@ -153,29 +153,33 @@ func (stats *Stats) GetDatasetStats(datasetID uuid.UUID) (*v1storagemodels.Datas
 }
 
 func (stats *Stats) GetObjectGroupRevisionStats(objectgroup *models.ObjectGroupRevision) (*v1storagemodels.ObjectGroupStats, error) {
-	type ObjectGroupStats struct {
-		ObjectsCount  int
-		AccObjectSize int
-		AvgObjectSize float64
-	}
+	var objectGroupStats v1storagemodels.ObjectGroupStats
 
 	wg := errgroup.Group{}
-
-	var objectGroupStats ObjectGroupStats
-
 	wg.Go(func() error {
-		err := stats.DB.Raw(`select coalesce(sum(content_len)/count(*), 0) as avg_object_size, 
-		coalesce(sum(content_len), 0) as acc_object_size, 
-		coalesce(count(*), 0) as objects_count 
-		from object_group_revision_data_objects inner join objects on object_group_revision_data_objects.object_id=objects.id where object_group_revision_id=?`,
+		err := stats.DB.Raw(`SELECT coalesce(sum(content_len)/count(*), 0) as avg_object_size, 
+									coalesce(sum(content_len), 0) as acc_size, 
+									coalesce(count(*), 0) as object_count 
+								FROM object_group_revision_data_objects 
+									INNER JOIN objects on object_group_revision_data_objects.object_id=objects.id 
+								WHERE object_group_revision_id=?`,
 			objectgroup.ID.String()).Scan(&objectGroupStats).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return err
 		}
 
-		return nil
+		err = stats.DB.Raw(`SELECT count(*) as meta_object_count 
+								FROM object_group_revision_meta_objects
+								WHERE object_group_revision_id=?;`,
+			objectgroup.ID.String()).
+			Scan(&objectGroupStats).Error
+		if err != nil {
+			log.Errorln(err.Error())
+			return err
+		}
 
+		return nil
 	})
 
 	err := wg.Wait()
@@ -184,13 +188,7 @@ func (stats *Stats) GetObjectGroupRevisionStats(objectgroup *models.ObjectGroupR
 		return nil, err
 	}
 
-	objectgroupStats := &v1storagemodels.ObjectGroupStats{
-		ObjectCount:   int64(objectGroupStats.ObjectsCount),
-		AccSize:       int64(objectGroupStats.AccObjectSize),
-		AvgObjectSize: objectGroupStats.AvgObjectSize,
-	}
-
-	return objectgroupStats, nil
+	return &objectGroupStats, nil
 }
 
 func (stats *Stats) GetObjectStats(objectID uuid.UUID) (*v1storagemodels.ObjectStats, error) {
