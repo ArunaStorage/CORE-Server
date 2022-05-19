@@ -82,8 +82,15 @@ func TestDuplicateUserProject(t *testing.T) {
 	}
 
 	// Validate creation of Users
+	projectUsers, err := ServerEndpoints.project.ReadHandler.GetProjectUsers(uuid.MustParse(createResponse.Id))
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+	assert.Equal(t, 3, len(projectUsers))
+
 	assert.NotNil(t, addUserResponse01)
 	assert.NotNil(t, addUserResponse02)
+	assert.Equal(t, 3, len(projectUsers))
 
 	// Try to add users with identical OAuth2IDs to project which should fail and return (nil, error)
 	addIdenticalUserResponse01, err := ServerEndpoints.project.AddUserToProject(
@@ -109,6 +116,12 @@ func TestDuplicateUserProject(t *testing.T) {
 	assert.Nil(t, addIdenticalUserResponse02)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "User already assigned to this project.")
+
+	projectUsers, err = ServerEndpoints.project.ReadHandler.GetProjectUsers(uuid.MustParse(createResponse.Id))
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+	assert.Equal(t, 3, len(projectUsers))
 
 	// Delete Project completely
 	_, err = ServerEndpoints.project.DeleteProject(context.Background(), &v1storageservices.DeleteProjectRequest{
