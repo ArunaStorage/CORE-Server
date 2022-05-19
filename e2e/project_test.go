@@ -63,7 +63,7 @@ func TestProject(t *testing.T) {
 	assert.Nil(t, nilResponse)
 }
 
-func TestDuplicateUserProject(t *testing.T) {
+func TestProjectUsers(t *testing.T) {
 	// Create simple project with name and description
 	createRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "Test Project 002",
