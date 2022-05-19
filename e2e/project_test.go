@@ -13,9 +13,20 @@ import (
 )
 
 func TestProject(t *testing.T) {
+	// Create Project with
 	createRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject1",
-		Description: "test",
+		Name:        "Test Project 001",
+		Description: "This is a test description.",
+		Labels: []*v1storagemodels.Label{
+			{
+				Key:   "Label-01",
+				Value: "Lorem Ipsum Dolor ... Sit?",
+			},
+			{
+				Key:   "Label-02",
+				Value: "Amet consetetur sadipscing, elitr!",
+			},
+		},
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createRequest)
@@ -23,6 +34,7 @@ func TestProject(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
+	// Get Project complete with all fields and validate correct creation
 	getResponse, err := ServerEndpoints.project.GetProject(context.Background(), &v1storageservices.GetProjectRequest{
 		Id: createResponse.GetId(),
 	})
@@ -34,12 +46,21 @@ func TestProject(t *testing.T) {
 	assert.Equal(t, createRequest.Description, getResponse.Project.Description)
 	assert.ElementsMatch(t, createRequest.Labels, getResponse.Project.Labels)
 
+	// Delete Project completely (Created Labels stay)
 	_, err = ServerEndpoints.project.DeleteProject(context.Background(), &v1storageservices.DeleteProjectRequest{
 		Id: createResponse.GetId(),
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+
+	// Validating Project deletion by trying to get deleted Project which should fail and return nil
+	nilResponse, err := ServerEndpoints.project.GetProject(context.Background(), &v1storageservices.GetProjectRequest{
+		Id: getResponse.Project.Id,
+	})
+
+	assert.NotNil(t, err)
+	assert.Nil(t, nilResponse)
 }
 
 func TestDuplicateUserProject(t *testing.T) {
