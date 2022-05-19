@@ -102,13 +102,13 @@ func TestObjectGroup(t *testing.T) {
 				Filename:   "testfile1",
 				Filetype:   "bin",
 				Labels:     object1Label,
-				ContentLen: 3,
+				ContentLen: 6,
 			},
 			{
 				Filename:   "testfile2",
-				Filetype:   "bin",
+				Filetype:   "txt",
 				Labels:     object2Label,
-				ContentLen: 3,
+				ContentLen: 24,
 			},
 		},
 	}
@@ -127,12 +127,31 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
+	// Validate general ObjectGroup fields
 	assert.Equal(t, createObjectGroupRequest.Name, getObjectGroupResponse.ObjectGroup.CurrentRevision.Name)
 	assert.Equal(t, createObjectGroupRequest.DatasetId, getObjectGroupResponse.ObjectGroup.DatasetId)
 	assert.Equal(t, createDatasetRequest.Description, getObjectGroupResponse.GetObjectGroup().CurrentRevision.Description)
 	assert.ElementsMatch(t, createObjectGroupRequest.Labels, getObjectGroupResponse.ObjectGroup.CurrentRevision.Labels)
 
+	// Validate ObjectGroup stats
+	assert.Equal(t, int64(2), getObjectGroupResponse.ObjectGroup.CurrentRevision.GetStats().GetObjectCount())
+	assert.Equal(t, int64(1), getObjectGroupResponse.ObjectGroup.CurrentRevision.GetStats().GetMetaObjectCount())
+	assert.Equal(t, int64(30), getObjectGroupResponse.ObjectGroup.CurrentRevision.GetStats().GetAccSize())
+	assert.Equal(t, float64(15), getObjectGroupResponse.ObjectGroup.CurrentRevision.GetStats().GetAvgObjectSize())
+
+	// Validate ObjectGroup data Objects creation
 	assert.Equal(t, "testfile1", getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[0].Filename)
+	assert.Equal(t, "bin", getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[0].Filetype)
+	assert.Equal(t, int64(6), getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[0].ContentLen)
+
+	assert.Equal(t, "testfile2", getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[1].Filename)
+	assert.Equal(t, "txt", getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[1].Filetype)
+	assert.Equal(t, int64(24), getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[1].ContentLen)
+
+	// Validate ObjectGroup meta Objects creation
+	assert.Equal(t, "metadata1", getObjectGroupResponse.ObjectGroup.CurrentRevision.MetadataObjects[0].Filename)
+	assert.Equal(t, "meta", getObjectGroupResponse.ObjectGroup.CurrentRevision.MetadataObjects[0].Filetype)
+	assert.Equal(t, int64(8), getObjectGroupResponse.ObjectGroup.CurrentRevision.MetadataObjects[0].ContentLen)
 
 	object := getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[0]
 
