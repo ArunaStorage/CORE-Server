@@ -117,7 +117,7 @@ func TestProjectUsers(t *testing.T) {
 	assert.Equal(t, projectID, projectUsers[1].ProjectID)
 
 	assert.NotNil(t, addUserResponse02)
-	assert.Equal(t, userId01, projectUsers[2].ID)
+	assert.Equal(t, userId02, projectUsers[2].ID)
 	assert.Equal(t, projectID, projectUsers[2].ProjectID)
 
 	// Try to add users with identical OAuth2IDs to project which should fail and return (nil, error)
