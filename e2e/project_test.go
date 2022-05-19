@@ -75,6 +75,8 @@ func TestProjectUsers(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
+	projectID := uuid.MustParse(createResponse.Id)
+
 	// Add two individual users to Project
 	userId01 := uuid.New()
 	scope := []v1storagemodels.Right{v1storagemodels.Right(v1storagemodels.Right_RIGHT_READ)}
@@ -83,7 +85,7 @@ func TestProjectUsers(t *testing.T) {
 		&v1storageservices.AddUserToProjectRequest{
 			UserId:    userId01.String(),
 			Scope:     scope,
-			ProjectId: createResponse.Id,
+			ProjectId: projectID.String(),
 		})
 	if err != nil {
 		log.Fatalln(err.Error())
@@ -96,22 +98,27 @@ func TestProjectUsers(t *testing.T) {
 		&v1storageservices.AddUserToProjectRequest{
 			UserId:    userId02.String(),
 			Scope:     scope,
-			ProjectId: createResponse.Id,
+			ProjectId: projectID.String(),
 		})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
 	// Validate creation of Users
-	projectUsers, err := ServerEndpoints.project.ReadHandler.GetProjectUsers(uuid.MustParse(createResponse.Id))
+	projectUsers, err := ServerEndpoints.project.ReadHandler.GetProjectUsers(projectID)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+
 	assert.Equal(t, 3, len(projectUsers))
 
 	assert.NotNil(t, addUserResponse01)
+	assert.Equal(t, userId01, projectUsers[1].ID)
+	assert.Equal(t, projectID, projectUsers[1].ProjectID)
+
 	assert.NotNil(t, addUserResponse02)
-	assert.Equal(t, 3, len(projectUsers))
+	assert.Equal(t, userId01, projectUsers[2].ID)
+	assert.Equal(t, projectID, projectUsers[2].ProjectID)
 
 	// Try to add users with identical OAuth2IDs to project which should fail and return (nil, error)
 	addIdenticalUserResponse01, err := ServerEndpoints.project.AddUserToProject(
@@ -119,7 +126,7 @@ func TestProjectUsers(t *testing.T) {
 		&v1storageservices.AddUserToProjectRequest{
 			UserId:    userId01.String(),
 			Scope:     scope,
-			ProjectId: createResponse.Id,
+			ProjectId: projectID.String(),
 		})
 
 	assert.Nil(t, addIdenticalUserResponse01)
@@ -131,14 +138,14 @@ func TestProjectUsers(t *testing.T) {
 		&v1storageservices.AddUserToProjectRequest{
 			UserId:    userId02.String(),
 			Scope:     scope,
-			ProjectId: createResponse.Id,
+			ProjectId: projectID.String(),
 		})
 
 	assert.Nil(t, addIdenticalUserResponse02)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "User already assigned to this project.")
 
-	projectUsers, err = ServerEndpoints.project.ReadHandler.GetProjectUsers(uuid.MustParse(createResponse.Id))
+	projectUsers, err = ServerEndpoints.project.ReadHandler.GetProjectUsers(projectID)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -146,7 +153,7 @@ func TestProjectUsers(t *testing.T) {
 
 	// Delete Project completely
 	_, err = ServerEndpoints.project.DeleteProject(context.Background(), &v1storageservices.DeleteProjectRequest{
-		Id: createResponse.Id,
+		Id: projectID.String(),
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
@@ -154,7 +161,7 @@ func TestProjectUsers(t *testing.T) {
 
 	// Validating Project deletion by trying to get deleted Project which should fail and return (nil, error)
 	nilResponse, err := ServerEndpoints.project.GetProject(context.Background(), &v1storageservices.GetProjectRequest{
-		Id: createResponse.Id,
+		Id: projectID.String(),
 	})
 
 	assert.NotNil(t, err)
