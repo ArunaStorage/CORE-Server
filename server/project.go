@@ -87,6 +87,20 @@ func (endpoint *ProjectEndpoints) AddUserToProject(ctx context.Context, request 
 		return nil, err
 	}
 
+	users, err := endpoint.ReadHandler.GetProjectUsers(projectID)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	for _, user := range users {
+		if user.UserOauth2ID == request.UserId && user.ProjectID == projectID {
+			err := status.Error(codes.AlreadyExists, "User already assigned to this project.")
+			log.Println(err.Error())
+			return nil, err
+		}
+	}
+
 	err = endpoint.CreateHandler.AddUserToProject(request)
 	if err != nil {
 		log.Println(err.Error())

@@ -302,6 +302,23 @@ func (read *Read) GetUserProjects(userIDOauth2 string) ([]*models.Project, error
 	return projects, nil
 }
 
+func (read *Read) GetProjectUsers(projectID uuid.UUID) ([]*models.User, error) {
+	var users []*models.User
+
+	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
+		return tx.
+			Where("project_id = ?", projectID).
+			Find(&users).Error
+	})
+
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	return users, nil
+}
+
 func (read *Read) GetAllDatasetObjects(datasetID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 
