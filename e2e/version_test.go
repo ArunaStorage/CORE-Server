@@ -82,23 +82,28 @@ func TestDatasetVersion(t *testing.T) {
 	objectgroupuuidname := uuid.New().String()
 
 	createObjectGroupRequest := &v1storageservices.CreateObjectGroupRequest{
-		Name:      objectgroupuuidname,
-		DatasetId: datasetCreateResponse.GetId(),
-		Labels:    objectGroupLabel,
-		Objects: []*v1storageservices.CreateObjectRequest{
-			{
-				Filename:   "testfile1",
-				Filetype:   "bin",
-				Labels:     object1Label,
-				ContentLen: 3,
-			},
-			{
-				Filename:   "testfile2",
-				Filetype:   "bin",
-				Labels:     object2Label,
-				ContentLen: 3,
+		CreateRevisionRequest: &v1storageservices.CreateObjectGroupRevisionRequest{
+			Name:              objectgroupuuidname,
+			Labels:            objectGroupLabel,
+			UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{},
+			UpdateObjects: &v1storageservices.UpdateObjectsRequests{
+				AddObjects: []*v1storageservices.CreateObjectRequest{
+					{
+						Filename:   "testfile1",
+						Filetype:   "bin",
+						Labels:     object1Label,
+						ContentLen: 3,
+					},
+					{
+						Filename:   "testfile2",
+						Filetype:   "bin",
+						Labels:     object2Label,
+						ContentLen: 3,
+					},
+				},
 			},
 		},
+		DatasetId: datasetCreateResponse.GetId(),
 	}
 
 	createObjectGroupResponse, err := ServerEndpoints.object.CreateObjectGroup(context.Background(), createObjectGroupRequest)
@@ -109,23 +114,27 @@ func TestDatasetVersion(t *testing.T) {
 	objectgroupuuidname2 := uuid.New().String()
 
 	createObjectGroupRequest2 := &v1storageservices.CreateObjectGroupRequest{
-		Name:      objectgroupuuidname2,
-		DatasetId: datasetCreateResponse.GetId(),
-		Labels:    objectGroupLabel,
-		Objects: []*v1storageservices.CreateObjectRequest{
-			{
-				Filename:   "testfile1",
-				Filetype:   "bin",
-				Labels:     object1Label,
-				ContentLen: 3,
-			},
-			{
-				Filename:   "testfile3",
-				Filetype:   "bin",
-				Labels:     object2Label,
-				ContentLen: 3,
+		CreateRevisionRequest: &v1storageservices.CreateObjectGroupRevisionRequest{
+			Name:              objectgroupuuidname2,
+			UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{},
+			UpdateObjects: &v1storageservices.UpdateObjectsRequests{
+				AddObjects: []*v1storageservices.CreateObjectRequest{
+					{
+						Filename:   "testfile1",
+						Filetype:   "bin",
+						Labels:     object1Label,
+						ContentLen: 3,
+					},
+					{
+						Filename:   "testfile3",
+						Filetype:   "bin",
+						Labels:     object2Label,
+						ContentLen: 3,
+					},
+				},
 			},
 		},
+		DatasetId: datasetCreateResponse.GetId(),
 	}
 
 	createObjectGroupResponse2, err := ServerEndpoints.object.CreateObjectGroup(context.Background(), createObjectGroupRequest2)
@@ -134,7 +143,7 @@ func TestDatasetVersion(t *testing.T) {
 	}
 
 	_, err = ServerEndpoints.object.FinishObjectGroupRevisionUpload(context.Background(), &v1storageservices.FinishObjectGroupRevisionUploadRequest{
-		Id: createObjectGroupResponse.ObjectGroupRevisionId,
+		Id: createObjectGroupResponse.CreateRevisionResponse.GetId(),
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
@@ -191,7 +200,7 @@ func TestDatasetVersion(t *testing.T) {
 			Stage:    v1storagemodels.Version_VERSION_STAGE_STABLE,
 		},
 		Description:            "testrelease",
-		ObjectGroupRevisionIds: []string{getObjectGroupResponse.ObjectGroup.CurrentRevision.Id, createObjectGroupResponse2.ObjectGroupRevisionId},
+		ObjectGroupRevisionIds: []string{getObjectGroupResponse.ObjectGroup.CurrentRevision.Id, createObjectGroupResponse2.CreateRevisionResponse.GetId()},
 		Labels:                 versionLabel,
 	}
 
@@ -261,9 +270,13 @@ func TestDatasetVersionPaginated(t *testing.T) {
 	var objectIDs []string
 	for i := 0; i < 10; i++ {
 		createObjectGroup := &v1storageservices.CreateObjectGroupRequest{
-			Name:        fmt.Sprintf("foo-%v", i),
-			Description: "foo",
-			DatasetId:   datasetCreateResponse.GetId(),
+			CreateRevisionRequest: &v1storageservices.CreateObjectGroupRevisionRequest{
+				Name:              fmt.Sprintf("foo-%v", i),
+				Description:       "foo",
+				UpdateObjects:     &v1storageservices.UpdateObjectsRequests{},
+				UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{},
+			},
+			DatasetId: datasetCreateResponse.GetId(),
 		}
 
 		object, err := ServerEndpoints.object.CreateObjectGroup(context.Background(), createObjectGroup)
@@ -271,7 +284,7 @@ func TestDatasetVersionPaginated(t *testing.T) {
 			log.Fatalln(err.Error())
 		}
 
-		objectIDs = append(objectIDs, object.ObjectGroupRevisionId)
+		objectIDs = append(objectIDs, object.CreateRevisionResponse.GetId())
 	}
 
 	handledObjectGroups := make(map[string]struct{})

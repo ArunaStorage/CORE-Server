@@ -192,7 +192,7 @@ func (s3Handler *S3ObjectStorageHandler) CreateUploadLink(location *models.Locat
 		Key:    &location.Key,
 	})
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return "", err
 	}
 

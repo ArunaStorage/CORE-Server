@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/ScienceObjectsDB/CORE-Server/database"
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	v1notficationservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/notification/services/v1"
 	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
@@ -37,7 +38,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 
 	dataset, err := endpoint.ReadHandler.GetDataset(parsedDatasetID)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return nil, err
 	}
 
@@ -48,37 +49,61 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 		v1storagemodels.Right_RIGHT_WRITE,
 		metadata)
 	if err != nil {
-		log.Error(err.Error())
+		log.Errorln(err.Error())
 		return nil, err
 	}
 
-	objectgroup, err := endpoint.CreateHandler.CreateObjectGroup(request, dataset.Bucket)
+	revisionObjects := &database.RevisionObjects{
+		DataObjects: &database.Objects{
+			AddedObjects:    []models.Object{},
+			UpdatedObjects:  []models.Object{},
+			ExistingObjects: []models.Object{},
+		},
+		MetaObjects: &database.Objects{
+			AddedObjects:    []models.Object{},
+			UpdatedObjects:  []models.Object{},
+			ExistingObjects: []models.Object{},
+		},
+	}
+
+	objectgroup, err := endpoint.CreateHandler.CreateObjectGroup(request, dataset.Bucket, revisionObjects)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return nil, err
 	}
 
 	objectGroupResponse := &v1storageservices.CreateObjectGroupResponse{
-		ObjectGroupId:         objectgroup.ID.String(),
-		ObjectGroupName:       objectgroup.CurrentObjectGroupRevision.Name,
-		ObjectLinks:           []*v1storageservices.CreateObjectGroupResponse_ObjectLinks{},
-		ObjectGroupRevisionId: objectgroup.CurrentObjectGroupRevisionID.String(),
+		ObjectGroupId:   objectgroup.ID.String(),
+		ObjectGroupName: objectgroup.CurrentObjectGroupRevision.Name,
+		CreateRevisionResponse: &v1storageservices.CreateObjectGroupRevisionResponse{
+			Id:                  objectgroup.CurrentObjectGroupRevisionID.String(),
+			DataObjects:         []*v1storagemodels.Object{},
+			MetaObjects:         []*v1storagemodels.Object{},
+			ObjectLinks:         []*v1storageservices.CreateObjectGroupRevisionResponse_ObjectLinks{},
+			MetadataObjectLinks: []*v1storageservices.CreateObjectGroupRevisionResponse_ObjectLinks{},
+		},
 	}
 
-	if request.IncludeObjectLink {
-		for i, object := range objectgroup.CurrentObjectGroupRevision.Objects {
-			link, err := endpoint.ObjectHandler.CreateUploadLink(&object.DefaultLocation)
-			if err != nil {
-				log.Println(err.Error())
-				return nil, err
-			}
-			objectGroupResponse.ObjectLinks = append(objectGroupResponse.ObjectLinks, &v1storageservices.CreateObjectGroupResponse_ObjectLinks{
-				Filename: object.Filename,
-				Link:     link,
-				ObjectId: object.ID.String(),
-				Index:    int64(i),
-			})
+	if request.CreateRevisionRequest.IncludeObjectLink {
+
+		objects, objectLinks, err := endpoint.createObjectsLinks(objectgroup.CurrentObjectGroupRevision.Objects)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
 		}
+
+		objectGroupResponse.CreateRevisionResponse.DataObjects = objects
+		objectGroupResponse.CreateRevisionResponse.ObjectLinks = objectLinks
+
+		metaObjects, metaObjectLinks, err := endpoint.createObjectsLinks(objectgroup.CurrentObjectGroupRevision.MetaObjects)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+
+		objectGroupResponse.CreateRevisionResponse.MetaObjects = metaObjects
+		objectGroupResponse.CreateRevisionResponse.MetadataObjectLinks = metaObjectLinks
+
 	}
 
 	err = endpoint.EventStreamMgmt.PublishMessage(&v1notficationservices.EventNotificationMessage{
@@ -99,11 +124,26 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 	if len(requests.GetRequests()) < 1 {
 		return nil, status.Error(codes.InvalidArgument, "at least one request in request batch is required")
 	}
+
+	objects := make([]*database.RevisionObjects, 0)
+
 	datasetID := requests.GetRequests()[0].DatasetId
 	for _, request := range requests.GetRequests() {
 		if datasetID != request.GetDatasetId() {
 			return nil, status.Error(codes.InvalidArgument, "all requests have to have the same datasetid")
 		}
+		objects = append(objects, &database.RevisionObjects{
+			DataObjects: &database.Objects{
+				AddedObjects:    []models.Object{},
+				UpdatedObjects:  []models.Object{},
+				ExistingObjects: []models.Object{},
+			},
+			MetaObjects: &database.Objects{
+				AddedObjects:    []models.Object{},
+				UpdatedObjects:  []models.Object{},
+				ExistingObjects: []models.Object{},
+			},
+		})
 	}
 
 	parsedDatasetID, err := uuid.Parse(datasetID)
@@ -129,7 +169,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 		return nil, err
 	}
 
-	objectgroups, err := endpoint.CreateHandler.CreateObjectGroupBatch(requests, dataset.Bucket)
+	objectgroups, err := endpoint.CreateHandler.CreateObjectGroupBatch(requests, dataset.Bucket, objects)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -138,41 +178,39 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 	var objectgroupResponseList []*v1storageservices.CreateObjectGroupResponse
 
 	for _, objectgroup := range objectgroups {
-		objectgroupResponse := &v1storageservices.CreateObjectGroupResponse{
-			ObjectGroupId:         objectgroup.ID.String(),
-			ObjectGroupRevisionId: objectgroup.ObjectGroupRevisions[0].ID.String(),
-			ObjectGroupName:       objectgroup.ObjectGroupRevisions[0].Name,
-			ObjectLinks:           make([]*v1storageservices.CreateObjectGroupResponse_ObjectLinks, 0),
-			MetadataObjectLinks:   make([]*v1storageservices.CreateObjectGroupResponse_ObjectLinks, 0),
+		objectGroupResponse := &v1storageservices.CreateObjectGroupResponse{
+			ObjectGroupId:   objectgroup.ID.String(),
+			ObjectGroupName: objectgroup.CurrentObjectGroupRevision.Name,
+			CreateRevisionResponse: &v1storageservices.CreateObjectGroupRevisionResponse{
+				Id:                  objectgroup.CurrentObjectGroupRevisionID.String(),
+				DataObjects:         []*v1storagemodels.Object{},
+				MetaObjects:         []*v1storagemodels.Object{},
+				ObjectLinks:         []*v1storageservices.CreateObjectGroupRevisionResponse_ObjectLinks{},
+				MetadataObjectLinks: []*v1storageservices.CreateObjectGroupRevisionResponse_ObjectLinks{},
+			},
 		}
+
 		if requests.IncludeObjectLink {
-			for _, object := range objectgroup.ObjectGroupRevisions[0].Objects {
-				link, err := endpoint.ObjectHandler.CreateUploadLink(&object.DefaultLocation)
-				if err != nil {
-					log.Println(err.Error())
-					return nil, err
-				}
-
-				objectgroupResponse.ObjectLinks = append(objectgroupResponse.ObjectLinks, &v1storageservices.CreateObjectGroupResponse_ObjectLinks{
-					Filename: object.Filename,
-					Link:     link,
-				})
+			objects, objectLinks, err := endpoint.createObjectsLinks(objectgroup.CurrentObjectGroupRevision.Objects)
+			if err != nil {
+				log.Errorln(err.Error())
+				return nil, err
 			}
 
-			for _, object := range objectgroup.ObjectGroupRevisions[0].MetaObjects {
-				link, err := endpoint.ObjectHandler.CreateUploadLink(&object.DefaultLocation)
-				if err != nil {
-					log.Println(err.Error())
-					return nil, err
-				}
+			objectGroupResponse.CreateRevisionResponse.DataObjects = objects
+			objectGroupResponse.CreateRevisionResponse.ObjectLinks = objectLinks
 
-				objectgroupResponse.ObjectLinks = append(objectgroupResponse.ObjectLinks, &v1storageservices.CreateObjectGroupResponse_ObjectLinks{
-					Filename: object.Filename,
-					Link:     link,
-				})
+			metaObjects, metaObjectLinks, err := endpoint.createObjectsLinks(objectgroup.CurrentObjectGroupRevision.MetaObjects)
+			if err != nil {
+				log.Errorln(err.Error())
+				return nil, err
 			}
+
+			objectGroupResponse.CreateRevisionResponse.MetaObjects = metaObjects
+			objectGroupResponse.CreateRevisionResponse.MetadataObjectLinks = metaObjectLinks
 		}
-		objectgroupResponseList = append(objectgroupResponseList, objectgroupResponse)
+
+		objectgroupResponseList = append(objectgroupResponseList, objectGroupResponse)
 	}
 
 	response := &v1storageservices.CreateObjectGroupBatchResponse{
@@ -190,6 +228,148 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 			log.Println(err.Error())
 			return nil, err
 		}
+	}
+
+	return response, nil
+}
+
+func (endpoint *ObjectServerEndpoints) CreateObjectGroupRevision(ctx context.Context, request *v1storageservices.CreateObjectGroupRevisionRequest) (*v1storageservices.CreateObjectGroupRevisionResponse, error) {
+	objectGroupID, err := uuid.Parse(request.GetObjectGroupId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
+	}
+
+	objectGroup, err := endpoint.ReadHandler.GetObjectGroup(objectGroupID)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	metadata, _ := metadata.FromIncomingContext(ctx)
+
+	err = endpoint.AuthzHandler.Authorize(
+		objectGroup.ProjectID,
+		v1storagemodels.Right_RIGHT_WRITE,
+		metadata)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	for _, object := range request.GetUpdateObjects().GetExistingObjects() {
+		objectID, err := uuid.Parse(object.GetId())
+		if err != nil {
+			log.Debug(err.Error())
+			return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
+		}
+
+		object, err := endpoint.ReadHandler.GetObject(objectID)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
+
+		err = endpoint.AuthzHandler.Authorize(
+			object.ProjectID,
+			v1storagemodels.Right_RIGHT_READ,
+			metadata)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+	}
+
+	for _, object := range request.GetUpdateObjects().GetUpdateObjects() {
+		objectID, err := uuid.Parse(object.GetId())
+		if err != nil {
+			log.Debug(err.Error())
+			return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
+		}
+
+		object, err := endpoint.ReadHandler.GetObject(objectID)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
+
+		err = endpoint.AuthzHandler.Authorize(
+			object.ProjectID,
+			v1storagemodels.Right_RIGHT_READ,
+			metadata)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+	}
+
+	for _, object := range request.GetUpdateMetaObjects().GetExistingObjects() {
+		objectID, err := uuid.Parse(object.GetId())
+		if err != nil {
+			log.Debug(err.Error())
+			return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
+		}
+
+		object, err := endpoint.ReadHandler.GetObject(objectID)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
+
+		err = endpoint.AuthzHandler.Authorize(
+			object.ProjectID,
+			v1storagemodels.Right_RIGHT_READ,
+			metadata)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+	}
+
+	for _, object := range request.GetUpdateMetaObjects().GetUpdateObjects() {
+		objectID, err := uuid.Parse(object.GetId())
+		if err != nil {
+			log.Debug(err.Error())
+			return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
+		}
+
+		object, err := endpoint.ReadHandler.GetObject(objectID)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
+
+		err = endpoint.AuthzHandler.Authorize(
+			object.ProjectID,
+			v1storagemodels.Right_RIGHT_READ,
+			metadata)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+	}
+
+	revisionObjects := &database.RevisionObjects{
+		DataObjects: &database.Objects{
+			AddedObjects:    []models.Object{},
+			UpdatedObjects:  []models.Object{},
+			ExistingObjects: []models.Object{},
+		},
+		MetaObjects: &database.Objects{
+			AddedObjects:    []models.Object{},
+			UpdatedObjects:  []models.Object{},
+			ExistingObjects: []models.Object{},
+		},
+	}
+
+	revision, err := endpoint.CreateHandler.CreateObjectGroupRevision(request, revisionObjects)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	response := &v1storageservices.CreateObjectGroupRevisionResponse{
+		Id: revision.ID.String(),
 	}
 
 	return response, nil
@@ -342,7 +522,7 @@ func (endpoint *ObjectServerEndpoints) FinishObjectUpload(ctx context.Context, r
 	return finished, nil
 }
 
-//FinishObjectUpload Finishes the upload process for an object
+//FinishObjectGroupRevisionUpload Finishes the upload process for an object
 func (endpoint *ObjectServerEndpoints) FinishObjectGroupRevisionUpload(ctx context.Context, request *v1storageservices.FinishObjectGroupRevisionUploadRequest) (*v1storageservices.FinishObjectGroupRevisionUploadResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
 	if err != nil {
@@ -447,4 +627,35 @@ func (endpoint *ObjectServerEndpoints) DeleteObjectGroup(ctx context.Context, re
 	}
 
 	return &v1storageservices.DeleteObjectGroupResponse{}, nil
+}
+
+func (endpoint *Endpoints) createObjectsLinks(objects []models.Object) ([]*v1storagemodels.Object, []*v1storageservices.CreateObjectGroupRevisionResponse_ObjectLinks, error) {
+	var protoObjects []*v1storagemodels.Object
+	var objectLinks []*v1storageservices.CreateObjectGroupRevisionResponse_ObjectLinks
+
+	for _, object := range objects {
+		protoObject, err := object.ToProtoModel()
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, nil, err
+		}
+
+		protoObjects = append(protoObjects, protoObject)
+
+		if protoObject.Status == v1storagemodels.Status_STATUS_STAGING {
+			link, err := endpoint.ObjectHandler.CreateUploadLink(&object.DefaultLocation)
+			if err != nil {
+				log.Errorln(err.Error())
+				return nil, nil, err
+			}
+			objectLinks = append(objectLinks, &v1storageservices.CreateObjectGroupRevisionResponse_ObjectLinks{
+				Link:     link,
+				ObjectId: object.ID.String(),
+			})
+		} else {
+			objectLinks = append(objectLinks, nil)
+		}
+	}
+
+	return protoObjects, objectLinks, nil
 }

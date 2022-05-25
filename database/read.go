@@ -53,7 +53,7 @@ func (read *Read) GetObjectGroupRevision(objectGroupRevisionsID uuid.UUID) (*mod
 	objectGroupRevision := &models.ObjectGroupRevision{}
 	objectGroupRevision.ID = objectGroupRevisionsID
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Labels").Preload("Objects").Preload("MetaObjects").First(objectGroupRevision).Error
+		return tx.Preload("MetaObjects.DefaultLocation").Preload("MetaObjects.Locations").Preload("Objects.DefaultLocation").Preload("Objects.Locations").Preload("Labels").Preload("Objects").Preload("MetaObjects").First(objectGroupRevision).Error
 	})
 
 	if err != nil {
@@ -69,7 +69,7 @@ func (read *Read) GetObjectGroup(objectGroupID uuid.UUID) (*models.ObjectGroup, 
 	objectGroup.ID = objectGroupID
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		preloads := tx.Preload("CurrentObjectGroupRevision").Preload("CurrentObjectGroupRevision.Objects").Preload("CurrentObjectGroupRevision.MetaObjects").Preload("CurrentObjectGroupRevision.Labels")
+		preloads := tx.Preload("CurrentObjectGroupRevision.MetaObjects.Locations").Preload("CurrentObjectGroupRevision.MetaObjects.DefaultLocation").Preload("CurrentObjectGroupRevision.Objects.Locations").Preload("CurrentObjectGroupRevision.Objects.DefaultLocation").Preload("CurrentObjectGroupRevision").Preload("CurrentObjectGroupRevision.Objects").Preload("CurrentObjectGroupRevision.MetaObjects").Preload("CurrentObjectGroupRevision.Labels")
 		return preloads.First(objectGroup).Error
 	})
 

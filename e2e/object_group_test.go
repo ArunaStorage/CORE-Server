@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -15,7 +14,6 @@ import (
 	v1storageservices "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestObjectGroup(t *testing.T) {
@@ -87,28 +85,35 @@ func TestObjectGroup(t *testing.T) {
 	name := fmt.Sprintf("objectgroup-%v", uuid.New())
 
 	createObjectGroupRequest := &v1storageservices.CreateObjectGroupRequest{
-		Name:      name,
 		DatasetId: datasetCreateResponse.GetId(),
-		Labels:    objectGroupLabel,
-		MetadataObjects: []*v1storageservices.CreateObjectRequest{
-			{
-				Filename:   "metadata1",
-				Filetype:   "meta",
-				ContentLen: 8,
+		CreateRevisionRequest: &v1storageservices.CreateObjectGroupRevisionRequest{
+			Name:              name,
+			Labels:            objectGroupLabel,
+			IncludeObjectLink: true,
+			UpdateObjects: &v1storageservices.UpdateObjectsRequests{
+				AddObjects: []*v1storageservices.CreateObjectRequest{
+					{
+						Filename:   "testfile1",
+						Filetype:   "bin",
+						Labels:     object1Label,
+						ContentLen: 6,
+					},
+					{
+						Filename:   "testfile2",
+						Filetype:   "txt",
+						Labels:     object2Label,
+						ContentLen: 24,
+					},
+				},
 			},
-		},
-		Objects: []*v1storageservices.CreateObjectRequest{
-			{
-				Filename:   "testfile1",
-				Filetype:   "bin",
-				Labels:     object1Label,
-				ContentLen: 6,
-			},
-			{
-				Filename:   "testfile2",
-				Filetype:   "txt",
-				Labels:     object2Label,
-				ContentLen: 24,
+			UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{
+				AddObjects: []*v1storageservices.CreateObjectRequest{
+					{
+						Filename:   "metadata1",
+						Filetype:   "meta",
+						ContentLen: 8,
+					},
+				},
 			},
 		},
 	}
@@ -128,10 +133,10 @@ func TestObjectGroup(t *testing.T) {
 	}
 
 	// Validate general ObjectGroup fields
-	assert.Equal(t, createObjectGroupRequest.Name, getObjectGroupResponse.ObjectGroup.CurrentRevision.Name)
+	assert.Equal(t, createObjectGroupRequest.CreateRevisionRequest.Name, getObjectGroupResponse.ObjectGroup.CurrentRevision.Name)
 	assert.Equal(t, createObjectGroupRequest.DatasetId, getObjectGroupResponse.ObjectGroup.DatasetId)
 	assert.Equal(t, createDatasetRequest.Description, getObjectGroupResponse.GetObjectGroup().CurrentRevision.Description)
-	assert.ElementsMatch(t, createObjectGroupRequest.Labels, getObjectGroupResponse.ObjectGroup.CurrentRevision.Labels)
+	assert.ElementsMatch(t, createObjectGroupRequest.CreateRevisionRequest.Labels, getObjectGroupResponse.ObjectGroup.CurrentRevision.Labels)
 
 	// Validate ObjectGroup stats
 	assert.Equal(t, int64(2), getObjectGroupResponse.ObjectGroup.CurrentRevision.GetStats().GetObjectCount())
@@ -166,7 +171,7 @@ func TestObjectGroup(t *testing.T) {
 	}
 
 	_, err = ServerEndpoints.object.FinishObjectGroupRevisionUpload(context.Background(), &v1storageservices.FinishObjectGroupRevisionUploadRequest{
-		Id: createObjectGroupResponse.ObjectGroupRevisionId,
+		Id: createObjectGroupResponse.CreateRevisionResponse.GetId(),
 	})
 	if err != nil {
 		log.Fatalln(err.Error())
@@ -210,6 +215,232 @@ func TestObjectGroup(t *testing.T) {
 	}
 
 	assert.Equal(t, string(dataRange), "fo")
+}
+
+func TestObjectGroupUpdate(t *testing.T) {
+	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &v1storageservices.CreateProjectRequest{
+		Name:        "testproject",
+		Description: "test",
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	datasetID, err := ServerEndpoints.dataset.CreateDataset(context.Background(), &v1storageservices.CreateDatasetRequest{
+		Name:        "testdataset",
+		Description: "test",
+		ProjectId:   projectID.GetId(),
+	})
+
+	objectGroup, err := ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
+		DatasetId: datasetID.GetId(),
+		CreateRevisionRequest: &v1storageservices.CreateObjectGroupRevisionRequest{
+			UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{
+				AddObjects: []*v1storageservices.CreateObjectRequest{
+					&v1storageservices.CreateObjectRequest{
+						Filename:   "metatest1.txt",
+						Filetype:   "txt",
+						ContentLen: 3,
+					},
+				},
+				ExistingObjects: []*v1storageservices.ExistingObjectRequest{},
+				UpdateObjects:   []*v1storageservices.UpdateObjectRequest{},
+			},
+			UpdateObjects: &v1storageservices.UpdateObjectsRequests{
+				AddObjects: []*v1storageservices.CreateObjectRequest{
+					&v1storageservices.CreateObjectRequest{
+						Filename:   "test1.txt",
+						Filetype:   "txt",
+						ContentLen: 3,
+					},
+					&v1storageservices.CreateObjectRequest{
+						Filename:   "test2.txt",
+						Filetype:   "txt",
+						ContentLen: 3,
+					},
+				},
+				UpdateObjects:   []*v1storageservices.UpdateObjectRequest{},
+				ExistingObjects: []*v1storageservices.ExistingObjectRequest{},
+			},
+		},
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	for _, object := range objectGroup.CreateRevisionResponse.ObjectLinks {
+		uploadHttpRequest, err := http.NewRequest("PUT", object.Link, bytes.NewBufferString("foo"))
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+		response, err := http.DefaultClient.Do(uploadHttpRequest)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+		if response.StatusCode != 200 {
+			log.Fatalln(response.Status)
+		}
+
+		_, err = ServerEndpoints.object.FinishObjectUpload(context.Background(), &v1storageservices.FinishObjectUploadRequest{
+			Id: object.ObjectId,
+		})
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+	}
+
+	for _, metaobject := range objectGroup.CreateRevisionResponse.GetMetadataObjectLinks() {
+		uploadHttpRequest, err := http.NewRequest("PUT", metaobject.Link, bytes.NewBufferString("bar"))
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+		response, err := http.DefaultClient.Do(uploadHttpRequest)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+		if response.StatusCode != 200 {
+			log.Fatalln(response.Status)
+		}
+
+		_, err = ServerEndpoints.object.FinishObjectUpload(context.Background(), &v1storageservices.FinishObjectUploadRequest{
+			Id: metaobject.ObjectId,
+		})
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+	}
+
+	_, err = ServerEndpoints.object.FinishObjectGroupRevisionUpload(context.Background(), &v1storageservices.FinishObjectGroupRevisionUploadRequest{
+		Id: objectGroup.CreateRevisionResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	objectGroupFromGet, err := ServerEndpoints.object.GetObjectGroup(context.Background(), &v1storageservices.GetObjectGroupRequest{
+		Id: objectGroup.ObjectGroupId,
+	})
+
+	assert.Equal(t, objectGroup.CreateRevisionResponse.GetId(), objectGroupFromGet.ObjectGroup.CurrentRevision.Id)
+
+	objectGroupRevisionRequestForUpdate := &v1storageservices.CreateObjectGroupRevisionRequest{
+		Name:              objectGroupFromGet.GetObjectGroup().GetCurrentRevision().Name,
+		Description:       objectGroupFromGet.GetObjectGroup().GetCurrentRevision().Description,
+		Labels:            objectGroupFromGet.ObjectGroup.CurrentRevision.Labels,
+		ObjectGroupId:     objectGroup.ObjectGroupId,
+		Annotations:       objectGroupFromGet.ObjectGroup.CurrentRevision.Annotations,
+		IncludeObjectLink: true,
+		UpdateObjects: &v1storageservices.UpdateObjectsRequests{
+			AddObjects: []*v1storageservices.CreateObjectRequest{
+				&v1storageservices.CreateObjectRequest{
+					Filename:   "updatedfile.txt",
+					Filetype:   "txt",
+					ContentLen: 5,
+				},
+			},
+			ExistingObjects: []*v1storageservices.ExistingObjectRequest{
+				&v1storageservices.ExistingObjectRequest{
+					Id: objectGroupFromGet.ObjectGroup.CurrentRevision.Objects[1].Id,
+				},
+			},
+			UpdateObjects: []*v1storageservices.UpdateObjectRequest{},
+		},
+		UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{
+			AddObjects:      []*v1storageservices.CreateObjectRequest{},
+			UpdateObjects:   []*v1storageservices.UpdateObjectRequest{},
+			ExistingObjects: []*v1storageservices.ExistingObjectRequest{},
+		},
+	}
+
+	objectGroupRevisionResponse, err := ServerEndpoints.object.CreateObjectGroupRevision(context.Background(), objectGroupRevisionRequestForUpdate)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	for _, objectLink := range objectGroupRevisionResponse.ObjectLinks {
+		if objectLink != nil {
+			uploadHttpRequest, err := http.NewRequest("PUT", objectLink.Link, bytes.NewBufferString("test2"))
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+
+			response, err := http.DefaultClient.Do(uploadHttpRequest)
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+
+			if response.StatusCode != 200 {
+				log.Fatalln(response.Status)
+			}
+
+			_, err = ServerEndpoints.object.FinishObjectUpload(context.Background(), &v1storageservices.FinishObjectUploadRequest{
+				Id: objectLink.ObjectId,
+			})
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+		}
+	}
+
+	for _, metaObjectLink := range objectGroupRevisionResponse.MetadataObjectLinks {
+		if metaObjectLink != nil {
+			uploadHttpRequest, err := http.NewRequest("PUT", metaObjectLink.Link, bytes.NewBufferString("test2"))
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+
+			response, err := http.DefaultClient.Do(uploadHttpRequest)
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+
+			if response.StatusCode != 200 {
+				log.Fatalln(response.Status)
+			}
+
+			_, err = ServerEndpoints.object.FinishObjectUpload(context.Background(), &v1storageservices.FinishObjectUploadRequest{
+				Id: metaObjectLink.ObjectId,
+			})
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+		}
+	}
+
+	_, err = ServerEndpoints.object.FinishObjectGroupRevisionUpload(context.Background(), &v1storageservices.FinishObjectGroupRevisionUploadRequest{
+		Id: objectGroupRevisionResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	objectGroupNewRevision, err := ServerEndpoints.object.GetObjectGroup(context.Background(), &v1storageservices.GetObjectGroupRequest{
+		Id: objectGroup.ObjectGroupId,
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	newCurrentRevision := objectGroupNewRevision.ObjectGroup.CurrentRevision
+
+	var objectNames []string
+	var objectIDs []string
+
+	for _, object := range newCurrentRevision.Objects {
+		objectNames = append(objectNames, object.Filename)
+		objectIDs = append(objectIDs, object.Id)
+
+	}
+
+	assert.Contains(t, objectNames, objectGroupRevisionRequestForUpdate.UpdateObjects.AddObjects[0].Filename)
+	assert.Contains(t, objectNames, objectGroupFromGet.ObjectGroup.CurrentRevision.Objects[1].Filename)
+	assert.NotContains(t, objectNames, objectGroupFromGet.ObjectGroup.CurrentRevision.Objects[0].Filename)
+
+	assert.Contains(t, objectIDs, objectGroupFromGet.ObjectGroup.CurrentRevision.Objects[1].Id)
 
 }
 
@@ -233,16 +464,21 @@ func TestObjectGroupBatch(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		createObjectGroupRequest := &v1storageservices.CreateObjectGroupRequest{
-			Name:      fmt.Sprintf("foo-%v", i),
 			DatasetId: datasetID.GetId(),
-			Objects: []*v1storageservices.CreateObjectRequest{
-				{
-					Filename:   "ff.bin",
-					ContentLen: 3,
-				},
-				{
-					Filename:   "fu.bin",
-					ContentLen: 3,
+			CreateRevisionRequest: &v1storageservices.CreateObjectGroupRevisionRequest{
+				Name:              fmt.Sprintf("foo-%v", i),
+				UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{},
+				UpdateObjects: &v1storageservices.UpdateObjectsRequests{
+					AddObjects: []*v1storageservices.CreateObjectRequest{
+						{
+							Filename:   "ff.bin",
+							ContentLen: 3,
+						},
+						{
+							Filename:   "fu.bin",
+							ContentLen: 3,
+						},
+					},
 				},
 			},
 		}
@@ -262,10 +498,10 @@ func TestObjectGroupBatch(t *testing.T) {
 	}
 
 	for _, objectgroup := range result.GetResponses() {
-		if len(objectgroup.ObjectLinks) != 2 {
-			log.Fatalln("wrong number of upload links found")
+		if len(objectgroup.CreateRevisionResponse.ObjectLinks) != 2 {
+			log.Fatalln(fmt.Sprintf("wrong number of upload links found: found %v expected 2", len(objectgroup.CreateRevisionResponse.ObjectLinks)))
 		}
-		for _, object := range objectgroup.ObjectLinks {
+		for _, object := range objectgroup.CreateRevisionResponse.ObjectLinks {
 			uploadHttpRequest, err := http.NewRequest("PUT", object.Link, bytes.NewBufferString("foo"))
 			if err != nil {
 				log.Fatalln(err.Error())
@@ -325,106 +561,6 @@ func TestObjectGroupBatch(t *testing.T) {
 	}
 }
 
-func TestObjectGroupsDates(t *testing.T) {
-	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &v1storageservices.CreateProjectRequest{
-		Name: "foo",
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	datasetID, err := ServerEndpoints.dataset.CreateDataset(context.Background(), &v1storageservices.CreateDatasetRequest{
-		Name:      "foo",
-		ProjectId: projectID.GetId(),
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	objectGroupTooEarly1 := v1storageservices.CreateObjectGroupRequest{
-		Name:      "early1",
-		DatasetId: datasetID.GetId(),
-		Generated: timestamppb.New(time.Date(1990, time.July, 27, 0, 0, 0, 0, time.Local)),
-	}
-
-	project, err := ServerEndpoints.project.GetProject(context.Background(), &v1storageservices.GetProjectRequest{
-		Id: projectID.GetId(),
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooEarly1, project.Project.Bucket)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	objectGroupTooEarly2 := v1storageservices.CreateObjectGroupRequest{
-		Name:      "early2",
-		DatasetId: datasetID.GetId(),
-		Generated: timestamppb.New(time.Date(1992, time.July, 27, 0, 0, 0, 0, time.Local)),
-	}
-
-	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooEarly2, project.Project.Bucket)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	objectGroupInTime1 := v1storageservices.CreateObjectGroupRequest{
-		Name:      "intime1",
-		DatasetId: datasetID.GetId(),
-		Generated: timestamppb.New(time.Date(2000, time.July, 27, 0, 0, 0, 0, time.Local)),
-	}
-
-	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupInTime1, project.Project.Bucket)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	objectGroupInTime2 := v1storageservices.CreateObjectGroupRequest{
-		Name:      "intime2",
-		DatasetId: datasetID.GetId(),
-		Generated: timestamppb.New(time.Date(2000, time.December, 27, 0, 0, 0, 0, time.Local)),
-	}
-
-	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupInTime2, project.Project.Bucket)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	objectGroupTooLate1 := v1storageservices.CreateObjectGroupRequest{
-		Name:      "late1",
-		DatasetId: datasetID.GetId(),
-		Generated: timestamppb.Now(),
-	}
-
-	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooLate1, project.Project.Bucket)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	objectGroupTooLate2 := v1storageservices.CreateObjectGroupRequest{
-		Name:      "late2",
-		DatasetId: datasetID.GetId(),
-		Generated: timestamppb.Now(),
-	}
-
-	_, err = ServerEndpoints.dataset.CreateHandler.CreateObjectGroup(&objectGroupTooLate2, project.Project.Bucket)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	objectGroups, err := ServerEndpoints.dataset.ReadHandler.GetObjectGroupsInDateRange(
-		uuid.MustParse(datasetID.GetId()),
-		time.Date(1995, time.December, 27, 0, 0, 0, 0, time.Local),
-		time.Date(2015, time.December, 27, 0, 0, 0, 0, time.Local))
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	assert.Equal(t, len(objectGroups), 2)
-}
-
 func TestObjectGroupDuplicates(t *testing.T) {
 	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &v1storageservices.CreateProjectRequest{
 		Name: "foo",
@@ -450,7 +586,23 @@ func TestObjectGroupDuplicates(t *testing.T) {
 	}
 
 	_, err = ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
-		Name:      uuid.New().String(),
+		DatasetId: datasetID1.GetId(),
+		CreateRevisionRequest: &v1storageservices.CreateObjectGroupRevisionRequest{
+			Name:              uuid.New().String(),
+			UpdateObjects:     &v1storageservices.UpdateObjectsRequests{},
+			UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{},
+		},
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	_, err = ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
+		CreateRevisionRequest: &v1storageservices.CreateObjectGroupRevisionRequest{
+			Name:              "test-1",
+			UpdateObjects:     &v1storageservices.UpdateObjectsRequests{},
+			UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{},
+		},
 		DatasetId: datasetID1.GetId(),
 	})
 	if err != nil {
@@ -458,15 +610,11 @@ func TestObjectGroupDuplicates(t *testing.T) {
 	}
 
 	_, err = ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
-		Name:      "test-1",
-		DatasetId: datasetID1.GetId(),
-	})
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	_, err = ServerEndpoints.object.CreateObjectGroup(context.Background(), &v1storageservices.CreateObjectGroupRequest{
-		Name:      uuid.New().String(),
+		CreateRevisionRequest: &v1storageservices.CreateObjectGroupRevisionRequest{
+			Name:              uuid.New().String(),
+			UpdateObjects:     &v1storageservices.UpdateObjectsRequests{},
+			UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{},
+		},
 		DatasetId: datasetID2.GetId(),
 	})
 	if err != nil {

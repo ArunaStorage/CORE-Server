@@ -25,7 +25,6 @@ type Object struct {
 	Project         Project
 	DatasetID       uuid.UUID `gorm:"index"`
 	Dataset         Dataset
-	ParentID        uuid.UUID `gorm:"index"`
 }
 
 func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
@@ -67,7 +66,6 @@ func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
 		ContentLen:      object.ContentLen,
 		DatasetId:       object.DatasetID.String(),
 		ProjectId:       object.ProjectID.String(),
-		ObjectGroupId:   object.ParentID.String(),
 		Status:          status,
 	}, nil
 
@@ -75,7 +73,7 @@ func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
 
 type ObjectGroup struct {
 	BaseModel
-	CurrentRevisionCount         int64
+	CurrentRevisionCount         uint64
 	CurrentObjectGroupRevision   ObjectGroupRevision
 	CurrentObjectGroupRevisionID uuid.UUID
 	ObjectGroupRevisions         []ObjectGroupRevision
@@ -83,6 +81,7 @@ type ObjectGroup struct {
 	Dataset                      Dataset
 	ProjectID                    uuid.UUID `gorm:"index"`
 	Project                      Project
+	Status                       string
 }
 
 func (objectGroup *ObjectGroup) ToProtoModel(revisionStats *v1storagemodels.ObjectGroupStats) (*v1storagemodels.ObjectGroup, error) {
@@ -94,7 +93,7 @@ func (objectGroup *ObjectGroup) ToProtoModel(revisionStats *v1storagemodels.Obje
 
 	return &v1storagemodels.ObjectGroup{
 		Id:              objectGroup.ID.String(),
-		RevisionCounter: objectGroup.CurrentRevisionCount,
+		RevisionCounter: int64(objectGroup.CurrentRevisionCount),
 		CurrentRevision: revisionObject,
 		DatasetId:       objectGroup.DatasetID.String(),
 		ProjectId:       objectGroup.ProjectID.String(),
@@ -116,7 +115,7 @@ type ObjectGroupRevision struct {
 	Objects         []Object  `gorm:"many2many:object_group_revision_data_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	MetaObjects     []Object  `gorm:"many2many:object_group_revision_meta_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	ObjectGroupID   uuid.UUID `gorm:"index:revision_number,unique"`
-	RevisionNumber  int64     `gorm:"index:revision_number,unique"`
+	RevisionNumber  uint64    `gorm:"index:revision_number,unique"`
 }
 
 func (objectGroup *ObjectGroupRevision) ToProtoModel(stats *v1storagemodels.ObjectGroupStats) (*v1storagemodels.ObjectGroupRevision, error) {
