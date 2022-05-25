@@ -243,6 +243,8 @@ func TestObjectGroupUpdate(t *testing.T) {
 						ContentLen: 3,
 					},
 				},
+				ExistingObjects: []*v1storageservices.ExistingObjectRequest{},
+				UpdateObjects:   []*v1storageservices.UpdateObjectRequest{},
 			},
 			UpdateObjects: &v1storageservices.UpdateObjectsRequests{
 				AddObjects: []*v1storageservices.CreateObjectRequest{
@@ -257,6 +259,8 @@ func TestObjectGroupUpdate(t *testing.T) {
 						ContentLen: 3,
 					},
 				},
+				UpdateObjects:   []*v1storageservices.UpdateObjectRequest{},
+				ExistingObjects: []*v1storageservices.ExistingObjectRequest{},
 			},
 		},
 	})
@@ -323,7 +327,7 @@ func TestObjectGroupUpdate(t *testing.T) {
 
 	assert.Equal(t, objectGroup.CreateRevisionResponse.GetId(), objectGroupFromGet.ObjectGroup.CurrentRevision.Id)
 
-	objectGroupRevisionRequest := &v1storageservices.CreateObjectGroupRevisionRequest{
+	objectGroupRevisionRequestForUpdate := &v1storageservices.CreateObjectGroupRevisionRequest{
 		Name:              objectGroupFromGet.GetObjectGroup().GetCurrentRevision().Name,
 		Description:       objectGroupFromGet.GetObjectGroup().GetCurrentRevision().Description,
 		Labels:            objectGroupFromGet.ObjectGroup.CurrentRevision.Labels,
@@ -343,10 +347,16 @@ func TestObjectGroupUpdate(t *testing.T) {
 					Id: objectGroupFromGet.ObjectGroup.CurrentRevision.Objects[1].Id,
 				},
 			},
+			UpdateObjects: []*v1storageservices.UpdateObjectRequest{},
+		},
+		UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{
+			AddObjects:      []*v1storageservices.CreateObjectRequest{},
+			UpdateObjects:   []*v1storageservices.UpdateObjectRequest{},
+			ExistingObjects: []*v1storageservices.ExistingObjectRequest{},
 		},
 	}
 
-	objectGroupRevisionResponse, err := ServerEndpoints.object.CreateObjectGroupRevision(context.Background(), objectGroupRevisionRequest)
+	objectGroupRevisionResponse, err := ServerEndpoints.object.CreateObjectGroupRevision(context.Background(), objectGroupRevisionRequestForUpdate)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -402,14 +412,35 @@ func TestObjectGroupUpdate(t *testing.T) {
 	}
 
 	_, err = ServerEndpoints.object.FinishObjectGroupRevisionUpload(context.Background(), &v1storageservices.FinishObjectGroupRevisionUploadRequest{
-		Id: objectGroup.ObjectGroupId,
+		Id: objectGroupRevisionResponse.GetId(),
 	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
 	objectGroupNewRevision, err := ServerEndpoints.object.GetObjectGroup(context.Background(), &v1storageservices.GetObjectGroupRequest{
 		Id: objectGroup.ObjectGroupId,
 	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
 	newCurrentRevision := objectGroupNewRevision.ObjectGroup.CurrentRevision
+
+	var objectNames []string
+	var objectIDs []string
+
+	for _, object := range newCurrentRevision.Objects {
+		objectNames = append(objectNames, object.Filename)
+		objectIDs = append(objectIDs, object.Id)
+
+	}
+
+	assert.Contains(t, objectNames, objectGroupRevisionRequestForUpdate.UpdateObjects.AddObjects[0].Filename)
+	assert.Contains(t, objectNames, objectGroupFromGet.ObjectGroup.CurrentRevision.Objects[1].Filename)
+	assert.NotContains(t, objectNames, objectGroupFromGet.ObjectGroup.CurrentRevision.Objects[0].Filename)
+
+	assert.Contains(t, objectIDs, objectGroupFromGet.ObjectGroup.CurrentRevision.Objects[1].Id)
 
 }
 

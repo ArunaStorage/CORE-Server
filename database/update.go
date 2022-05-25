@@ -138,6 +138,13 @@ func (update *Update) FinishObjectGroupRevisionUpload(objectGroupRevisionID uuid
 				return err
 			}
 
+			objectGroup.CurrentObjectGroupRevisionID = objectGroupRevision.ID
+
+			if err := tx.Model(objectGroup).Update("current_object_group_revision_id", objectGroupRevision.ID).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
 			return nil
 		})
 

@@ -522,7 +522,8 @@ func (create *Create) createObjectsForUpdate(request *v1storageservices.UpdateOb
 		existingObjectsIDs = append(existingObjectsIDs, id.GetId())
 	}
 
-	if len(existingObjects) > 0 {
+	if len(existingObjectsIDs) > 0 {
+		log.Errorln("foo")
 		err := crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
 			if err := tx.Find(&existingObjects, existingObjectsIDs).Error; err != nil {
 				log.Errorln(err.Error())
