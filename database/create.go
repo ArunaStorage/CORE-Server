@@ -21,6 +21,17 @@ type Create struct {
 	*Common
 }
 
+type Objects struct {
+	AddedObjects    []models.Object
+	UpdatedObjects  []models.Object
+	ExistingObjects []models.Object
+}
+
+type RevisionObjects struct {
+	DataObjects *Objects
+	MetaObjects *Objects
+}
+
 func (create *Create) CreateProject(request *v1storageservices.CreateProjectRequest, userID string) (string, error) {
 	labels := []models.Label{}
 	for _, protoLabel := range request.Labels {
@@ -133,7 +144,7 @@ func (create *Create) CreateDataset(request *v1storageservices.CreateDatasetRequ
 	return dataset.ID.String(), nil
 }
 
-func (create *Create) CreateObjectGroup(request *v1storageservices.CreateObjectGroupRequest, bucket string) (*models.ObjectGroup, error) {
+func (create *Create) CreateObjectGroup(request *v1storageservices.CreateObjectGroupRequest, bucket string, revisionObjects *RevisionObjects) (*models.ObjectGroup, error) {
 	dataset := &models.Dataset{}
 
 	datasetID, err := uuid.Parse(request.GetDatasetId())
@@ -153,11 +164,7 @@ func (create *Create) CreateObjectGroup(request *v1storageservices.CreateObjectG
 		return nil, fmt.Errorf("could not read datasetID")
 	}
 
-	objectGroupRevisionModel, objects, err := create.prepareObjectGroupRevisionForInsert(request, dataset, bucket)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
+	objectGroupID := uuid.New()
 
 	objectGroup := models.ObjectGroup{
 		CurrentRevisionCount: 0,
@@ -166,17 +173,23 @@ func (create *Create) CreateObjectGroup(request *v1storageservices.CreateObjectG
 		Status:               v1storagemodels.Status_STATUS_INITIATING.String(),
 	}
 
-	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
-		objectGroupRevisionModel.Objects = objects
+	objectGroup.ID = objectGroupID
 
+	objectGroupRevisionModel, err := create.prepareObjectGroupRevisionForInsert(request.GetCreateRevisionRequest(), dataset, bucket, objectGroupID, revisionObjects)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
 		tx.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Create(&objectGroup).Error; err != nil {
 				log.Errorln(err.Error())
 				return err
 			}
-			objectGroupRevisionModel.ObjectGroupID = objectGroup.ID
 
 			if err := tx.Create(&objectGroupRevisionModel).Error; err != nil {
+				log.Errorln(err.Error())
 				return err
 			}
 
@@ -191,13 +204,13 @@ func (create *Create) CreateObjectGroup(request *v1storageservices.CreateObjectG
 		return nil, fmt.Errorf("error while creating entries for object group")
 	}
 
-	objectGroup.CurrentObjectGroupRevision = objectGroupRevisionModel
+	objectGroup.CurrentObjectGroupRevision = *objectGroupRevisionModel
 	objectGroup.CurrentObjectGroupRevisionID = objectGroupRevisionModel.ID
 
 	return &objectGroup, nil
 }
 
-func (create *Create) CreateObjectGroupRevision(request *v1storageservices.CreateObjectGroupRevisionRequest) (*models.ObjectGroupRevision, error) {
+func (create *Create) CreateObjectGroupRevision(request *v1storageservices.CreateObjectGroupRevisionRequest, revisionObjects *RevisionObjects) (*models.ObjectGroupRevision, error) {
 	objectGroupID, err := uuid.Parse(request.ObjectGroupId)
 	if err != nil {
 		log.Errorln(err.Error())
@@ -235,22 +248,10 @@ func (create *Create) CreateObjectGroupRevision(request *v1storageservices.Creat
 		log.Errorln(err.Error())
 	}
 
-	updateDataObjects, err := create.createObjectsForUpdate(request.UpdateObjects, dataset, objectGroup.ID, objectGroupRevision)
+	objectGroupRevision, err := create.prepareObjectGroupRevisionForInsert(request, dataset, dataset.Bucket, objectGroupID, revisionObjects)
 	if err != nil {
 		log.Errorln(err.Error())
 	}
-
-	updateMetaObjects, err := create.createObjectsForUpdate(request.UpdateMetaObjects, dataset, objectGroup.ID, objectGroupRevision)
-	if err != nil {
-		log.Errorln(err.Error())
-	}
-
-	objectGroupRevision.BaseModel = models.BaseModel{}
-	objectGroupRevision.Objects = updateDataObjects
-	objectGroupRevision.MetaObjects = updateMetaObjects
-	objectGroupRevision.RevisionNumber = 0
-
-	objectGroupRevision.Status = v1storagemodels.Status_STATUS_STAGING.String()
 
 	err = crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
 		if err := tx.Create(objectGroupRevision).Error; err != nil {
@@ -264,7 +265,7 @@ func (create *Create) CreateObjectGroupRevision(request *v1storageservices.Creat
 	return objectGroupRevision, nil
 }
 
-func (create *Create) CreateObjectGroupBatch(batchRequest *v1storageservices.CreateObjectGroupBatchRequest, bucket string) ([]*models.ObjectGroup, error) {
+func (create *Create) CreateObjectGroupBatch(batchRequest *v1storageservices.CreateObjectGroupBatchRequest, bucket string, revisionObjects []*RevisionObjects) ([]*models.ObjectGroup, error) {
 	var objectGroups []*models.ObjectGroup
 
 	dataset := &models.Dataset{}
@@ -282,7 +283,7 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *v1storageservices.Cre
 		return nil, result.Error
 	}
 
-	for _, request := range batchRequest.GetRequests() {
+	for i, request := range batchRequest.GetRequests() {
 		objectGroupUUID := uuid.New()
 
 		objectGroup := &models.ObjectGroup{
@@ -294,14 +295,14 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *v1storageservices.Cre
 
 		objectGroup.ID = objectGroupUUID
 
-		objectGroupRevision, objects, err := create.prepareObjectGroupRevisionForInsert(request, dataset, bucket)
+		objectGroupRevision, err := create.prepareObjectGroupRevisionForInsert(request.GetCreateRevisionRequest(), dataset, bucket, objectGroup.ID, revisionObjects[i])
 		if err != nil {
 			log.Println(err.Error())
 			return nil, err
 		}
 
-		objectGroupRevision.Objects = objects
-		objectGroup.ObjectGroupRevisions[0] = objectGroupRevision
+		objectGroup.ObjectGroupRevisions[0] = *objectGroupRevision
+		objectGroup.CurrentObjectGroupRevision = *objectGroupRevision
 
 		objectGroups = append(objectGroups, objectGroup)
 	}
@@ -326,57 +327,42 @@ func (create *Create) CreateObjectGroupBatch(batchRequest *v1storageservices.Cre
 	return objectGroups, nil
 }
 
-func (create *Create) prepareObjectGroupRevisionForInsert(request *v1storageservices.CreateObjectGroupRequest, dataset *models.Dataset, bucket string) (models.ObjectGroupRevision, []models.Object, error) {
-	objectGroupID := uuid.New()
+func (create *Create) prepareObjectGroupRevisionForInsert(request *v1storageservices.CreateObjectGroupRevisionRequest, dataset *models.Dataset, bucket string, objectGroupID uuid.UUID, revisionObjects *RevisionObjects) (*models.ObjectGroupRevision, error) {
+	objectGroupRevisionID := uuid.New()
 
 	labels := []models.Label{}
-	for _, protoLabel := range request.CreateRevisionRequest.Labels {
+	for _, protoLabel := range request.Labels {
 		label := models.Label{}
 		labels = append(labels, *label.FromProtoModel(protoLabel))
 	}
 
-	objectGroupModel := models.ObjectGroupRevision{
-		DatasetID:   dataset.ID,
-		ProjectID:   dataset.ProjectID,
-		Name:        request.CreateRevisionRequest.Name,
-		Description: request.CreateRevisionRequest.Description,
-		Labels:      labels,
-		Generated:   request.CreateRevisionRequest.Generated.AsTime(),
-		Status:      v1storagemodels.Status_STATUS_INITIATING.String(),
+	objects, err := create.createObjectsForUpdate(request.GetUpdateObjects(), dataset, objectGroupID, revisionObjects.DataObjects)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
 	}
 
-	objectGroupModel.ID = objectGroupID
-
-	objects := make([]models.Object, 0)
-
-	for i, protoObject := range request.CreateRevisionRequest. {
-		uuid := uuid.New()
-		location := create.S3Handler.CreateLocation(dataset.ProjectID, dataset.ID, uuid, protoObject.Filename, bucket)
-
-		labels := []models.Label{}
-		for _, protoLabel := range protoObject.Labels {
-			label := models.Label{}
-			labels = append(labels, *label.FromProtoModel(protoLabel))
-		}
-
-		object := models.Object{
-			Filename:        protoObject.Filename,
-			Filetype:        protoObject.Filetype,
-			ContentLen:      protoObject.ContentLen,
-			Locations:       []models.Location{location},
-			Labels:          labels,
-			ObjectUUID:      uuid,
-			ProjectID:       dataset.ProjectID,
-			DatasetID:       dataset.ID,
-			Index:           uint64(i),
-			Status:          v1storagemodels.Status_STATUS_INITIATING.String(),
-			DefaultLocation: location,
-		}
-
-		objects = append(objects, object)
+	metaObjects, err := create.createObjectsForUpdate(request.GetUpdateMetaObjects(), dataset, objectGroupID, revisionObjects.MetaObjects)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
 	}
 
-	return objectGroupModel, objects, nil
+	objectGroupRevisionModel := &models.ObjectGroupRevision{
+		Name:          request.Name,
+		Description:   request.Description,
+		Labels:        labels,
+		Generated:     request.Generated.AsTime(),
+		Status:        v1storagemodels.Status_STATUS_INITIATING.String(),
+		DatasetID:     dataset.ID,
+		ProjectID:     dataset.ProjectID,
+		Objects:       objects,
+		MetaObjects:   metaObjects,
+		ObjectGroupID: objectGroupID,
+	}
+	objectGroupRevisionModel.ID = objectGroupRevisionID
+
+	return objectGroupRevisionModel, nil
 }
 
 func (create *Create) CreateDatasetVersion(request *v1storageservices.ReleaseDatasetVersionRequest, projectID uuid.UUID) (uuid.UUID, error) {
@@ -522,11 +508,12 @@ func (create *Create) CreateAPIToken(request *v1storageservices.CreateAPITokenRe
 	return base64String, nil
 }
 
-func (create *Create) createObjectsForUpdate(request *v1storageservices.UpdateObjectsRequests, dataset *models.Dataset, objectGroupID uuid.UUID) ([]models.Object, error) {
+func (create *Create) createObjectsForUpdate(request *v1storageservices.UpdateObjectsRequests, dataset *models.Dataset, objectGroupID uuid.UUID, objects *Objects) ([]models.Object, error) {
 	var dataObjects []models.Object
 
 	var existingObjects []models.Object
 	var existingObjectsIDs []string
+
 	for _, id := range request.ExistingObjects {
 		existingObjectsIDs = append(existingObjectsIDs, id.GetId())
 	}
@@ -535,18 +522,22 @@ func (create *Create) createObjectsForUpdate(request *v1storageservices.UpdateOb
 		existingObjectsIDs = append(existingObjectsIDs, id.GetId())
 	}
 
-	err := crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
-		if err := tx.Find(&existingObjects, existingObjectsIDs).Error; err != nil {
+	if len(existingObjects) > 0 {
+		err := crdbgorm.ExecuteTx(context.Background(), create.DB, nil, func(tx *gorm.DB) error {
+			if err := tx.Find(&existingObjects, existingObjectsIDs).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			return nil
+		})
+
+		if err != nil {
 			log.Errorln(err.Error())
-			return err
+			return nil, err
 		}
 
-		return nil
-	})
-
-	if err != nil {
-		log.Errorln(err.Error())
-		return nil, err
+		objects.ExistingObjects = existingObjects
 	}
 
 	for i, createObjectRequest := range request.AddObjects {
@@ -556,6 +547,7 @@ func (create *Create) createObjectsForUpdate(request *v1storageservices.UpdateOb
 			return nil, err
 		}
 
+		objects.UpdatedObjects = append(objects.UpdatedObjects, object)
 		dataObjects = append(dataObjects, object)
 	}
 

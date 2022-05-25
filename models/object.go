@@ -143,7 +143,7 @@ func (objectGroup *ObjectGroupRevision) ToProtoModel(stats *v1storagemodels.Obje
 			log.Errorln(err)
 			return nil, err
 		}
-		objectsList[metaObject.Index] = protoObject
+		metaObjectsList[metaObject.Index] = protoObject
 	}
 
 	status, err := ToStatus(objectGroup.Status)

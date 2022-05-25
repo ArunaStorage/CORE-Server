@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
@@ -69,6 +70,41 @@ func (update *Update) UpdateStatus(status v1storagemodels.Status, resourceID uui
 	return nil
 }
 
+func (update *Update) FinishObjectUpload(objectID uuid.UUID) error {
+	object := &models.Object{}
+	object.ID = objectID
+
+	err := crdbgorm.ExecuteTx(context.Background(), update.DB, nil, func(tx *gorm.DB) error {
+		tx.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(object).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			if object.Status != v1storagemodels.Status_STATUS_STAGING.String() {
+				err := status.Error(codes.InvalidArgument, fmt.Sprintf("object is in status: %v but finishing upload requires object to be in status: %v", object.Status, v1storagemodels.Status_STATUS_STAGING))
+				log.Debugln(err.Error())
+				return err
+			}
+
+			if err := tx.Model(object).Update("status", v1storagemodels.Status_STATUS_AVAILABLE.String()).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			return nil
+		})
+		return nil
+	})
+
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+
+	return nil
+}
+
 func (update *Update) FinishObjectGroupRevisionUpload(objectGroupRevisionID uuid.UUID) error {
 	objectGroupRevision := &models.ObjectGroupRevision{}
 	objectGroupRevision.ID = objectGroupRevisionID
@@ -125,17 +161,10 @@ func (update *Update) UpdateObjectGroup(request *v1storageservices.UpdateObjectG
 		return nil, err
 	}
 
-	objectGroupRevisionID, err := uuid.Parse(request.RevisionId)
-	if err != nil {
-		log.Error(err.Error())
-		return nil, err
-	}
-
 	var objectGroup *models.ObjectGroup
 	objectGroup.ID = objectGroupID
 
 	var objectGroupRevision *models.ObjectGroupRevision
-	objectGroupRevision.ID = objectGroupRevisionID
 
 	err = crdbgorm.ExecuteTx(context.Background(), update.DB, nil, func(tx *gorm.DB) error {
 		tx.Transaction(func(tx *gorm.DB) error {
@@ -171,61 +200,4 @@ func (update *Update) UpdateObjectGroup(request *v1storageservices.UpdateObjectG
 	})
 
 	return objectGroup, nil
-}
-
-func (update *Update) updateObjects(request *v1storageservices.UpdateObjectsRequests, dataset *models.Dataset, objectGroup *models.ObjectGroup, objectGroupRevision *models.ObjectGroupRevision) ([]models.Object, error) {
-	var dataObjects []models.Object
-	var err error
-
-	deleteObjectsMap := make(map[string]interface{})
-	for _, object := range request.DeleteObjects {
-		deleteObjectsMap[object] = struct{}{}
-	}
-
-	updateObjectMap := make(map[string]*v1storageservices.UpdateObjectRequest)
-	for _, updateObjectRequest := range request.UpdateObject {
-		updateObjectMap[updateObjectRequest.GetId()] = updateObjectRequest
-	}
-
-	for i, object := range objectGroupRevision.Objects {
-		if _, ok := deleteObjectsMap[object.ID.String()]; ok {
-			continue
-		}
-
-		if _, ok := updateObjectMap[object.ID.String()]; ok {
-			object, err = update.updateObject(updateObjectMap[object.ID.String()], objectGroup, dataset.Bucket, uint64(i))
-		}
-
-		if err != nil {
-			log.Errorln(err.Error())
-		}
-
-		dataObjects = append(dataObjects, object)
-	}
-
-	for i, addObjectRequest := range request.AddObjects {
-		insertObject, err := update.ObjectForInitialInsert(addObjectRequest, objectGroup.ProjectID, objectGroup.DatasetID, objectGroup.ID, dataset.Bucket, uint64(i))
-		if err != nil {
-			log.Errorln(err.Error())
-		}
-		dataObjects = append(dataObjects, insertObject)
-	}
-
-	return dataObjects, nil
-}
-
-func (update *Update) updateObject(request *v1storageservices.UpdateObjectRequest, objectGroup *models.ObjectGroup, bucket string, index uint64) (models.Object, error) {
-	var object models.Object
-	var err error
-
-	switch updateRequest := request.UpdateObject.(type) {
-	case *v1storageservices.UpdateObjectRequest_UpdatedObject:
-		object, err = update.Common.ObjectForInitialInsert(updateRequest.UpdatedObject, objectGroup.ProjectID, objectGroup.DatasetID, objectGroup.ID, bucket, index)
-		if err != nil {
-			log.Errorln(err.Error())
-			return models.Object{}, err
-		}
-	}
-
-	return object, nil
 }
