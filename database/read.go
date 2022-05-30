@@ -23,7 +23,12 @@ func (read *Read) GetProject(projectID uuid.UUID) (*models.Project, error) {
 	project.ID = projectID
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Labels").First(project).Error
+		return tx.
+			Preload("Users").
+			Preload("Labels").
+			Preload("APIToken").
+			Preload("Datasets").
+			First(project).Error
 	})
 
 	if err != nil {
@@ -39,7 +44,12 @@ func (read *Read) GetDataset(datasetID uuid.UUID) (*models.Dataset, error) {
 	dataset.ID = datasetID
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Labels").Preload("MetaObjects").First(dataset).Error
+		return tx.
+			Preload("Project").
+			Preload("Labels").
+			Preload("MetaObjects").
+			// ObjectGroups and DatasetVersions should be fetched on demand
+			First(dataset).Error
 	})
 	if err != nil {
 		log.Println(err.Error())
@@ -52,8 +62,16 @@ func (read *Read) GetDataset(datasetID uuid.UUID) (*models.Dataset, error) {
 func (read *Read) GetObjectGroupRevision(objectGroupRevisionsID uuid.UUID) (*models.ObjectGroupRevision, error) {
 	objectGroupRevision := &models.ObjectGroupRevision{}
 	objectGroupRevision.ID = objectGroupRevisionsID
+
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("MetaObjects.DefaultLocation").Preload("MetaObjects.Locations").Preload("Objects.DefaultLocation").Preload("Objects.Locations").Preload("Labels").Preload("Objects").Preload("MetaObjects").First(objectGroupRevision).Error
+		return tx.
+			Preload("Project").
+			Preload("Dataset").
+			Preload("Labels").
+			// DatasetVersions should be fetched on demand
+			Preload("Objects").
+			Preload("MetaObjects").
+			First(objectGroupRevision).Error
 	})
 
 	if err != nil {
@@ -69,8 +87,14 @@ func (read *Read) GetObjectGroup(objectGroupID uuid.UUID) (*models.ObjectGroup, 
 	objectGroup.ID = objectGroupID
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		preloads := tx.Preload("CurrentObjectGroupRevision.MetaObjects.Locations").Preload("CurrentObjectGroupRevision.MetaObjects.DefaultLocation").Preload("CurrentObjectGroupRevision.Objects.Locations").Preload("CurrentObjectGroupRevision.Objects.DefaultLocation").Preload("CurrentObjectGroupRevision").Preload("CurrentObjectGroupRevision.Objects").Preload("CurrentObjectGroupRevision.MetaObjects").Preload("CurrentObjectGroupRevision.Labels")
-		return preloads.First(objectGroup).Error
+		return tx.
+			Preload("Project").
+			Preload("Dataset").
+			Preload("CurrentObjectGroupRevision.Objects").
+			Preload("CurrentObjectGroupRevision.MetaObjects").
+			Preload("CurrentObjectGroupRevision.Labels").
+			// ObjectGroupRevisions should be fetched on demand
+			First(objectGroup).Error
 	})
 
 	if err != nil {
@@ -97,10 +121,15 @@ func (read *Read) GetObjectGroupRevisionsObjects(objectGroupRevisionID uuid.UUID
 }
 
 func (read *Read) GetProjectDatasets(projectID uuid.UUID) ([]*models.Dataset, error) {
-	objects := make([]*models.Dataset, 0)
+	datasets := make([]*models.Dataset, 0)
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Labels").Where("project_id = ?", projectID).Find(&objects).Error
+		return tx.
+			Preload("Project").
+			Preload("Labels").
+			Preload("MetaObjects").
+			Where("project_id = ?", projectID).
+			Find(&datasets).Error
 	})
 
 	if err != nil {
@@ -156,7 +185,13 @@ func (read *Read) GetObject(objectID uuid.UUID) (*models.Object, error) {
 	object.ID = objectID
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Labels").Preload("Locations").Preload("DefaultLocation").First(&object).Error
+		return tx.
+			Preload("Project").
+			Preload("Dataset").
+			Preload("Labels").
+			Preload("Locations").
+			Preload("DefaultLocation").
+			First(&object).Error
 	})
 
 	if err != nil {
@@ -172,7 +207,12 @@ func (read *Read) GetDatasetVersion(versionID uuid.UUID) (*models.DatasetVersion
 	datasetVersion.ID = versionID
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Labels").Find(datasetVersion).Error
+		return tx.
+			Preload("Project").
+			Preload("Dataset").
+			Preload("Labels").
+			// nObjectGroupRevisions should be fetched on demand
+			First(datasetVersion).Error
 	})
 
 	if err != nil {
@@ -187,7 +227,13 @@ func (read *Read) GetDatasetVersions(datasetID uuid.UUID) ([]models.DatasetVersi
 	var datasetVersions []models.DatasetVersion
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Labels").Where("dataset_id = ?", datasetID).Find(&datasetVersions).Error
+		return tx.
+			Preload("Project").
+			Preload("Dataset").
+			Preload("Labels").
+			// ObjectGroupRevisions should be fetched on demand
+			Where("dataset_id = ?", datasetID).
+			Find(&datasetVersions).Error
 	})
 
 	if err != nil {
@@ -286,7 +332,10 @@ func (read *Read) GetUserProjects(userIDOauth2 string) ([]*models.Project, error
 	var users []*models.User
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Project").Where("user_oauth2_id = ?", userIDOauth2).Find(&users).Error
+		return tx.
+			Preload("Project").
+			Where("user_oauth2_id = ?", userIDOauth2).
+			Find(&users).Error
 	})
 
 	if err != nil {
@@ -323,7 +372,13 @@ func (read *Read) GetAllDatasetObjects(datasetID uuid.UUID) ([]*models.Object, e
 	var objects []*models.Object
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Where("dataset_id = ?", datasetID).Find(&objects).Error
+		return tx.
+			Preload("Project").
+			Preload("Dataset").
+			Preload("DefaultLocation").
+			Preload("Locations").
+			Where("dataset_id = ?", datasetID).
+			Find(&objects).Error
 	})
 
 	if err != nil {
@@ -338,7 +393,13 @@ func (read *Read) GetAllProjectObjects(projectID uuid.UUID) ([]*models.Object, e
 	var objects []*models.Object
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Where("project_id = ?", projectID).Find(&objects).Error
+		return tx.
+			Preload("Project").
+			Preload("Dataset").
+			Preload("DefaultLocation").
+			Preload("Locations").
+			Where("project_id = ?", projectID).
+			Find(&objects).Error
 	})
 
 	if err != nil {
@@ -403,7 +464,13 @@ func (read *Read) GetObjectsBatch(ids []uuid.UUID) ([]*models.Object, error) {
 	}
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Labels").Find(&objects).Error
+		return tx.
+			Preload("Project").
+			Preload("Dataset").
+			Preload("Labels").
+			Preload("Locations").
+			Preload("DefaultLocation").
+			Find(&objects).Error
 	})
 
 	if err != nil {
@@ -417,8 +484,19 @@ func (read *Read) GetObjectsBatch(ids []uuid.UUID) ([]*models.Object, error) {
 // BatchedReads
 func (read *Read) GetDatasetObjectGroupsBatches(datasetID uuid.UUID, objectGroupsChan chan []*models.ObjectGroup) error {
 	objectGroups := make([]*models.ObjectGroup, 0)
+
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		err := tx.Preload("CurrentObjectGroupRevision.Objects.Locations").Preload("CurrentObjectGroupRevision").Preload("CurrentObjectGroupRevision.Objects").Preload("CurrentObjectGroupRevision.Labels").Where("dataset_id = ?", datasetID).FindInBatches(&objectGroups, 10000, func(tx *gorm.DB, batch int) error {
+		err := tx.
+			Preload("CurrentObjectGroupRevision").
+			Preload("CurrentObjectGroupRevision.Labels").
+			Preload("CurrentObjectGroupRevision.Objects").
+			Preload("CurrentObjectGroupRevision.Objects.Locations").
+			Preload("CurrentObjectGroupRevision.Objects.DefaultLocation").
+			Preload("CurrentObjectGroupRevision.MetaObjects").
+			Preload("CurrentObjectGroupRevision.MetaObjects.Locations").
+			Preload("CurrentObjectGroupRevision.MetaObjects.DefaultLocation").
+			Where("dataset_id = ?", datasetID).
+			FindInBatches(&objectGroups, 10000, func(tx *gorm.DB, batch int) error {
 			var objectGroupsBatch []*models.ObjectGroup
 			objectGroupsBatch = append(objectGroupsBatch, objectGroups...)
 
@@ -439,11 +517,24 @@ func (read *Read) GetDatasetObjectGroupsBatches(datasetID uuid.UUID, objectGroup
 
 func (read *Read) GetObjectGroupsInDateRangeBatches(datasetID uuid.UUID, startDate time.Time, endDate time.Time, objectGroupsChan chan []*models.ObjectGroup) error {
 	var objectGroups []*models.ObjectGroup
+
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		preloadConf := read.DB.Preload("Labels").Preload("Objects").Preload("Objects.Labels").Preload("Objects.Locations").Preload("Objects.DefaultLocation")
-		err := preloadConf.Where("dataset_id = ? AND generated  BETWEEN ? AND ?", datasetID, startDate, endDate).FindInBatches(&objectGroups, 10000, func(tx *gorm.DB, batch int) error {
+		preloadConf := read.DB.
+			Preload("CurrentObjectGroupRevision").
+			Preload("CurrentObjectGroupRevision.Labels").
+			Preload("CurrentObjectGroupRevision.Objects").
+			Preload("CurrentObjectGroupRevision.Objects.Locations").
+			Preload("CurrentObjectGroupRevision.Objects.DefaultLocation").
+			Preload("CurrentObjectGroupRevision.MetaObjects").
+			Preload("CurrentObjectGroupRevision.MetaObjects.Locations").
+			Preload("CurrentObjectGroupRevision.MetaObjects.DefaultLocation")
+
+		err := preloadConf.
+			Where("dataset_id = ? AND created_at BETWEEN ? AND ?", datasetID, startDate, endDate).
+			FindInBatches(&objectGroups, 10000, func(tx *gorm.DB, batch int) error {
 			var objectGroupsBatch []*models.ObjectGroup
 			objectGroupsBatch = append(objectGroupsBatch, objectGroups...)
+
 			objectGroupsChan <- objectGroupsBatch
 			return nil
 		}).Error
@@ -462,7 +553,16 @@ func (read *Read) GetObjectGroupRevisionsByStatus(objectGroupID []string, status
 	var datasetVersions []models.ObjectGroupRevision
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Labels").Where("id in ? and status not in ?", objectGroupID, status).Find(&datasetVersions).Error
+		return tx.
+			Preload("Labels").
+			Preload("Objects").
+			Preload("Objects.Locations").
+			Preload("Objects.DefaultLocation").
+			Preload("MetaObjects").
+			Preload("MetaObjects.Locations").
+			Preload("MetaObjects.DefaultLocation").
+			Where("id IN ? and status NOT IN ?", objectGroupID, status).
+			Find(&datasetVersions).Error
 	})
 
 	if err != nil {
