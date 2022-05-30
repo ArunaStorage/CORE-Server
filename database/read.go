@@ -18,6 +18,7 @@ type Read struct {
 	*Common
 }
 
+// Get the specific Project.
 func (read *Read) GetProject(projectID uuid.UUID) (*models.Project, error) {
 	project := &models.Project{}
 	project.ID = projectID
@@ -39,6 +40,7 @@ func (read *Read) GetProject(projectID uuid.UUID) (*models.Project, error) {
 	return project, nil
 }
 
+// Get the specific Dataset.
 func (read *Read) GetDataset(datasetID uuid.UUID) (*models.Dataset, error) {
 	dataset := &models.Dataset{}
 	dataset.ID = datasetID
@@ -59,6 +61,7 @@ func (read *Read) GetDataset(datasetID uuid.UUID) (*models.Dataset, error) {
 	return dataset, nil
 }
 
+// Get the specific ObjectGroupRevision.
 func (read *Read) GetObjectGroupRevision(objectGroupRevisionsID uuid.UUID) (*models.ObjectGroupRevision, error) {
 	objectGroupRevision := &models.ObjectGroupRevision{}
 	objectGroupRevision.ID = objectGroupRevisionsID
@@ -82,6 +85,7 @@ func (read *Read) GetObjectGroupRevision(objectGroupRevisionsID uuid.UUID) (*mod
 	return objectGroupRevision, nil
 }
 
+// Get the specific ObjectGroup.
 func (read *Read) GetObjectGroup(objectGroupID uuid.UUID) (*models.ObjectGroup, error) {
 	objectGroup := &models.ObjectGroup{}
 	objectGroup.ID = objectGroupID
@@ -105,7 +109,7 @@ func (read *Read) GetObjectGroup(objectGroupID uuid.UUID) (*models.ObjectGroup, 
 	return objectGroup, nil
 }
 
-
+// Get all datasets of the specific Project.
 func (read *Read) GetProjectDatasets(projectID uuid.UUID) ([]*models.Dataset, error) {
 	datasets := make([]*models.Dataset, 0)
 
@@ -126,6 +130,7 @@ func (read *Read) GetProjectDatasets(projectID uuid.UUID) ([]*models.Dataset, er
 	return objects, nil
 }
 
+// Get all object groups of the specific Dataset.
 func (read *Read) GetDatasetObjectGroups(datasetID uuid.UUID, page *v1storagemodels.PageRequest) ([]*models.ObjectGroup, error) {
 	objectGroups := make([]*models.ObjectGroup, 0)
 
@@ -170,6 +175,7 @@ func (read *Read) GetDatasetObjectGroups(datasetID uuid.UUID, page *v1storagemod
 	return objectGroups, nil
 }
 
+// Get the specific Object.
 func (read *Read) GetObject(objectID uuid.UUID) (*models.Object, error) {
 	object := models.Object{}
 	object.ID = objectID
@@ -192,6 +198,7 @@ func (read *Read) GetObject(objectID uuid.UUID) (*models.Object, error) {
 	return &object, nil
 }
 
+// Get the specific DatasetVersion.
 func (read *Read) GetDatasetVersion(versionID uuid.UUID) (*models.DatasetVersion, error) {
 	datasetVersion := &models.DatasetVersion{}
 	datasetVersion.ID = versionID
@@ -213,6 +220,7 @@ func (read *Read) GetDatasetVersion(versionID uuid.UUID) (*models.DatasetVersion
 	return datasetVersion, nil
 }
 
+// Get all dataset versions of the specific Dataset.
 func (read *Read) GetDatasetVersions(datasetID uuid.UUID) ([]models.DatasetVersion, error) {
 	var datasetVersions []models.DatasetVersion
 
@@ -234,6 +242,7 @@ func (read *Read) GetDatasetVersions(datasetID uuid.UUID) ([]models.DatasetVersi
 	return datasetVersions, nil
 }
 
+// Get all API tokens registered for the user with the specific OAuth2ID.
 func (read *Read) GetAPIToken(userOAuth2ID uuid.UUID) ([]models.APIToken, error) {
 	user := &models.User{}
 	token := make([]models.APIToken, 0)
@@ -263,6 +272,7 @@ func (read *Read) GetAPIToken(userOAuth2ID uuid.UUID) ([]models.APIToken, error)
 	return token, nil
 }
 
+// Get the specific DatasetVersion including the full ObjectGroupRevisions.
 func (read *Read) GetDatasetVersionWithObjectGroups(datasetVersionID uuid.UUID, page *v1storagemodels.PageRequest) (*models.DatasetVersion, error) {
 	version := &models.DatasetVersion{}
 	version.ID = datasetVersionID
@@ -330,6 +340,7 @@ func (read *Read) GetDatasetVersionWithObjectGroups(datasetVersionID uuid.UUID, 
 	return version, nil
 }
 
+//Get all projects the User is assigned to.
 func (read *Read) GetUserProjects(userIDOauth2 string) ([]*models.Project, error) {
 	var users []*models.User
 
@@ -353,6 +364,7 @@ func (read *Read) GetUserProjects(userIDOauth2 string) ([]*models.Project, error
 	return projects, nil
 }
 
+// Get all users assigned to the specific Project.
 func (read *Read) GetProjectUsers(projectID uuid.UUID) ([]*models.User, error) {
 	var users []*models.User
 
@@ -370,6 +382,7 @@ func (read *Read) GetProjectUsers(projectID uuid.UUID) ([]*models.User, error) {
 	return users, nil
 }
 
+//Get all objects registered under the specific Dataset.
 func (read *Read) GetAllDatasetObjects(datasetID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 
@@ -391,6 +404,7 @@ func (read *Read) GetAllDatasetObjects(datasetID uuid.UUID) ([]*models.Object, e
 	return objects, nil
 }
 
+//Get all objects registered under the specific Project.
 func (read *Read) GetAllProjectObjects(projectID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 
@@ -412,6 +426,7 @@ func (read *Read) GetAllProjectObjects(projectID uuid.UUID) ([]*models.Object, e
 	return objects, nil
 }
 
+// Get all objects of the specific ObjectGroup.
 func (read *Read) GetAllObjectGroupObjects(objectGroupID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 
@@ -487,6 +502,7 @@ func (read *Read) GetAllObjectGroupMetaObjects(objectGroupID uuid.UUID) ([]*mode
 	return objects, nil
 }
 
+// Get all objects of the specific ObjectGrouprevision.
 func (read *Read) GetAllObjectGroupRevisionObjects(revisionID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 
@@ -559,6 +575,7 @@ func (read *Read) GetAllObjectGroupRevisionMetaObjects(revisionID uuid.UUID) ([]
 	return objects, nil
 }
 
+// the provided start and end date. The start and end date is inclusive.
 func (read *Read) GetObjectGroupRevisionsInDateRange(datasetID uuid.UUID, startDate time.Time, endDate time.Time) ([]*models.ObjectGroupRevision, error) {
 	var objectGroupRevisions []*models.ObjectGroupRevision
 
@@ -584,9 +601,7 @@ func (read *Read) GetObjectGroupRevisionsInDateRange(datasetID uuid.UUID, startD
 	return objectGroupRevisions, nil
 }
 
-func (read *Read) GetObjectsBatch(ids []uuid.UUID) ([]*models.Object, error) {
-	objects := make([]*models.Object, len(ids))
-	for i, id := range ids {
+// Get multiple Objects specified by the provided IDs.
 		object := &models.Object{}
 		object.ID = id
 		objects[i] = object
@@ -610,7 +625,8 @@ func (read *Read) GetObjectsBatch(ids []uuid.UUID) ([]*models.Object, error) {
 	return objects, nil
 }
 
-// BatchedReads
+// Get all ObjectGroups of the specific Dataset.
+// The ObjectGroups are send in batches of 10000 through the provided channel.
 func (read *Read) GetDatasetObjectGroupsBatches(datasetID uuid.UUID, objectGroupsChan chan []*models.ObjectGroup) error {
 	objectGroups := make([]*models.ObjectGroup, 0)
 
@@ -644,6 +660,9 @@ func (read *Read) GetDatasetObjectGroupsBatches(datasetID uuid.UUID, objectGroup
 	return nil
 }
 
+// Get all ObjectGroups of the specific Dataset in the specified datetime range. The start and end date is inclusive.
+//
+// The ObjectGroups are send in batches of 10000 through the provided channel.
 func (read *Read) GetObjectGroupsInDateRangeBatches(datasetID uuid.UUID, startDate time.Time, endDate time.Time, objectGroupsChan chan []*models.ObjectGroup) error {
 	var objectGroups []*models.ObjectGroup
 
@@ -678,6 +697,9 @@ func (read *Read) GetObjectGroupsInDateRangeBatches(datasetID uuid.UUID, startDa
 	return nil
 }
 
+// Get all ObjectGroupRevisions of the specific ObjectGroup in the specified datetime range. The start and end date is inclusive.
+//
+// The ObjectGroups are send in batches of 10000 through the provided channel.
 func (read *Read) GetObjectGroupRevisionsByStatus(objectGroupID []string, status []string) ([]models.ObjectGroupRevision, error) {
 	var datasetVersions []models.ObjectGroupRevision
 
@@ -702,6 +724,7 @@ func (read *Read) GetObjectGroupRevisionsByStatus(objectGroupID []string, status
 	return datasetVersions, nil
 }
 
+// Get the specific StreamGroup.
 func (read *Read) GetStreamGroup(streamGroupID uuid.UUID) (*models.StreamGroup, error) {
 	streamGroup := &models.StreamGroup{}
 	streamGroup.ID = streamGroupID
