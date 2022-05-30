@@ -250,19 +250,23 @@ func (read *Read) GetDatasetVersions(datasetID uuid.UUID) ([]models.DatasetVersi
 
 func (read *Read) GetAPIToken(userOAuth2ID uuid.UUID) ([]models.APIToken, error) {
 	user := &models.User{}
+	token := make([]models.APIToken, 0)
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Where("user_oauth2_id = ?", userOAuth2ID).Find(user).Error
-	})
+		err := tx.
+			Preload("Project").
+			Where("user_oauth2_id = ?", userOAuth2ID).
+			Find(user).Error
 
 	if err != nil {
 		log.Println(err.Error())
-		return nil, err
+			return err
 	}
 
-	token := make([]models.APIToken, 0)
-	err = crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Where("user_uuid = ?", userOAuth2ID).Find(&token).Error
+		return tx.
+			Preload("Project").
+			Where("user_uuid = ?", userOAuth2ID).
+			Find(&token).Error
 	})
 
 	if err != nil {
