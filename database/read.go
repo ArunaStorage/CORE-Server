@@ -5,13 +5,13 @@ import (
 	"errors"
 	"time"
 
+	"github.com/ScienceObjectsDB/CORE-Server/models"
 	"github.com/cockroachdb/cockroach-go/v2/crdb/crdbgorm"
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 
-	"github.com/ScienceObjectsDB/CORE-Server/models"
 	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
+	log "github.com/sirupsen/logrus"
 )
 
 type Read struct {
