@@ -559,11 +559,21 @@ func (read *Read) GetAllObjectGroupRevisionMetaObjects(revisionID uuid.UUID) ([]
 	return objects, nil
 }
 
-func (read *Read) GetObjectGroupsInDateRange(datasetID uuid.UUID, startDate time.Time, endDate time.Time) ([]*models.ObjectGroupRevision, error) {
+func (read *Read) GetObjectGroupRevisionsInDateRange(datasetID uuid.UUID, startDate time.Time, endDate time.Time) ([]*models.ObjectGroupRevision, error) {
 	var objectGroupRevisions []*models.ObjectGroupRevision
+
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		preloadConf := tx.Preload("Labels").Preload("Objects").Preload("Objects.Labels").Preload("Objects.Locations").Preload("Objects.DefaultLocation")
-		return preloadConf.Where("dataset_id = ? AND generated  BETWEEN ? AND ?", datasetID, startDate, endDate).Find(&objectGroupRevisions).Error
+		preloadConf := tx.
+			Preload("Labels").
+			Preload("Objects").
+			Preload("Objects.Labels").
+			Preload("Objects.Locations").
+			Preload("Objects.DefaultLocation").
+			Preload("MetaObjects")
+
+		return preloadConf.
+			Where("dataset_id = ? AND generated BETWEEN ? AND ?", datasetID, startDate, endDate).
+			Find(&objectGroupRevisions).Error
 	})
 
 	if err != nil {
