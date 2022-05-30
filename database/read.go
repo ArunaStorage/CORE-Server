@@ -127,7 +127,7 @@ func (read *Read) GetProjectDatasets(projectID uuid.UUID) ([]*models.Dataset, er
 		return nil, err
 	}
 
-	return objects, nil
+	return datasets, nil
 }
 
 // Get all object groups of the specific Dataset.
@@ -575,6 +575,7 @@ func (read *Read) GetAllObjectGroupRevisionMetaObjects(revisionID uuid.UUID) ([]
 	return objects, nil
 }
 
+// Get all object group revisions of the specific Dataset which were generated between
 // the provided start and end date. The start and end date is inclusive.
 func (read *Read) GetObjectGroupRevisionsInDateRange(datasetID uuid.UUID, startDate time.Time, endDate time.Time) ([]*models.ObjectGroupRevision, error) {
 	var objectGroupRevisions []*models.ObjectGroupRevision
@@ -602,6 +603,10 @@ func (read *Read) GetObjectGroupRevisionsInDateRange(datasetID uuid.UUID, startD
 }
 
 // Get multiple Objects specified by the provided IDs.
+func (read *Read) GetObjectsBatch(objectIds []uuid.UUID) ([]*models.Object, error) {
+	objects := make([]*models.Object, len(objectIds))
+
+	for i, id := range objectIds {
 		object := &models.Object{}
 		object.ID = id
 		objects[i] = object
@@ -728,6 +733,7 @@ func (read *Read) GetObjectGroupRevisionsByStatus(objectGroupID []string, status
 func (read *Read) GetStreamGroup(streamGroupID uuid.UUID) (*models.StreamGroup, error) {
 	streamGroup := &models.StreamGroup{}
 	streamGroup.ID = streamGroupID
+
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
 		return tx.First(streamGroup).Error
 	})
