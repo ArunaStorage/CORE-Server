@@ -143,40 +143,44 @@ func (read *Read) GetProjectDatasets(projectID uuid.UUID) ([]*models.Dataset, er
 func (read *Read) GetDatasetObjectGroups(datasetID uuid.UUID, page *v1storagemodels.PageRequest) ([]*models.ObjectGroup, error) {
 	objectGroups := make([]*models.ObjectGroup, 0)
 
-	if page == nil || page.PageSize == 0 {
 		err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-			preload := tx.Preload("CurrentObjectGroupRevision").Preload("CurrentObjectGroupRevision.Objects").Preload("CurrentObjectGroupRevision.Labels").Preload("CurrentObjectGroupRevision.MetaObjects")
-			return preload.Where("dataset_id = ?", datasetID).Find(&objectGroups).Error
-		})
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
+		preload := tx.
+			Preload("Project").
+			Preload("Dataset").
+			Preload("CurrentObjectGroupRevision").
+			Preload("CurrentObjectGroupRevision.Labels").
+			Preload("CurrentObjectGroupRevision.Objects").
+			Preload("CurrentObjectGroupRevision.MetaObjects")
+
+		if page == nil || page.PageSize == 0 {
+			return preload.
+				Where("dataset_id = ?", datasetID).
+				Find(&objectGroups).Error
+
 	} else if page != nil && page.LastUuid == "" {
-		err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-			preload := tx.Preload("CurrentObjectGroupRevision").Preload("CurrentObjectGroupRevision.Objects").Preload("CurrentObjectGroupRevision.Labels").Preload("CurrentObjectGroupRevision.MetaObjects")
-			return preload.Where("dataset_id = ?", datasetID).Order("id asc").Limit(int(page.PageSize)).Find(&objectGroups).Error
-		})
+			return preload.
+				Where("dataset_id = ?", datasetID).
+				Order("id asc").
+				Limit(int(page.PageSize)).
+				Find(&objectGroups).Error
 
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
 	} else if page != nil && page.LastUuid != "" && page.PageSize > 0 {
-		err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-			preload := tx.Preload("CurrentObjectGroupRevision.Objects.Locations").Preload("CurrentObjectGroupRevision").Preload("CurrentObjectGroupRevision.Objects").Preload("CurrentObjectGroupRevision.Labels").Preload("CurrentObjectGroupRevision.MetaObjects.Locations")
-			return preload.Where("dataset_id = ? AND id > ?", datasetID, page.LastUuid).Order("id asc").Limit(int(page.PageSize)).Find(&objectGroups).Error
+			return preload.
+				Where("dataset_id = ? AND id > ?", datasetID, page.LastUuid).
+				Order("id asc").
+				Limit(int(page.PageSize)).
+				Find(&objectGroups).Error
+
+		} else {
+			log.Info("could not parse request")
+			return errors.New("could not parse request")
+		}
 		})
 
 		if err != nil {
 			log.Println(err.Error())
 			return nil, err
 		}
-	} else {
-		log.Info("could not parse request")
-		return nil, errors.New("could not parse request")
-	}
-
 	return objectGroups, nil
 }
 
