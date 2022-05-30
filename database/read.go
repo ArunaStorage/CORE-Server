@@ -105,20 +105,6 @@ func (read *Read) GetObjectGroup(objectGroupID uuid.UUID) (*models.ObjectGroup, 
 	return objectGroup, nil
 }
 
-func (read *Read) GetObjectGroupRevisionsObjects(objectGroupRevisionID uuid.UUID) ([]*models.Object, error) {
-	objects := make([]*models.Object, 0)
-
-	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Labels").Where("object_group_revision_id = ?", objectGroupRevisionID).Find(&objects).Error
-	})
-
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
-
-	return objects, nil
-}
 
 func (read *Read) GetProjectDatasets(projectID uuid.UUID) ([]*models.Dataset, error) {
 	datasets := make([]*models.Dataset, 0)
