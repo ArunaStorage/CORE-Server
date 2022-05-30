@@ -281,49 +281,57 @@ func (read *Read) GetDatasetVersionWithObjectGroups(datasetVersionID uuid.UUID, 
 	version := &models.DatasetVersion{}
 	version.ID = datasetVersionID
 
+	objectGroupsRevisionRefs := make([]*models.ObjectGroupRevision, 0)
+
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.First(version).Error
-	})
+		err := tx.First(version).Error
 
 	if err != nil {
 		log.Errorln(err.Error())
-		return nil, err
+			return err
 	}
 
-	objectGroupsRevisionRefs := make([]*models.ObjectGroupRevision, 0)
+		preload := tx.
+			Preload("Labels").
+			Preload("Objects").
+			Preload("Objects.Labels").
+			Preload("Objects.Locations").
+			Preload("Objects.DefaultLocation").
+			Preload("MetaObjects").
+			Preload("MetaObjects.Labels").
+			Preload("MetaObjects.Locations").
+			Preload("MetaObjects.DefaultLocation").
+			Joins("INNER JOIN dataset_version_object_group_revisions on dataset_version_object_group_revisions.object_group_revision_id=object_group_revisions.id")
 
 	if page == nil || page.PageSize == 0 {
-		err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-			preload := tx.Preload("Objects.Locations").Preload("Objects.DefaultLocation").Preload("Objects").Preload("Labels").Joins("INNER JOIN dataset_version_object_group_revisions on dataset_version_object_group_revisions.object_group_revision_id=object_group_revisions.id")
-			return preload.Where("dataset_version_object_group_revisions.dataset_version_id = ?", datasetVersionID).Find(&objectGroupsRevisionRefs).Error
-		})
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, err
-		}
+			return preload.
+				Where("dataset_version_object_group_revisions.dataset_version_id = ?", datasetVersionID).
+				Find(&objectGroupsRevisionRefs).Error
+
 	} else if page != nil && page.LastUuid == "" {
-		err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-			preload := tx.Preload("Objects.Locations").Preload("Objects.DefaultLocation").Preload("Objects").Preload("Labels").Joins("INNER JOIN dataset_version_object_group_revisions on dataset_version_object_group_revisions.object_group_revision_id=object_group_revisions.id")
-			return preload.Where("dataset_version_object_group_revisions.dataset_version_id = ?", datasetVersionID).Order("id asc").Limit(int(page.PageSize)).Find(&objectGroupsRevisionRefs).Error
+			return preload.
+				Where("dataset_version_object_group_revisions.dataset_version_id = ?", datasetVersionID).
+				Order("id asc").
+				Limit(int(page.PageSize)).
+				Find(&objectGroupsRevisionRefs).Error
+
+		} else if page != nil && page.LastUuid != "" && page.PageSize > 0 {
+			return preload.
+				Where("dataset_version_object_group_revisions.dataset_version_id = ? AND id > ?", datasetVersionID, page.LastUuid).
+				Order("id asc").
+				Limit(int(page.PageSize)).
+				Find(&objectGroupsRevisionRefs).Error
+
+		} else {
+			log.Info("could not parse request")
+			return errors.New("could not parse request")
+		}
+
 		})
 
 		if err != nil {
 			log.Errorln(err.Error())
 			return nil, err
-		}
-	} else if page != nil && page.LastUuid != "" && page.PageSize > 0 {
-		err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-			preload := tx.Preload("Objects.Locations").Preload("Objects.DefaultLocation").Preload("Objects").Preload("Labels").Joins("INNER JOIN dataset_version_object_group_revisions on dataset_version_object_group_revisions.object_group_revision_id=object_group_revisions.id")
-			return preload.Where("dataset_version_object_group_revisions.dataset_version_id = ? AND id > ?", datasetVersionID, page.LastUuid).Order("id asc").Limit(int(page.PageSize)).Find(&objectGroupsRevisionRefs).Error
-		})
-
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, err
-		}
-	} else {
-		log.Info("could not parse request")
-		return nil, errors.New("could not parse request")
 	}
 
 	objectGroupRevisions := make([]models.ObjectGroupRevision, len(objectGroupsRevisionRefs))
