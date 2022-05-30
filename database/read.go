@@ -505,7 +505,64 @@ func (read *Read) GetAllObjectGroupRevisionObjects(revisionID uuid.UUID) ([]*mod
 	var objects []*models.Object
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
-		return tx.Preload("Locations").Preload("DefaultLocation").Where("object_group_revision_id = ?", revisionID).Find(&objects).Error
+		return tx.
+			Preload("Project").
+			Preload("Dataset").
+			Preload("DefaultLocation").
+			Preload("Locations").
+			Table("objects AS o").
+			Joins("LEFT JOIN object_group_revision_data_objects AS ogrdo ON o.id = ogrdo.object_id").
+			Joins("LEFT JOIN object_group_revision_meta_objects AS ogrmo ON o.id = ogrmo.object_id").
+			Where("ogrdo.object_group_revision_id = ? OR ogrmo.object_group_revision_id = ?", revisionID, revisionID).
+			Find(&objects).Error
+	})
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+
+	return objects, nil
+}
+
+// Get all data objects of the specific ObjectGrouprevision.
+func (read *Read) GetAllObjectGroupRevisionDataObjects(revisionID uuid.UUID) ([]*models.Object, error) {
+	var objects []*models.Object
+
+	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
+		return tx.
+			Preload("Project").
+			Preload("Dataset").
+			Preload("DefaultLocation").
+			Preload("Locations").
+			Table("objects AS o").
+			Joins("Inner JOIN object_group_revision_data_objects AS ogrdo ON o.id = ogrdo.object_id").
+			Where("ogrdo.object_group_revision_id = ?", revisionID, revisionID).
+			Find(&objects).Error
+	})
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+
+	return objects, nil
+}
+
+// Get all meta objects of the specific ObjectGrouprevision.
+func (read *Read) GetAllObjectGroupRevisionMetaObjects(revisionID uuid.UUID) ([]*models.Object, error) {
+	var objects []*models.Object
+
+	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
+		return tx.
+			Preload("Project").
+			Preload("Dataset").
+			Preload("DefaultLocation").
+			Preload("Locations").
+			Table("objects AS o").
+			Joins("INNER JOIN object_group_revision_meta_objects AS ogrmo ON o.id = ogrmo.object_id").
+			Where("ogrmo.object_group_revision_id = ?", revisionID, revisionID).
+			Find(&objects).Error
 	})
 
 	if err != nil {
