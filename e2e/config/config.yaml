@@ -2,7 +2,12 @@ Server:
   Host: "127.0.0.1"
   Port: 50051
 DB:
-  DatabaseType: Postgres
+  DatabaseType: CockroachDB
+  Cockroach:
+    Hostname: "localhost"
+    Port: 26257
+    Username: "root"
+    Databasename: "defaultdb"
   Postgres:
     Hostname: "localhost"
     Port: 5432

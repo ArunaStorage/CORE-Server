@@ -433,7 +433,6 @@ func TestObjectGroupUpdate(t *testing.T) {
 	for _, object := range newCurrentRevision.Objects {
 		objectNames = append(objectNames, object.Filename)
 		objectIDs = append(objectIDs, object.Id)
-
 	}
 
 	assert.Contains(t, objectNames, objectGroupRevisionRequestForUpdate.UpdateObjects.AddObjects[0].Filename)

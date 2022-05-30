@@ -71,7 +71,7 @@ func SetDefaults() {
 	viper.SetDefault(DB_ROACH_PORT, 26257)
 	viper.SetDefault(DB_ROACH_USER, "root")
 	viper.SetDefault(DB_ROACH_DATABASENAME, "defaultdb")
-	viper.SetDefault(DB_ROACH_PASSWORDENVVAR, "PSQL_PASSWORD")
+	viper.SetDefault(DB_ROACH_PASSWORDENVVAR, "CRDB_PASSWORD")
 
 	viper.SetDefault(DB_POSTGRES_HOSTNAME, "localhost")
 	viper.SetDefault(DB_POSTGRES_PORT, 26257)
