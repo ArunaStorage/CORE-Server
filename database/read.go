@@ -543,8 +543,8 @@ func (read *Read) GetAllObjectGroupRevisionDataObjects(revisionID uuid.UUID) ([]
 			Preload("DefaultLocation").
 			Preload("Locations").
 			Table("objects AS o").
-			Joins("Inner JOIN object_group_revision_data_objects AS ogrdo ON o.id = ogrdo.object_id").
-			Where("ogrdo.object_group_revision_id = ?", revisionID, revisionID).
+			Joins("INNER JOIN object_group_revision_data_objects AS ogrdo ON o.id = ogrdo.object_id").
+			Where("ogrdo.object_group_revision_id = ?", revisionID).
 			Order("o.index asc").
 			Find(&objects).Error
 	})
@@ -570,7 +570,7 @@ func (read *Read) GetAllObjectGroupRevisionMetaObjects(revisionID uuid.UUID) ([]
 			Preload("Locations").
 			Table("objects AS o").
 			Joins("INNER JOIN object_group_revision_meta_objects AS ogrmo ON o.id = ogrmo.object_id").
-			Where("ogrmo.object_group_revision_id = ?", revisionID, revisionID).
+			Where("ogrmo.object_group_revision_id = ?", revisionID).
 			Order("o.index asc").
 			Find(&objects).Error
 	})
