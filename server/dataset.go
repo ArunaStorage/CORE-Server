@@ -249,7 +249,7 @@ func (endpoint *DatasetEndpoints) GetObjectGroupRevisionsInDateRange(ctx context
 		return nil, err
 	}
 
-	objectGroupRevisions, err := endpoint.ReadHandler.GetObjectGroupsInDateRange(dataset.ID, request.Start.AsTime(), request.End.AsTime())
+	objectGroupRevisions, err := endpoint.ReadHandler.GetObjectGroupRevisionsInDateRange(dataset.ID, request.Start.AsTime(), request.End.AsTime())
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
