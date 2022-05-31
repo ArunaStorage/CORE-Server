@@ -134,7 +134,7 @@ func (read *Read) GetProjectDatasets(projectID uuid.UUID) ([]*models.Dataset, er
 func (read *Read) GetDatasetObjectGroups(datasetID uuid.UUID, page *v1storagemodels.PageRequest) ([]*models.ObjectGroup, error) {
 	objectGroups := make([]*models.ObjectGroup, 0)
 
-		err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
+	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
 		preload := tx.
 			Preload("Project").
 			Preload("Dataset").
@@ -148,14 +148,14 @@ func (read *Read) GetDatasetObjectGroups(datasetID uuid.UUID, page *v1storagemod
 				Where("dataset_id = ?", datasetID).
 				Find(&objectGroups).Error
 
-	} else if page != nil && page.LastUuid == "" {
+		} else if page != nil && page.LastUuid == "" {
 			return preload.
 				Where("dataset_id = ?", datasetID).
 				Order("id asc").
 				Limit(int(page.PageSize)).
 				Find(&objectGroups).Error
 
-	} else if page != nil && page.LastUuid != "" && page.PageSize > 0 {
+		} else if page != nil && page.LastUuid != "" && page.PageSize > 0 {
 			return preload.
 				Where("dataset_id = ? AND id > ?", datasetID, page.LastUuid).
 				Order("id asc").
@@ -166,12 +166,12 @@ func (read *Read) GetDatasetObjectGroups(datasetID uuid.UUID, page *v1storagemod
 			log.Info("could not parse request")
 			return errors.New("could not parse request")
 		}
-		})
+	})
 
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
 	return objectGroups, nil
 }
 
@@ -253,10 +253,10 @@ func (read *Read) GetAPIToken(userOAuth2ID uuid.UUID) ([]models.APIToken, error)
 			Where("user_oauth2_id = ?", userOAuth2ID).
 			Find(user).Error
 
-	if err != nil {
-		log.Println(err.Error())
+		if err != nil {
+			log.Println(err.Error())
 			return err
-	}
+		}
 
 		return tx.
 			Preload("Project").
@@ -282,10 +282,10 @@ func (read *Read) GetDatasetVersionWithObjectGroups(datasetVersionID uuid.UUID, 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
 		err := tx.First(version).Error
 
-	if err != nil {
-		log.Errorln(err.Error())
+		if err != nil {
+			log.Errorln(err.Error())
 			return err
-	}
+		}
 
 		preload := tx.
 			Preload("Labels").
@@ -299,12 +299,12 @@ func (read *Read) GetDatasetVersionWithObjectGroups(datasetVersionID uuid.UUID, 
 			Preload("MetaObjects.DefaultLocation").
 			Joins("INNER JOIN dataset_version_object_group_revisions on dataset_version_object_group_revisions.object_group_revision_id=object_group_revisions.id")
 
-	if page == nil || page.PageSize == 0 {
+		if page == nil || page.PageSize == 0 {
 			return preload.
 				Where("dataset_version_object_group_revisions.dataset_version_id = ?", datasetVersionID).
 				Find(&objectGroupsRevisionRefs).Error
 
-	} else if page != nil && page.LastUuid == "" {
+		} else if page != nil && page.LastUuid == "" {
 			return preload.
 				Where("dataset_version_object_group_revisions.dataset_version_id = ?", datasetVersionID).
 				Order("id asc").
@@ -323,11 +323,11 @@ func (read *Read) GetDatasetVersionWithObjectGroups(datasetVersionID uuid.UUID, 
 			return errors.New("could not parse request")
 		}
 
-		})
+	})
 
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, err
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
 	}
 
 	objectGroupRevisions := make([]models.ObjectGroupRevision, len(objectGroupsRevisionRefs))
@@ -453,6 +453,7 @@ func (read *Read) GetAllObjectGroupObjects(objectGroupID uuid.UUID) ([]*models.O
 }
 
 // Get all data objects of the specific ObjectGroup.
+// The Objects are ordered ascending by their index value.
 func (read *Read) GetAllObjectGroupDataObjects(objectGroupID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 
@@ -466,6 +467,7 @@ func (read *Read) GetAllObjectGroupDataObjects(objectGroupID uuid.UUID) ([]*mode
 			Joins("INNER JOIN object_group_revision_data_objects AS ogrdo ON o.id = ogrdo.object_id").
 			Joins("INNER JOIN object_group_revisions AS ogr ON ogrdo.object_group_revision_id = ogr.id").
 			Where("ogr.object_group_id = ?", objectGroupID).
+			Order("o.index asc").
 			Find(&objects).Error
 	})
 
@@ -478,6 +480,7 @@ func (read *Read) GetAllObjectGroupDataObjects(objectGroupID uuid.UUID) ([]*mode
 }
 
 // Get all meta objects of the specific ObjectGroup.
+// The Objects are ordered ascending by their index value.
 func (read *Read) GetAllObjectGroupMetaObjects(objectGroupID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 
@@ -491,6 +494,7 @@ func (read *Read) GetAllObjectGroupMetaObjects(objectGroupID uuid.UUID) ([]*mode
 			Joins("INNER JOIN object_group_revision_meta_objects AS ogrmo ON o.id = ogrmo.object_id").
 			Joins("INNER JOIN object_group_revisions AS ogr ON ogrmo.object_group_revision_id = ogr.id").
 			Where("ogr.object_group_id = ?", objectGroupID).
+			Order("o.index asc").
 			Find(&objects).Error
 	})
 
@@ -528,6 +532,7 @@ func (read *Read) GetAllObjectGroupRevisionObjects(revisionID uuid.UUID) ([]*mod
 }
 
 // Get all data objects of the specific ObjectGrouprevision.
+// The Objects are ordered ascending by their index value.
 func (read *Read) GetAllObjectGroupRevisionDataObjects(revisionID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 
@@ -540,6 +545,7 @@ func (read *Read) GetAllObjectGroupRevisionDataObjects(revisionID uuid.UUID) ([]
 			Table("objects AS o").
 			Joins("Inner JOIN object_group_revision_data_objects AS ogrdo ON o.id = ogrdo.object_id").
 			Where("ogrdo.object_group_revision_id = ?", revisionID, revisionID).
+			Order("o.index asc").
 			Find(&objects).Error
 	})
 
@@ -552,6 +558,7 @@ func (read *Read) GetAllObjectGroupRevisionDataObjects(revisionID uuid.UUID) ([]
 }
 
 // Get all meta objects of the specific ObjectGrouprevision.
+// The Objects are ordered ascending by their index value.
 func (read *Read) GetAllObjectGroupRevisionMetaObjects(revisionID uuid.UUID) ([]*models.Object, error) {
 	var objects []*models.Object
 
@@ -564,6 +571,7 @@ func (read *Read) GetAllObjectGroupRevisionMetaObjects(revisionID uuid.UUID) ([]
 			Table("objects AS o").
 			Joins("INNER JOIN object_group_revision_meta_objects AS ogrmo ON o.id = ogrmo.object_id").
 			Where("ogrmo.object_group_revision_id = ?", revisionID, revisionID).
+			Order("o.index asc").
 			Find(&objects).Error
 	})
 
@@ -647,12 +655,12 @@ func (read *Read) GetDatasetObjectGroupsBatches(datasetID uuid.UUID, objectGroup
 			Preload("CurrentObjectGroupRevision.MetaObjects.DefaultLocation").
 			Where("dataset_id = ?", datasetID).
 			FindInBatches(&objectGroups, 10000, func(tx *gorm.DB, batch int) error {
-			var objectGroupsBatch []*models.ObjectGroup
-			objectGroupsBatch = append(objectGroupsBatch, objectGroups...)
+				var objectGroupsBatch []*models.ObjectGroup
+				objectGroupsBatch = append(objectGroupsBatch, objectGroups...)
 
-			objectGroupsChan <- objectGroupsBatch
-			return nil
-		}).Error
+				objectGroupsChan <- objectGroupsBatch
+				return nil
+			}).Error
 
 		return err
 	})
@@ -685,12 +693,12 @@ func (read *Read) GetObjectGroupsInDateRangeBatches(datasetID uuid.UUID, startDa
 		err := preloadConf.
 			Where("dataset_id = ? AND created_at BETWEEN ? AND ?", datasetID, startDate, endDate).
 			FindInBatches(&objectGroups, 10000, func(tx *gorm.DB, batch int) error {
-			var objectGroupsBatch []*models.ObjectGroup
-			objectGroupsBatch = append(objectGroupsBatch, objectGroups...)
+				var objectGroupsBatch []*models.ObjectGroup
+				objectGroupsBatch = append(objectGroupsBatch, objectGroups...)
 
-			objectGroupsChan <- objectGroupsBatch
-			return nil
-		}).Error
+				objectGroupsChan <- objectGroupsBatch
+				return nil
+			}).Error
 		return err
 	})
 
