@@ -132,6 +132,9 @@ func TestObjectGroup(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
+	objectGroupId := uuid.MustParse(getObjectGroupResponse.ObjectGroup.Id)
+	objectGroupRevisionId := uuid.MustParse(getObjectGroupResponse.ObjectGroup.CurrentRevision.Id)
+
 	// Validate general ObjectGroup fields
 	assert.Equal(t, createObjectGroupRequest.CreateRevisionRequest.Name, getObjectGroupResponse.ObjectGroup.CurrentRevision.Name)
 	assert.Equal(t, createObjectGroupRequest.DatasetId, getObjectGroupResponse.ObjectGroup.DatasetId)
@@ -144,19 +147,73 @@ func TestObjectGroup(t *testing.T) {
 	assert.Equal(t, int64(30), getObjectGroupResponse.ObjectGroup.CurrentRevision.GetStats().GetAccSize())
 	assert.Equal(t, float64(15), getObjectGroupResponse.ObjectGroup.CurrentRevision.GetStats().GetAvgObjectSize())
 
-	// Validate ObjectGroup data Objects creation
-	assert.Equal(t, "testfile1", getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[0].Filename)
-	assert.Equal(t, "bin", getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[0].Filetype)
-	assert.Equal(t, int64(6), getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[0].ContentLen)
+	// Validate Objects creation
+	allObjectGroupObjects, err := ServerEndpoints.object.ReadHandler.GetAllObjectGroupObjects(objectGroupId)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
-	assert.Equal(t, "testfile2", getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[1].Filename)
-	assert.Equal(t, "txt", getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[1].Filetype)
-	assert.Equal(t, int64(24), getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[1].ContentLen)
+	assert.Equal(t, 3, len(allObjectGroupObjects))
 
-	// Validate ObjectGroup meta Objects creation
-	assert.Equal(t, "metadata1", getObjectGroupResponse.ObjectGroup.CurrentRevision.MetadataObjects[0].Filename)
-	assert.Equal(t, "meta", getObjectGroupResponse.ObjectGroup.CurrentRevision.MetadataObjects[0].Filetype)
-	assert.Equal(t, int64(8), getObjectGroupResponse.ObjectGroup.CurrentRevision.MetadataObjects[0].ContentLen)
+	// Validate ObjectGroup data Objects
+	objectGroupDataObjects, err := ServerEndpoints.object.ReadHandler.GetAllObjectGroupDataObjects(objectGroupId)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 2, len(objectGroupDataObjects))
+	assert.Equal(t, "testfile1", objectGroupDataObjects[0].Filename)
+	assert.Equal(t, "bin", objectGroupDataObjects[0].Filetype)
+	assert.Equal(t, int64(6), objectGroupDataObjects[0].ContentLen)
+
+	assert.Equal(t, "testfile2", objectGroupDataObjects[1].Filename)
+	assert.Equal(t, "txt", objectGroupDataObjects[1].Filetype)
+	assert.Equal(t, int64(24), objectGroupDataObjects[1].ContentLen)
+
+	// Validate ObjectGroup meta Objects
+	objectGroupMetaObjects, err := ServerEndpoints.object.ReadHandler.GetAllObjectGroupMetaObjects(objectGroupId)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 1, len(objectGroupMetaObjects))
+	assert.Equal(t, "metadata1", objectGroupMetaObjects[0].Filename)
+	assert.Equal(t, "meta", objectGroupMetaObjects[0].Filetype)
+	assert.Equal(t, int64(8), objectGroupMetaObjects[0].ContentLen)
+
+	// Validate reading ObjectGroupRevision Objects
+	allObjectGroupRevisionObjects, err := ServerEndpoints.object.ReadHandler.GetAllObjectGroupRevisionObjects(objectGroupRevisionId)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 3, len(allObjectGroupRevisionObjects))
+
+	// Validate reading ObjectGroupRevision data Objects
+	objectGroupRevisionDataObjects, err := ServerEndpoints.object.ReadHandler.GetAllObjectGroupRevisionDataObjects(objectGroupRevisionId)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 2, len(objectGroupRevisionDataObjects))
+	assert.Equal(t, "testfile1", objectGroupRevisionDataObjects[0].Filename)
+	assert.Equal(t, "bin", objectGroupRevisionDataObjects[0].Filetype)
+	assert.Equal(t, int64(6), objectGroupRevisionDataObjects[0].ContentLen)
+
+	assert.Equal(t, "testfile2", objectGroupDataObjects[1].Filename)
+	assert.Equal(t, "txt", objectGroupDataObjects[1].Filetype)
+	assert.Equal(t, int64(24), objectGroupDataObjects[1].ContentLen)
+
+	// Validate reading ObjectGroupRevision meta Objects
+	objectGroupRevisionMetaObjects, err := ServerEndpoints.object.ReadHandler.GetAllObjectGroupRevisionMetaObjects(objectGroupRevisionId)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 1, len(objectGroupRevisionMetaObjects))
+	assert.Equal(t, "metadata1", objectGroupRevisionMetaObjects[0].Filename)
+	assert.Equal(t, "meta", objectGroupRevisionMetaObjects[0].Filetype)
+	assert.Equal(t, int64(8), objectGroupRevisionMetaObjects[0].ContentLen)
 
 	object := getObjectGroupResponse.ObjectGroup.CurrentRevision.Objects[0]
 
