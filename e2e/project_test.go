@@ -172,3 +172,83 @@ func TestProjectUsers(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, nilResponse)
 }
+
+func TestAddConcurrentProjectUsers(t *testing.T) {
+	createRequest := &v1storageservices.CreateProjectRequest{
+		Name:        "Test Project 003",
+		Description: "This project is used to test the concurrent insert of user duplicates.",
+	}
+
+	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createRequest)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	projectID := uuid.MustParse(createResponse.Id)
+
+	for i := 0; i < 4; i++ {
+		go addUsersToProject(t, projectID)
+	}
+}
+
+func addUsersToProject(t *testing.T, projectID uuid.UUID) {
+	const concurrentUserId01 string = "0a959fc8-151b-4818-a8e7-8f4325d1094e"
+	const concurrentUserId02 string = "cc183d5f-ec0d-410e-be88-71f8d55de39f"
+	const concurrentUserId03 string = "03747818-99b5-4828-a953-85174c1f1010"
+
+	scope := []v1storagemodels.Right{v1storagemodels.Right(v1storagemodels.Right_RIGHT_READ)}
+	addConcurrentUserResponse01, err := ServerEndpoints.project.AddUserToProject(
+		context.Background(),
+		&v1storageservices.AddUserToProjectRequest{
+			UserId:    concurrentUserId01,
+			Scope:     scope,
+			ProjectId: projectID.String(),
+		})
+
+	if addConcurrentUserResponse01 != nil {
+		assert.NotNil(t, addConcurrentUserResponse01)
+		assert.Nil(t, err)
+	} else {
+		assert.Contains(t, err.Error(), "23505")
+	}
+
+	scope = []v1storagemodels.Right{v1storagemodels.Right(v1storagemodels.Right_RIGHT_WRITE)}
+	addConcurrentUserResponse02, err := ServerEndpoints.project.AddUserToProject(
+		context.Background(),
+		&v1storageservices.AddUserToProjectRequest{
+			UserId:    concurrentUserId02,
+			Scope:     scope,
+			ProjectId: projectID.String(),
+		})
+
+	if addConcurrentUserResponse02 != nil {
+		assert.NotNil(t, addConcurrentUserResponse02)
+		assert.Nil(t, err)
+	} else {
+		assert.NotNil(t, err)
+		assert.Contains(t, err.Error(), "23505")
+	}
+
+	scope = []v1storagemodels.Right{v1storagemodels.Right(v1storagemodels.Right_RIGHT_WRITE)}
+	addConcurrentUserResponse03, err := ServerEndpoints.project.AddUserToProject(
+		context.Background(),
+		&v1storageservices.AddUserToProjectRequest{
+			UserId:    concurrentUserId03,
+			Scope:     scope,
+			ProjectId: projectID.String(),
+		})
+
+	if addConcurrentUserResponse03 != nil {
+		assert.NotNil(t, addConcurrentUserResponse03)
+		assert.Nil(t, err)
+	} else {
+		assert.NotNil(t, err)
+		assert.Contains(t, err.Error(), "23505")
+	}
+
+	projectUsers, err := ServerEndpoints.project.ReadHandler.GetProjectUsers(projectID)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+	assert.Equal(t, 4, len(projectUsers))
+}
