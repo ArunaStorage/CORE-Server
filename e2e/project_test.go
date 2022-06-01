@@ -136,7 +136,7 @@ func TestProjectUsers(t *testing.T) {
 
 	assert.Nil(t, addIdenticalUserResponse01)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "User already assigned to this project.")
+	assert.Contains(t, err.Error(), "23505")
 
 	addIdenticalUserResponse02, err := ServerEndpoints.project.AddUserToProject(
 		context.Background(),
@@ -148,7 +148,7 @@ func TestProjectUsers(t *testing.T) {
 
 	assert.Nil(t, addIdenticalUserResponse02)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "User already assigned to this project.")
+	assert.Contains(t, err.Error(), "23505")
 
 	projectUsers, err = ServerEndpoints.project.ReadHandler.GetProjectUsers(projectID)
 	if err != nil {
