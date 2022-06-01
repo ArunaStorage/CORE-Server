@@ -440,12 +440,7 @@ func (create *Create) AddUserToProject(request *v1storageservices.AddUserToProje
 		return tx.Create(user).Error
 	})
 
-	if err != nil {
-		log.Error(err.Error())
-		return fmt.Errorf("could not add user to project")
-	}
-
-	return nil
+	return err
 }
 
 func (create *Create) CreateStreamGroup(projectID uuid.UUID, resourceType string, resourceID uuid.UUID, subject string, subResource bool) (*models.StreamGroup, error) {
