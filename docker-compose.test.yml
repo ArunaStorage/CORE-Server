@@ -62,10 +62,10 @@ services:
       exit 0;
       "
   cockroach:
-    image: cockroachdb/cockroach
+    image: cockroachdb/cockroach:latest-v21.1
     entrypoint: >
       /bin/sh -c "
-      cockroach start-single-node --insecure --accept-sql-without-tls --store=type=mem,size=5GB
+      cockroach start-single-node --insecure --accept-sql-without-tls
       "
     restart: always
   postgres:

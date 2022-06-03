@@ -109,6 +109,9 @@ func TestProjectUsers(t *testing.T) {
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
 	var oauth2Ids []string
 	for _, user := range projectUsers {

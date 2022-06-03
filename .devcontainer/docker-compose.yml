@@ -36,7 +36,7 @@ services:
   cockroach:
     image: cockroachdb/cockroach
     entrypoint: >
-      /bin/sh -c "cockroach start-single-node --insecure --accept-sql-without-tls --store=type=mem,size=5GB"
+      /bin/sh -c "cockroach start-single-node --insecure --accept-sql-without-tls"
     restart: always
     tmpfs:
       - /cockroach/cockroach-data

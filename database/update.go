@@ -195,7 +195,7 @@ func (update *Update) UpdateObjectGroup(request *v1storageservices.UpdateObjectG
 
 			if err := tx.Model(objectGroup).Updates(
 				map[string]interface{}{
-					"current_revision_id": objectGroupRevision.ID,
+					"current_object_group_revision_id": objectGroupRevision.ID,
 				}).Error; err != nil {
 				log.Errorln(err.Error())
 				return err
