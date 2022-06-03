@@ -75,7 +75,7 @@ type ObjectGroup struct {
 	BaseModel
 	CurrentRevisionCount         uint64
 	CurrentObjectGroupRevision   ObjectGroupRevision
-	CurrentObjectGroupRevisionID uuid.UUID
+	CurrentObjectGroupRevisionID uuid.UUID `gorm:"index"`
 	ObjectGroupRevisions         []ObjectGroupRevision
 	DatasetID                    uuid.UUID
 	Dataset                      Dataset
