@@ -60,7 +60,7 @@ func (packer *ObjectsPacker) handleTarGZStream(objectGroups chan *models.ObjectG
 			log.Println(err.Error())
 			return err
 		}
-		for _, object := range objectGroup.CurrentObjectGroupRevision.Objects {
+		for _, object := range objectGroup.CurrentObjectGroupRevision.DataObjects {
 			err = tarWriter.WriteHeader(&tar.Header{
 				Name:    fmt.Sprintf("%v/%v", objectGroup.CurrentObjectGroupRevision.Name, object.Filename),
 				ModTime: object.UpdatedAt,

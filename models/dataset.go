@@ -29,14 +29,14 @@ func (dataset *Dataset) ToProtoModel(stats *v1storagemodels.DatasetStats) (*v1st
 	}
 
 	metaObjectsList := make([]*v1storagemodels.Object, len(dataset.MetaObjects))
-	for _, metaObject := range dataset.MetaObjects {
+	for i, metaObject := range dataset.MetaObjects {
 
 		protoObject, err := metaObject.ToProtoModel()
 		if err != nil {
 			log.Errorln(err)
 			return nil, err
 		}
-		metaObjectsList[metaObject.Index] = protoObject
+		metaObjectsList[i] = protoObject
 	}
 
 	status, err := ToStatus(dataset.Status)
@@ -66,12 +66,12 @@ type DatasetVersion struct {
 	Description          string
 	Labels               []Label               `gorm:"many2many:dataset_version_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	ObjectGroupRevisions []ObjectGroupRevision `gorm:"many2many:dataset_version_object_group_revisions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	MajorVersion         uint
-	MinorVersion         uint
-	PatchVersion         uint
-	RevisionVersion      uint
-	Stage                string
-	ProjectID            uuid.UUID `gorm:"index"`
+	MajorVersion         uint                  `gorm:"index"`
+	MinorVersion         uint                  `gorm:"index"`
+	PatchVersion         uint                  `gorm:"index"`
+	RevisionVersion      uint                  `gorm:"index"`
+	Stage                string                `gorm:"index"`
+	ProjectID            uuid.UUID             `gorm:"index"`
 	Project              Project
 	DatasetID            uuid.UUID `gorm:"index"`
 	Dataset              Dataset

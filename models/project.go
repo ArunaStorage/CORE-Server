@@ -48,8 +48,8 @@ func (project *Project) ToProtoModel(stats *v1storagemodels.ProjectStats) (*v1st
 
 type User struct {
 	BaseModel
-	UserOauth2ID string    `gorm:"index:unique_oauth2_project_user,unique"`
-	ProjectID    uuid.UUID `gorm:"index:unique_oauth2_project_user,unique"`
+	UserOauth2ID string
+	ProjectID    uuid.UUID
 	Project      Project
 }
 

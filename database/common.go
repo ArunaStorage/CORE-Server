@@ -36,7 +36,6 @@ func (common *Common) ObjectForInitialInsert(objectrequest *v1storageservices.Cr
 		ObjectUUID:      uuid,
 		ProjectID:       projectID,
 		DatasetID:       datasetID,
-		Index:           index,
 		Status:          v1storagemodels.Status_STATUS_STAGING.String(),
 		DefaultLocation: location,
 	}

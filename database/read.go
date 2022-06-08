@@ -72,7 +72,7 @@ func (read *Read) GetObjectGroupRevision(objectGroupRevisionsID uuid.UUID) (*mod
 			Preload("Dataset").
 			Preload("Labels").
 			// DatasetVersions should be fetched on demand
-			Preload("Objects").
+			Preload("DataObjects").
 			Preload("MetaObjects").
 			First(objectGroupRevision).Error
 	})
@@ -100,7 +100,7 @@ func (read *Read) GetObjectGroup(objectGroupID uuid.UUID) (*models.ObjectGroup, 
 			objectGroupRevision := &models.ObjectGroupRevision{}
 			objectGroupRevision.ID = objectGroup.CurrentObjectGroupRevisionID
 
-			preloads := tx.Preload("MetaObjects.Locations").Preload("MetaObjects.DefaultLocation").Preload("Objects.Locations").Preload("Objects.DefaultLocation").Preload("Objects").Preload("MetaObjects").Preload("Labels").Preload("Objects.Labels")
+			preloads := tx.Preload("MetaObjects.Locations").Preload("MetaObjects.DefaultLocation").Preload("DataObjects.Locations").Preload("DataObjects.DefaultLocation").Preload("DataObjects").Preload("MetaObjects").Preload("Labels").Preload("DataObjects.Labels")
 			if err := preloads.First(objectGroupRevision).Error; err != nil {
 				log.Errorln(err.Error())
 				return err
@@ -151,7 +151,7 @@ func (read *Read) GetDatasetObjectGroups(datasetID uuid.UUID, page *v1storagemod
 			Preload("Dataset").
 			Preload("CurrentObjectGroupRevision").
 			Preload("CurrentObjectGroupRevision.Labels").
-			Preload("CurrentObjectGroupRevision.Objects").
+			Preload("CurrentObjectGroupRevision.DataObjects").
 			Preload("CurrentObjectGroupRevision.MetaObjects")
 
 		if page == nil || page.PageSize == 0 {
@@ -300,10 +300,10 @@ func (read *Read) GetDatasetVersionWithObjectGroups(datasetVersionID uuid.UUID, 
 
 		preload := tx.
 			Preload("Labels").
-			Preload("Objects").
-			Preload("Objects.Labels").
-			Preload("Objects.Locations").
-			Preload("Objects.DefaultLocation").
+			Preload("DataObjects").
+			Preload("DataObjects.Labels").
+			Preload("DataObjects.Locations").
+			Preload("DataObjects.DefaultLocation").
 			Preload("MetaObjects").
 			Preload("MetaObjects.Labels").
 			Preload("MetaObjects.Locations").
@@ -602,10 +602,10 @@ func (read *Read) GetObjectGroupRevisionsInDateRange(datasetID uuid.UUID, startD
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
 		preloadConf := tx.
 			Preload("Labels").
-			Preload("Objects").
-			Preload("Objects.Labels").
-			Preload("Objects.Locations").
-			Preload("Objects.DefaultLocation").
+			Preload("DataObjects").
+			Preload("DataObjects.Labels").
+			Preload("DataObjects.Locations").
+			Preload("DataObjects.DefaultLocation").
 			Preload("MetaObjects")
 
 		return preloadConf.
@@ -658,9 +658,9 @@ func (read *Read) GetDatasetObjectGroupsBatches(datasetID uuid.UUID, objectGroup
 		err := tx.
 			Preload("CurrentObjectGroupRevision").
 			Preload("CurrentObjectGroupRevision.Labels").
-			Preload("CurrentObjectGroupRevision.Objects").
-			Preload("CurrentObjectGroupRevision.Objects.Locations").
-			Preload("CurrentObjectGroupRevision.Objects.DefaultLocation").
+			Preload("CurrentObjectGroupRevision.DataObjects").
+			Preload("CurrentObjectGroupRevision.DataObjects.Locations").
+			Preload("CurrentObjectGroupRevision.DataObjects.DefaultLocation").
 			Preload("CurrentObjectGroupRevision.MetaObjects").
 			Preload("CurrentObjectGroupRevision.MetaObjects.Locations").
 			Preload("CurrentObjectGroupRevision.MetaObjects.DefaultLocation").
@@ -694,9 +694,9 @@ func (read *Read) GetObjectGroupsInDateRangeBatches(datasetID uuid.UUID, startDa
 		preloadConf := read.DB.
 			Preload("CurrentObjectGroupRevision").
 			Preload("CurrentObjectGroupRevision.Labels").
-			Preload("CurrentObjectGroupRevision.Objects").
-			Preload("CurrentObjectGroupRevision.Objects.Locations").
-			Preload("CurrentObjectGroupRevision.Objects.DefaultLocation").
+			Preload("CurrentObjectGroupRevision.DataObjects").
+			Preload("CurrentObjectGroupRevision.DataObjects.Locations").
+			Preload("CurrentObjectGroupRevision.DataObjects.DefaultLocation").
 			Preload("CurrentObjectGroupRevision.MetaObjects").
 			Preload("CurrentObjectGroupRevision.MetaObjects.Locations").
 			Preload("CurrentObjectGroupRevision.MetaObjects.DefaultLocation")
@@ -730,9 +730,9 @@ func (read *Read) GetObjectGroupRevisionsByStatus(objectGroupID []string, status
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
 		return tx.
 			Preload("Labels").
-			Preload("Objects").
-			Preload("Objects.Locations").
-			Preload("Objects.DefaultLocation").
+			Preload("DataObjects").
+			Preload("DataObjects.Locations").
+			Preload("DataObjects.DefaultLocation").
 			Preload("MetaObjects").
 			Preload("MetaObjects.Locations").
 			Preload("MetaObjects.DefaultLocation").
