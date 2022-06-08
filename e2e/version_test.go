@@ -142,7 +142,7 @@ func TestDatasetVersion(t *testing.T) {
 			Major:    1,
 			Minor:    0,
 			Patch:    2,
-			Revision: 1,
+			Revision: 2,
 			Stage:    v1storagemodels.Version_VERSION_STAGE_STABLE,
 		},
 		Description:            "testrelease",
@@ -151,8 +151,6 @@ func TestDatasetVersion(t *testing.T) {
 	}
 
 	_, err = ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest2)
-
-	assert.Error(t, err)
 
 	err = nil
 
@@ -163,7 +161,7 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, 1, len(datasetVersions.GetDatasetVersions()))
+	assert.Equal(t, 2, len(datasetVersions.GetDatasetVersions()))
 
 	datasetVersion, err := ServerEndpoints.dataset.GetDatasetVersion(context.Background(), &v1storageservices.GetDatasetVersionRequest{
 		Id: versionResponse.GetId(),
