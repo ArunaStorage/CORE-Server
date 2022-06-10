@@ -29,16 +29,18 @@ func MakeMigrationsStandaloneFromDB(db *gorm.DB) error {
 		&models.ObjectGroup{},
 		&models.Location{},
 		&models.Label{},
-		&models.APIToken{},
 		&models.User{},
+		&models.APIToken{},
 		&models.StreamingEntry{},
 		&models.StreamGroup{},
 		&models.ObjectGroupRevision{},
 	)
 
-	if err != nil {
+	if err != nil && err.Error() != "ERROR: duplicate index name: \"idx_users_user_oauth2_id\" (SQLSTATE 42P07)" {
 		log.Fatalln(err.Error())
 	}
 
-	return err
+	err = db.AutoMigrate(&models.User{})
+
+	return nil
 }

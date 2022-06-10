@@ -10,7 +10,7 @@ type TestHandler struct {
 }
 
 func (projectHandler *TestHandler) GetUserID(metadata metadata.MD) (uuid.UUID, error) {
-	return uuid.UUID{}, nil
+	return uuid.New(), nil
 }
 
 func (projectHandler *TestHandler) Authorize(projectID uuid.UUID, requestedRight v1storagemodels.Right, metadata metadata.MD) error {

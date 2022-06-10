@@ -288,8 +288,8 @@ func (endpoint *LoadEndpoints) CreateDownloadLinkStream(request *v1storageservic
 				return status.Error(codes.Internal, "could not transform objectgroup into protobuf representation")
 			}
 			objectGroupRevisions = append(objectGroupRevisions, protoObjectGroup)
-			objectLinks := make([]string, len(objectGroup.CurrentObjectGroupRevision.Objects))
-			for j, object := range objectGroup.CurrentObjectGroupRevision.Objects {
+			objectLinks := make([]string, len(objectGroup.CurrentObjectGroupRevision.DataObjects))
+			for j, object := range objectGroup.CurrentObjectGroupRevision.DataObjects {
 				link, err := endpoint.ObjectHandler.CreateDownloadLink(&object.DefaultLocation, &v1storageservices.CreateDownloadLinkRequest{})
 				if err != nil {
 					log.Println(err.Error())

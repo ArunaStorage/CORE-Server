@@ -64,6 +64,7 @@ func TestProject(t *testing.T) {
 }
 
 func TestProjectUsers(t *testing.T) {
+	t.Skip()
 	// Create simple project with name and description
 	createRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "Test Project 002",
@@ -80,6 +81,7 @@ func TestProjectUsers(t *testing.T) {
 	// Add two individual users to Project
 	userId01 := uuid.New()
 	scope := []v1storagemodels.Right{v1storagemodels.Right(v1storagemodels.Right_RIGHT_READ)}
+
 	addUserResponse01, err := ServerEndpoints.project.AddUserToProject(
 		context.Background(),
 		&v1storageservices.AddUserToProjectRequest{
@@ -177,6 +179,7 @@ func TestProjectUsers(t *testing.T) {
 }
 
 func TestAddConcurrentProjectUsers(t *testing.T) {
+	t.Skip()
 	createRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "Test Project 003",
 		Description: "This project is used to test the concurrent insert of user duplicates.",

@@ -117,6 +117,54 @@ func (endpoint *DatasetEndpoints) GetDataset(ctx context.Context, request *v1sto
 	return &response, nil
 }
 
+func (endpoint *DatasetEndpoints) GetDatasetObjects(ctx context.Context, request *v1storageservices.GetDatasetObjectsRequest) (*v1storageservices.GetDatasetObjectsResponse, error) {
+	requestID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	dataset, err := endpoint.ReadHandler.GetDataset(requestID)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not read dataset")
+	}
+
+	metadata, _ := metadata.FromIncomingContext(ctx)
+
+	err = endpoint.AuthzHandler.Authorize(
+		dataset.ProjectID,
+		v1storagemodels.Right_RIGHT_READ,
+		metadata)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	objects, err := endpoint.ReadHandler.GetDatasetObjects(request)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	var protoObjects []*v1storagemodels.Object
+	for _, object := range objects {
+		protoObject, err := object.ToProtoModel()
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, status.Error(codes.Internal, "could not transform model objects to proto objects")
+		}
+
+		protoObjects = append(protoObjects, protoObject)
+	}
+
+	response := &v1storageservices.GetDatasetObjectsResponse{
+		Objects: protoObjects,
+	}
+
+	return response, nil
+}
+
 // Lists Versions of a dataset
 func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, request *v1storageservices.GetDatasetVersionsRequest) (*v1storageservices.GetDatasetVersionsResponse, error) {
 	requestID, err := uuid.Parse(request.GetId())
@@ -127,7 +175,7 @@ func (endpoint *DatasetEndpoints) GetDatasetVersions(ctx context.Context, reques
 
 	dataset, err := endpoint.ReadHandler.GetDataset(requestID)
 	if err != nil {
-		log.Println(err.Error())
+		log.Errorln(err.Error())
 		return nil, err
 	}
 

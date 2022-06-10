@@ -42,6 +42,12 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 		return nil, err
 	}
 
+	project, err := endpoint.ReadHandler.GetProject(dataset.ProjectID)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
 	metadata, _ := metadata.FromIncomingContext(ctx)
 
 	err = endpoint.AuthzHandler.Authorize(
@@ -53,20 +59,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 		return nil, err
 	}
 
-	revisionObjects := &database.RevisionObjects{
-		DataObjects: &database.Objects{
-			AddedObjects:    []models.Object{},
-			UpdatedObjects:  []models.Object{},
-			ExistingObjects: []models.Object{},
-		},
-		MetaObjects: &database.Objects{
-			AddedObjects:    []models.Object{},
-			UpdatedObjects:  []models.Object{},
-			ExistingObjects: []models.Object{},
-		},
-	}
-
-	objectgroup, err := endpoint.CreateHandler.CreateObjectGroup(request, dataset.Bucket, revisionObjects)
+	objectgroup, err := endpoint.CreateHandler.CreateObjectGroup(request, dataset, project)
 	if err != nil {
 		log.Errorln(err.Error())
 		return nil, err
@@ -76,34 +69,8 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroup(ctx context.Context, re
 		ObjectGroupId:   objectgroup.ID.String(),
 		ObjectGroupName: objectgroup.CurrentObjectGroupRevision.Name,
 		CreateRevisionResponse: &v1storageservices.CreateObjectGroupRevisionResponse{
-			Id:                  objectgroup.CurrentObjectGroupRevisionID.String(),
-			DataObjects:         []*v1storagemodels.Object{},
-			MetaObjects:         []*v1storagemodels.Object{},
-			ObjectLinks:         []*v1storageservices.CreateObjectGroupRevisionResponse_ObjectLinks{},
-			MetadataObjectLinks: []*v1storageservices.CreateObjectGroupRevisionResponse_ObjectLinks{},
+			Id: objectgroup.CurrentObjectGroupRevisionID.String(),
 		},
-	}
-
-	if request.CreateRevisionRequest.IncludeObjectLink {
-
-		objects, objectLinks, err := endpoint.createObjectsLinks(objectgroup.CurrentObjectGroupRevision.Objects)
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, err
-		}
-
-		objectGroupResponse.CreateRevisionResponse.DataObjects = objects
-		objectGroupResponse.CreateRevisionResponse.ObjectLinks = objectLinks
-
-		metaObjects, metaObjectLinks, err := endpoint.createObjectsLinks(objectgroup.CurrentObjectGroupRevision.MetaObjects)
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, err
-		}
-
-		objectGroupResponse.CreateRevisionResponse.MetaObjects = metaObjects
-		objectGroupResponse.CreateRevisionResponse.MetadataObjectLinks = metaObjectLinks
-
 	}
 
 	err = endpoint.EventStreamMgmt.PublishMessage(&v1notficationservices.EventNotificationMessage{
@@ -191,7 +158,7 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 		}
 
 		if requests.IncludeObjectLink {
-			objects, objectLinks, err := endpoint.createObjectsLinks(objectgroup.CurrentObjectGroupRevision.Objects)
+			objects, objectLinks, err := endpoint.createObjectsLinks(objectgroup.CurrentObjectGroupRevision.DataObjects)
 			if err != nil {
 				log.Errorln(err.Error())
 				return nil, err
@@ -228,148 +195,6 @@ func (endpoint *ObjectServerEndpoints) CreateObjectGroupBatch(ctx context.Contex
 			log.Println(err.Error())
 			return nil, err
 		}
-	}
-
-	return response, nil
-}
-
-func (endpoint *ObjectServerEndpoints) CreateObjectGroupRevision(ctx context.Context, request *v1storageservices.CreateObjectGroupRevisionRequest) (*v1storageservices.CreateObjectGroupRevisionResponse, error) {
-	objectGroupID, err := uuid.Parse(request.GetObjectGroupId())
-	if err != nil {
-		log.Debug(err.Error())
-		return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
-	}
-
-	objectGroup, err := endpoint.ReadHandler.GetObjectGroup(objectGroupID)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
-	}
-
-	metadata, _ := metadata.FromIncomingContext(ctx)
-
-	err = endpoint.AuthzHandler.Authorize(
-		objectGroup.ProjectID,
-		v1storagemodels.Right_RIGHT_WRITE,
-		metadata)
-	if err != nil {
-		log.Errorln(err.Error())
-		return nil, err
-	}
-
-	for _, object := range request.GetUpdateObjects().GetExistingObjects() {
-		objectID, err := uuid.Parse(object.GetId())
-		if err != nil {
-			log.Debug(err.Error())
-			return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
-		}
-
-		object, err := endpoint.ReadHandler.GetObject(objectID)
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
-
-		err = endpoint.AuthzHandler.Authorize(
-			object.ProjectID,
-			v1storagemodels.Right_RIGHT_READ,
-			metadata)
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, err
-		}
-	}
-
-	for _, object := range request.GetUpdateObjects().GetUpdateObjects() {
-		objectID, err := uuid.Parse(object.GetId())
-		if err != nil {
-			log.Debug(err.Error())
-			return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
-		}
-
-		object, err := endpoint.ReadHandler.GetObject(objectID)
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
-
-		err = endpoint.AuthzHandler.Authorize(
-			object.ProjectID,
-			v1storagemodels.Right_RIGHT_READ,
-			metadata)
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, err
-		}
-	}
-
-	for _, object := range request.GetUpdateMetaObjects().GetExistingObjects() {
-		objectID, err := uuid.Parse(object.GetId())
-		if err != nil {
-			log.Debug(err.Error())
-			return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
-		}
-
-		object, err := endpoint.ReadHandler.GetObject(objectID)
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
-
-		err = endpoint.AuthzHandler.Authorize(
-			object.ProjectID,
-			v1storagemodels.Right_RIGHT_READ,
-			metadata)
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, err
-		}
-	}
-
-	for _, object := range request.GetUpdateMetaObjects().GetUpdateObjects() {
-		objectID, err := uuid.Parse(object.GetId())
-		if err != nil {
-			log.Debug(err.Error())
-			return nil, status.Error(codes.InvalidArgument, "could not parse submitted id")
-		}
-
-		object, err := endpoint.ReadHandler.GetObject(objectID)
-		if err != nil {
-			log.Println(err.Error())
-			return nil, err
-		}
-
-		err = endpoint.AuthzHandler.Authorize(
-			object.ProjectID,
-			v1storagemodels.Right_RIGHT_READ,
-			metadata)
-		if err != nil {
-			log.Errorln(err.Error())
-			return nil, err
-		}
-	}
-
-	revisionObjects := &database.RevisionObjects{
-		DataObjects: &database.Objects{
-			AddedObjects:    []models.Object{},
-			UpdatedObjects:  []models.Object{},
-			ExistingObjects: []models.Object{},
-		},
-		MetaObjects: &database.Objects{
-			AddedObjects:    []models.Object{},
-			UpdatedObjects:  []models.Object{},
-			ExistingObjects: []models.Object{},
-		},
-	}
-
-	revision, err := endpoint.CreateHandler.CreateObjectGroupRevision(request, revisionObjects)
-	if err != nil {
-		log.Errorln(err.Error())
-		return nil, err
-	}
-
-	response := &v1storageservices.CreateObjectGroupRevisionResponse{
-		Id: revision.ID.String(),
 	}
 
 	return response, nil
@@ -658,4 +483,49 @@ func (endpoint *Endpoints) createObjectsLinks(objects []models.Object) ([]*v1sto
 	}
 
 	return protoObjects, objectLinks, nil
+}
+
+func (endpoint *Endpoints) CreateObject(ctx context.Context, request *v1storageservices.CreateObjectRequest) (*v1storageservices.CreateObjectResponse, error) {
+	datasetUUID, err := uuid.Parse(request.DatasetId)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "could not parse provided dataset id, expected a valid UUID")
+	}
+
+	dataset, err := endpoint.ReadHandler.GetDataset(datasetUUID)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not read request dataset")
+	}
+
+	project, err := endpoint.ReadHandler.GetProject(dataset.ProjectID)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not read request project")
+	}
+
+	metadata, _ := metadata.FromIncomingContext(ctx)
+
+	err = endpoint.AuthzHandler.Authorize(
+		project.ID,
+		v1storagemodels.Right_RIGHT_WRITE,
+		metadata)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	object, err := endpoint.CreateHandler.CreateObject(request, project, dataset)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "could not create requested object")
+	}
+
+	link, err := endpoint.ObjectHandler.CreateUploadLink(&object.DefaultLocation)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, status.Error(codes.Internal, "coult not create upload link for object")
+	}
+
+	return &v1storageservices.CreateObjectResponse{Id: object.ID.String(), UploadLink: link}, nil
 }

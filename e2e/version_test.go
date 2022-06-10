@@ -24,21 +24,9 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	datasetLabel := []*v1storagemodels.Label{
-		{
-			Key:   "Label1",
-			Value: "LabelValue1",
-		},
-		{
-			Key:   "Label2",
-			Value: "LabelValue2",
-		},
-	}
-
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
 		Name:      "testdataset",
 		ProjectId: createResponse.GetId(),
-		Labels:    datasetLabel,
 	}
 
 	datasetCreateResponse, err := ServerEndpoints.dataset.CreateDataset(context.Background(), createDatasetRequest)
@@ -46,37 +34,9 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	objectGroupLabel := []*v1storagemodels.Label{
-		{
-			Key:   "Label1OG",
-			Value: "LabelValue1OG",
-		},
-		{
-			Key:   "Label2OG",
-			Value: "LabelValue2OG",
-		},
-	}
-
-	object1Label := []*v1storagemodels.Label{
-		{
-			Key:   "Label1O1",
-			Value: "LabelValue1O1",
-		},
-		{
-			Key:   "Label2O1",
-			Value: "LabelValue2O1",
-		},
-	}
-
-	object2Label := []*v1storagemodels.Label{
-		{
-			Key:   "Label1O2",
-			Value: "LabelValue1O2",
-		},
-		{
-			Key:   "Label2O2",
-			Value: "LabelValue2O2",
-		},
+	objects1, err := UploadObjects(ServerEndpoints.load, ServerEndpoints.object, 3, datasetCreateResponse.GetId(), "versiontest-")
+	if err != nil {
+		log.Fatalln(err.Error())
 	}
 
 	objectgroupuuidname := uuid.New().String()
@@ -84,22 +44,12 @@ func TestDatasetVersion(t *testing.T) {
 	createObjectGroupRequest := &v1storageservices.CreateObjectGroupRequest{
 		CreateRevisionRequest: &v1storageservices.CreateObjectGroupRevisionRequest{
 			Name:              objectgroupuuidname,
-			Labels:            objectGroupLabel,
 			UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{},
 			UpdateObjects: &v1storageservices.UpdateObjectsRequests{
-				AddObjects: []*v1storageservices.CreateObjectRequest{
-					{
-						Filename:   "testfile1",
-						Filetype:   "bin",
-						Labels:     object1Label,
-						ContentLen: 3,
-					},
-					{
-						Filename:   "testfile2",
-						Filetype:   "bin",
-						Labels:     object2Label,
-						ContentLen: 3,
-					},
+				AddObjects: []*v1storageservices.AddObjectRequest{
+					&v1storageservices.AddObjectRequest{Id: objects1[0].ID.String()},
+					&v1storageservices.AddObjectRequest{Id: objects1[1].ID.String()},
+					&v1storageservices.AddObjectRequest{Id: objects1[2].ID.String()},
 				},
 			},
 		},
@@ -111,6 +61,11 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
+	objects2, err := UploadObjects(ServerEndpoints.load, ServerEndpoints.object, 3, datasetCreateResponse.GetId(), "versiontest-")
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
 	objectgroupuuidname2 := uuid.New().String()
 
 	createObjectGroupRequest2 := &v1storageservices.CreateObjectGroupRequest{
@@ -118,19 +73,10 @@ func TestDatasetVersion(t *testing.T) {
 			Name:              objectgroupuuidname2,
 			UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{},
 			UpdateObjects: &v1storageservices.UpdateObjectsRequests{
-				AddObjects: []*v1storageservices.CreateObjectRequest{
-					{
-						Filename:   "testfile1",
-						Filetype:   "bin",
-						Labels:     object1Label,
-						ContentLen: 3,
-					},
-					{
-						Filename:   "testfile3",
-						Filetype:   "bin",
-						Labels:     object2Label,
-						ContentLen: 3,
-					},
+				AddObjects: []*v1storageservices.AddObjectRequest{
+					&v1storageservices.AddObjectRequest{Id: objects2[0].ID.String()},
+					&v1storageservices.AddObjectRequest{Id: objects2[1].ID.String()},
+					&v1storageservices.AddObjectRequest{Id: objects2[2].ID.String()},
 				},
 			},
 		},
@@ -196,7 +142,7 @@ func TestDatasetVersion(t *testing.T) {
 			Major:    1,
 			Minor:    0,
 			Patch:    2,
-			Revision: 1,
+			Revision: 2,
 			Stage:    v1storagemodels.Version_VERSION_STAGE_STABLE,
 		},
 		Description:            "testrelease",
@@ -205,7 +151,6 @@ func TestDatasetVersion(t *testing.T) {
 	}
 
 	_, err = ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest2)
-	assert.Error(t, err)
 
 	err = nil
 
@@ -216,7 +161,7 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, len(datasetVersions.GetDatasetVersions()), 1)
+	assert.Equal(t, 2, len(datasetVersions.GetDatasetVersions()))
 
 	datasetVersion, err := ServerEndpoints.dataset.GetDatasetVersion(context.Background(), &v1storageservices.GetDatasetVersionRequest{
 		Id: versionResponse.GetId(),
@@ -225,9 +170,9 @@ func TestDatasetVersion(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, int64(2), datasetVersion.GetDatasetVersion().GetStats().GetObjectCount())
-	assert.Equal(t, int64(6), datasetVersion.GetDatasetVersion().GetStats().GetAccSize())
-	assert.Equal(t, float64(3), datasetVersion.GetDatasetVersion().GetStats().GetAvgObjectSize())
+	assert.Equal(t, int64(3), datasetVersion.GetDatasetVersion().GetStats().GetObjectCount())
+	assert.Equal(t, int64(57), datasetVersion.GetDatasetVersion().GetStats().GetAccSize())
+	assert.Equal(t, float64(19), datasetVersion.GetDatasetVersion().GetStats().GetAvgObjectSize())
 
 	versionRevisions, err := ServerEndpoints.dataset.GetDatasetVersionObjectGroups(context.Background(), &v1storageservices.GetDatasetVersionObjectGroupsRequest{
 		Id: versionResponse.Id,

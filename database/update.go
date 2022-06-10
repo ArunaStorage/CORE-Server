@@ -105,6 +105,117 @@ func (update *Update) FinishObjectUpload(objectID uuid.UUID) error {
 	return nil
 }
 
+func (update *Update) UpdateObjectGroup(request *v1storageservices.UpdateObjectGroupRequest, dataset *models.Dataset, project *models.Project, objectGroup *models.ObjectGroup) (*models.ObjectGroupRevision, error) {
+	newObjectGroupRevision := &models.ObjectGroupRevision{
+		Name:          request.CreateRevisionRequest.Name,
+		Description:   request.CreateRevisionRequest.Description,
+		DatasetID:     dataset.ID,
+		ProjectID:     project.ID,
+		ObjectGroupID: objectGroup.ID,
+	}
+
+	err := crdbgorm.ExecuteTx(context.Background(), update.DB, nil, func(tx *gorm.DB) error {
+		tx.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(objectGroup).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			currentObjectGroupInTransaction := &models.ObjectGroup{}
+			currentObjectGroupInTransaction.ID = objectGroup.ID
+
+			if err := tx.First(currentObjectGroupInTransaction).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			currentObjectGroupRevision := &models.ObjectGroupRevision{}
+			currentObjectGroupRevision.ID = currentObjectGroupInTransaction.ID
+			if err := tx.Preload("data_objects").Preload("meta_objects").First(currentObjectGroupRevision).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			new_data_objects, err := update.updateObjects(currentObjectGroupRevision.DataObjects, request.CreateRevisionRequest.UpdateObjects)
+			if err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			new_meta_objects, err := update.updateObjects(currentObjectGroupRevision.MetaObjects, request.CreateRevisionRequest.UpdateMetaObjects)
+			if err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			labels := make([]models.Label, len(request.CreateRevisionRequest.Labels))
+			for i, labelRequest := range labels {
+				labels[i] = models.Label{
+					Key:   labelRequest.Key,
+					Value: labelRequest.Value,
+				}
+			}
+
+			newObjectGroupRevision.DataObjects = new_data_objects
+			newObjectGroupRevision.MetaObjects = new_meta_objects
+			newObjectGroupRevision.Labels = labels
+			newObjectGroupRevision.RevisionNumber = objectGroup.CurrentRevisionCount + 1
+
+			if err := tx.Create(newObjectGroupRevision).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			updateColumns := map[string]interface{}{"current_revision_id": newObjectGroupRevision.ID.String(), "current_revision_count": objectGroup.CurrentRevisionCount + 1}
+			if err := tx.Model(objectGroup).Updates(updateColumns).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			return nil
+		})
+
+		return nil
+	})
+
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	return newObjectGroupRevision, nil
+}
+
+func (update *Update) updateObjects(originalObjects []models.Object, updateObjectsRequest *v1storageservices.UpdateObjectsRequests) ([]models.Object, error) {
+	deleteObjects := make(map[string]interface{})
+
+	for _, deleteObject := range updateObjectsRequest.GetDeleteObjects() {
+		deleteObjects[deleteObject.GetId()] = struct{}{}
+	}
+
+	newDataObjects := make([]models.Object, 0)
+	for _, originalObject := range originalObjects {
+		if _, ok := deleteObjects[originalObject.ID.String()]; !ok {
+			newDataObjects = append(newDataObjects, originalObject)
+		}
+	}
+
+	for _, addObjectRequest := range updateObjectsRequest.GetAddObjects() {
+		addObjectUUID, err := uuid.Parse(addObjectRequest.GetId())
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+
+		addObject := models.Object{}
+		addObject.ID = addObjectUUID
+
+		newDataObjects = append(newDataObjects, addObject)
+	}
+
+	return newDataObjects, nil
+}
+
 func (update *Update) FinishObjectGroupRevisionUpload(objectGroupRevisionID uuid.UUID) error {
 	objectGroupRevision := &models.ObjectGroupRevision{}
 	objectGroupRevision.ID = objectGroupRevisionID
@@ -157,54 +268,4 @@ func (update *Update) FinishObjectGroupRevisionUpload(objectGroupRevisionID uuid
 	}
 
 	return nil
-}
-
-// UpdateObjectGroup
-// Adds a revision to the history of an object group and sets it as current revision
-func (update *Update) UpdateObjectGroup(request *v1storageservices.UpdateObjectGroupRequest) (*models.ObjectGroup, error) {
-	objectGroupID, err := uuid.Parse(request.Id)
-	if err != nil {
-		log.Error(err.Error())
-		return nil, err
-	}
-
-	var objectGroup *models.ObjectGroup
-	objectGroup.ID = objectGroupID
-
-	var objectGroupRevision *models.ObjectGroupRevision
-
-	err = crdbgorm.ExecuteTx(context.Background(), update.DB, nil, func(tx *gorm.DB) error {
-		tx.Transaction(func(tx *gorm.DB) error {
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(objectGroup).Error; err != nil {
-				log.Errorln(err.Error())
-				return err
-			}
-
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(objectGroupRevision).Error; err != nil {
-				log.Errorln(err.Error())
-				return err
-			}
-
-			if objectGroupRevision.ObjectGroupID != objectGroup.ID {
-				return status.Error(codes.InvalidArgument, "Revision object group does not match provided object group")
-			}
-
-			if objectGroupRevision.Status != v1storagemodels.Status_STATUS_AVAILABLE.String() {
-				return status.Error(codes.InvalidArgument, "Object groups can only be handled with revisions in ")
-			}
-
-			if err := tx.Model(objectGroup).Updates(
-				map[string]interface{}{
-					"current_object_group_revision_id": objectGroupRevision.ID,
-				}).Error; err != nil {
-				log.Errorln(err.Error())
-				return err
-			}
-
-			return nil
-		})
-		return nil
-	})
-
-	return objectGroup, nil
 }

@@ -20,7 +20,6 @@ type Object struct {
 	DefaultLocation Location
 	Labels          []Label `gorm:"many2many:object_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	UploadID        string
-	Index           uint64
 	ProjectID       uuid.UUID `gorm:"index"`
 	Project         Project
 	DatasetID       uuid.UUID `gorm:"index"`
@@ -112,7 +111,7 @@ type ObjectGroupRevision struct {
 	DatasetVersions []DatasetVersion `gorm:"many2many:dataset_version_object_group_revisions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Status          string           `gorm:"index"`
 	Generated       time.Time
-	Objects         []Object  `gorm:"many2many:object_group_revision_data_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	DataObjects     []Object  `gorm:"many2many:object_group_revision_data_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	MetaObjects     []Object  `gorm:"many2many:object_group_revision_meta_objects;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	ObjectGroupID   uuid.UUID `gorm:"index:revision_number"`
 	RevisionNumber  uint64    `gorm:"index:revision_number"`
@@ -124,26 +123,26 @@ func (objectGroup *ObjectGroupRevision) ToProtoModel(stats *v1storagemodels.Obje
 		labels = append(labels, label.ToProtoModel())
 	}
 
-	objectsList := make([]*v1storagemodels.Object, len(objectGroup.Objects))
-	for _, object := range objectGroup.Objects {
+	objectsList := make([]*v1storagemodels.Object, len(objectGroup.DataObjects))
+	for i, object := range objectGroup.DataObjects {
 
 		protoObject, err := object.ToProtoModel()
 		if err != nil {
 			log.Errorln(err)
 			return nil, err
 		}
-		objectsList[object.Index] = protoObject
+		objectsList[i] = protoObject
 	}
 
 	metaObjectsList := make([]*v1storagemodels.Object, len(objectGroup.MetaObjects))
-	for _, metaObject := range objectGroup.MetaObjects {
+	for i, metaObject := range objectGroup.MetaObjects {
 
 		protoObject, err := metaObject.ToProtoModel()
 		if err != nil {
 			log.Errorln(err)
 			return nil, err
 		}
-		metaObjectsList[metaObject.Index] = protoObject
+		metaObjectsList[i] = protoObject
 	}
 
 	status, err := ToStatus(objectGroup.Status)
