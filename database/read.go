@@ -8,11 +8,18 @@ import (
 	"github.com/ScienceObjectsDB/CORE-Server/models"
 	"github.com/cockroachdb/cockroach-go/v2/crdb/crdbgorm"
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 
 	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
+	v1servicemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/services/v1"
 	log "github.com/sirupsen/logrus"
 )
+
+type ID struct {
+	ID uuid.UUID
+}
 
 type Read struct {
 	*Common
@@ -139,6 +146,187 @@ func (read *Read) GetProjectDatasets(projectID uuid.UUID) ([]*models.Dataset, er
 	}
 
 	return datasets, nil
+}
+
+func (read *Read) GetDatasetObjects(request *v1servicemodels.GetDatasetObjectsRequest) ([]*models.Object, error) {
+	var objects []*models.Object
+	var err error
+
+	if request.LabelFilter == nil || len(request.LabelFilter.Labels) == 0 {
+		objects, err = read.getDatasetObjects(request)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+	} else {
+		objects, err = read.getDatasetObjectsWithLabelFilter(request)
+		if err != nil {
+			log.Errorln(err.Error())
+			return nil, err
+		}
+	}
+
+	return objects, nil
+}
+
+func (read *Read) getDatasetObjects(request *v1servicemodels.GetDatasetObjectsRequest) ([]*models.Object, error) {
+	objects := make([]*models.Object, 0)
+
+	datasetUUID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debugln(err)
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	preload := read.DB.
+		Preload("Labels").
+		Preload("Locations").
+		Preload("DefaultLocation")
+
+	crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
+		if request.PageRequest == nil || request.PageRequest.PageSize == 0 {
+			return preload.Where("dataset_id = ?", datasetUUID).Find(&objects).Error
+
+		} else if request.PageRequest != nil && request.PageRequest.LastUuid == "" {
+			return preload.
+				Where("dataset_id = ?", datasetUUID).
+				Order("id asc").
+				Limit(int(request.PageRequest.PageSize)).
+				Find(&objects).Error
+
+		} else if request.PageRequest != nil && request.PageRequest.LastUuid != "" && request.PageRequest.PageSize > 0 {
+			return preload.
+				Where("dataset_id = ? AND id > ?", datasetUUID, request.PageRequest.LastUuid).
+				Order("id asc").
+				Limit(int(request.PageRequest.PageSize)).
+				Find(&objects).Error
+
+		} else {
+			log.Info("could not parse request")
+			return errors.New("could not parse request")
+		}
+	})
+
+	return objects, nil
+}
+
+func (read *Read) getDatasetObjectsWithLabelFilter(request *v1servicemodels.GetDatasetObjectsRequest) ([]*models.Object, error) {
+	objects := make([]*models.Object, 0)
+
+	datasetUUID, err := uuid.Parse(request.GetId())
+	if err != nil {
+		log.Debugln(err)
+		return nil, status.Error(codes.InvalidArgument, "could not parse dataset id")
+	}
+
+	var labels [][]interface{}
+
+	for _, requestLabel := range request.LabelFilter.Labels {
+		labels = append(labels, []interface{}{requestLabel.Key, requestLabel.Value})
+	}
+
+	if len(labels) == 0 {
+		labels = nil
+	}
+
+	var objectIDs []ID
+
+	crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
+
+		if request.PageRequest == nil || request.PageRequest.PageSize == 0 {
+			if err := tx.Model(&models.Object{}).
+				Select("objects.id").
+				Joins("inner join object_labels on objects.id = object_labels.object_id").
+				Joins("inner join labels on object_labels.label_id = labels.id").
+				Where("dataset_id = ? AND (key, value) in (?)", datasetUUID, labels).
+				Group("objects.id").Having("COUNT(objects.id) = ?", len(request.LabelFilter.Labels)).
+				Find(&objectIDs).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+			ids := make([]uuid.UUID, len(objectIDs))
+			for i, id := range objectIDs {
+				ids[i] = id.ID
+			}
+
+			if err := tx.Model(&models.Object{}).
+				Preload("Labels").
+				Preload("Locations").
+				Preload("DefaultLocation").
+				Where("id in ?", ids).
+				Find(&objects).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+
+		} else if request.PageRequest != nil && request.PageRequest.LastUuid == "" {
+			if err := tx.Model(&models.Object{}).
+				Select("objects.id").
+				Joins("inner join object_labels on objects.id = object_labels.object_id").
+				Joins("inner join labels on object_labels.label_id = labels.id").
+				Where("dataset_id = ? AND (key, value) in (?)", datasetUUID, labels).
+				Group("objects.id").Having("COUNT(objects.id) = ?", len(request.LabelFilter.Labels)).
+				Order("id asc").
+				Limit(int(request.PageRequest.PageSize)).
+				Find(&objectIDs).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+
+				ids := make([]uuid.UUID, len(objectIDs))
+				for i, id := range objectIDs {
+					ids[i] = id.ID
+				}
+
+				if err := tx.Model(&models.Object{}).
+					Preload("Labels").
+					Preload("Locations").
+					Preload("DefaultLocation").
+					Where("id in ?", ids).
+					Find(objects).Error; err != nil {
+					log.Errorln(err.Error())
+					return err
+				}
+			}
+
+		} else if request.PageRequest != nil && request.PageRequest.LastUuid != "" && request.PageRequest.PageSize > 0 {
+			if err := tx.Model(&models.Object{}).
+				Select("objects.id").
+				Joins("inner join object_labels on objects.id = object_labels.object_id").
+				Joins("inner join labels on object_labels.label_id = labels.id").
+				Where("dataset_id = ? AND (key, value) in (?) AND objects.id > ?", datasetUUID, labels, request.PageRequest.LastUuid).
+				Group("objects.id").Having("COUNT(objects.id) = ?", len(request.LabelFilter.Labels)).
+				Order("id asc").
+				Limit(int(request.PageRequest.PageSize)).
+				Find(&objectIDs).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
+
+				ids := make([]uuid.UUID, len(objectIDs))
+				for i, id := range objectIDs {
+					ids[i] = id.ID
+				}
+
+				if err := tx.Model(&models.Object{}).
+					Preload("Labels").
+					Preload("Locations").
+					Preload("DefaultLocation").
+					Where("id in ?", ids).
+					Find(objects).Error; err != nil {
+					log.Errorln(err.Error())
+					return err
+				}
+			}
+
+		} else {
+			log.Info("could not parse request")
+			return errors.New("could not parse request")
+		}
+
+		return nil
+	})
+
+	return objects, nil
 }
 
 // Get all object groups of the specific Dataset.

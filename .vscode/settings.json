@@ -1,4 +1,16 @@
 {
-    "editor.bracketPairColorization.enabled": true,
-    "editor.guides.bracketPairs":"active"
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 26257,
+      "askForPassword": true,
+      "driver": "PostgreSQL",
+      "name": "crdb-dev",
+      "database": "defaultdb",
+      "username": "root"
+    }
+  ]
 }

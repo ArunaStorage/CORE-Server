@@ -90,6 +90,128 @@ func TestObjectGroup(t *testing.T) {
 	assert.Equal(t, len(addMetaRequests), len(currentRevision.MetadataObjects))
 }
 
+func TestDatasetObjectsQuery(t *testing.T) {
+	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &v1storageservices.CreateProjectRequest{
+		Name:        "testproject",
+		Description: "test",
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	datasetID, err := ServerEndpoints.dataset.CreateDataset(context.Background(), &v1storageservices.CreateDatasetRequest{
+		Name:        "testdataset",
+		Description: "test",
+		ProjectId:   projectID.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	dataObjects, err := UploadObjects(ServerEndpoints.load, ServerEndpoints.object, 5, datasetID.GetId(), "data")
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	queryProtoLabel := make([]*v1storagemodels.Label, 0)
+	for _, label := range dataObjects[0].Labels {
+		queryProtoLabel = append(queryProtoLabel, &v1storagemodels.Label{
+			Key:   label.Key,
+			Value: label.Value,
+		})
+	}
+
+	response, err := ServerEndpoints.dataset.GetDatasetObjects(context.Background(), &v1storageservices.GetDatasetObjectsRequest{
+		Id: datasetID.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 6, len(response.GetObjects()))
+
+	responsePage1, err := ServerEndpoints.dataset.GetDatasetObjects(context.Background(), &v1storageservices.GetDatasetObjectsRequest{
+		Id: datasetID.GetId(),
+		PageRequest: &v1storagemodels.PageRequest{
+			PageSize: 3,
+		},
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 3, len(responsePage1.GetObjects()))
+
+	responsePage2, err := ServerEndpoints.dataset.GetDatasetObjects(context.Background(), &v1storageservices.GetDatasetObjectsRequest{
+		Id: datasetID.GetId(),
+		PageRequest: &v1storagemodels.PageRequest{
+			PageSize: 3,
+			LastUuid: responsePage1.Objects[2].GetId(),
+		},
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 3, len(responsePage2.GetObjects()))
+
+	objects := make([]string, 0)
+	for _, object := range responsePage1.Objects {
+		assert.NotContains(t, objects, object.GetId())
+		objects = append(objects, object.GetId())
+	}
+
+	for _, object := range responsePage2.Objects {
+		assert.NotContains(t, objects, object.GetId())
+		objects = append(objects, object.GetId())
+	}
+
+}
+
+func TestDatasetObjectsQueryWithLabel(t *testing.T) {
+	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &v1storageservices.CreateProjectRequest{
+		Name:        "testproject",
+		Description: "test",
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	datasetID, err := ServerEndpoints.dataset.CreateDataset(context.Background(), &v1storageservices.CreateDatasetRequest{
+		Name:        "testdataset",
+		Description: "test",
+		ProjectId:   projectID.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	dataObjects, err := UploadObjects(ServerEndpoints.load, ServerEndpoints.object, 5, datasetID.GetId(), "data")
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	queryProtoLabel := make([]*v1storagemodels.Label, 0)
+	for _, label := range dataObjects[0].Labels {
+		queryProtoLabel = append(queryProtoLabel, &v1storagemodels.Label{
+			Key:   label.Key,
+			Value: label.Value,
+		})
+	}
+
+	response, err := ServerEndpoints.dataset.GetDatasetObjects(context.Background(), &v1storageservices.GetDatasetObjectsRequest{
+		Id: datasetID.GetId(),
+		LabelFilter: &v1storagemodels.LabelFilter{
+			Labels: queryProtoLabel,
+		},
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 1, len(response.GetObjects()))
+}
+
 func TestObjectGroupUpdate(t *testing.T) {
 	projectID, err := ServerEndpoints.project.CreateProject(context.Background(), &v1storageservices.CreateProjectRequest{
 		Name:        "testproject",
@@ -104,6 +226,9 @@ func TestObjectGroupUpdate(t *testing.T) {
 		Description: "test",
 		ProjectId:   projectID.GetId(),
 	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
 	dataObjects, err := UploadObjects(ServerEndpoints.load, ServerEndpoints.object, 5, datasetID.GetId(), "data")
 	if err != nil {
