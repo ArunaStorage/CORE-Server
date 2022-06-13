@@ -385,14 +385,15 @@ func (create *Create) CreateObject(request *v1storageservices.CreateObjectReques
 	location := create.S3Handler.CreateLocation(project.ID, dataset.ID, objectID, request.Filename, dataset.Bucket)
 
 	object := &models.Object{
-		Filename:        request.Filename,
-		Filetype:        request.Filetype,
-		ContentLen:      request.ContentLen,
-		Labels:          labels,
-		Status:          v1storagemodels.Status_STATUS_STAGING.String(),
-		ProjectID:       project.ID,
-		DatasetID:       dataset.ID,
-		DefaultLocation: location,
+		Filename:          request.Filename,
+		Filetype:          request.Filetype,
+		ContentLen:        request.ContentLen,
+		Labels:            labels,
+		Status:            v1storagemodels.Status_STATUS_STAGING.String(),
+		ProjectID:         project.ID,
+		DatasetID:         dataset.ID,
+		DefaultLocationID: location.ID,
+		DefaultLocation:   location,
 		Locations: []models.Location{
 			location,
 		},

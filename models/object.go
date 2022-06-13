@@ -11,19 +11,20 @@ import (
 
 type Object struct {
 	BaseModel
-	ObjectUUID      uuid.UUID `gorm:"index,unique"`
-	Filename        string    `gorm:"index"`
-	Filetype        string
-	ContentLen      int64
-	Status          string `gorm:"index"`
-	Locations       []Location
-	DefaultLocation Location
-	Labels          []Label `gorm:"many2many:object_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	UploadID        string
-	ProjectID       uuid.UUID `gorm:"index"`
-	Project         Project
-	DatasetID       uuid.UUID `gorm:"index"`
-	Dataset         Dataset
+	ObjectUUID        uuid.UUID `gorm:"index,unique"`
+	Filename          string    `gorm:"index"`
+	Filetype          string
+	ContentLen        int64
+	Status            string `gorm:"index"`
+	Locations         []Location
+	DefaultLocation   Location
+	DefaultLocationID uuid.UUID `gorm:"index"`
+	Labels            []Label   `gorm:"many2many:object_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	UploadID          string
+	ProjectID         uuid.UUID `gorm:"index"`
+	Project           Project
+	DatasetID         uuid.UUID `gorm:"index"`
+	Dataset           Dataset
 }
 
 func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
