@@ -1,6 +1,10 @@
 package models
 
 import (
+	"time"
+
+	"gorm.io/gorm"
+
 	v1storagemodels "github.com/ScienceObjectsDB/go-api/sciobjsdb/api/storage/models/v1"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -47,9 +51,11 @@ func (project *Project) ToProtoModel(stats *v1storagemodels.ProjectStats) (*v1st
 }
 
 type User struct {
-	BaseModel
-	UserOauth2ID string
-	ProjectID    uuid.UUID
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    gorm.DeletedAt `gorm:"index"`
+	UserOauth2ID string         `gorm:"primaryKey"`
+	ProjectID    uuid.UUID      `gorm:"primaryKey;type:uuid"`
 	Project      Project
 }
 
