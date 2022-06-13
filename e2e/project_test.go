@@ -64,7 +64,6 @@ func TestProject(t *testing.T) {
 }
 
 func TestProjectUsers(t *testing.T) {
-	t.Skip()
 	// Create simple project with name and description
 	createRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "Test Project 002",
@@ -179,7 +178,6 @@ func TestProjectUsers(t *testing.T) {
 }
 
 func TestAddConcurrentProjectUsers(t *testing.T) {
-	t.Skip()
 	createRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "Test Project 003",
 		Description: "This project is used to test the concurrent insert of user duplicates.",
