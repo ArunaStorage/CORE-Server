@@ -272,21 +272,21 @@ func (read *Read) getDatasetObjectsWithLabelFilter(request *v1servicemodels.GetD
 				Find(&objectIDs).Error; err != nil {
 				log.Errorln(err.Error())
 				return err
+			}
 
-				ids := make([]uuid.UUID, len(objectIDs))
-				for i, id := range objectIDs {
-					ids[i] = id.ID
-				}
+			ids := make([]uuid.UUID, len(objectIDs))
+			for i, id := range objectIDs {
+				ids[i] = id.ID
+			}
 
-				if err := tx.Model(&models.Object{}).
-					Preload("Labels").
-					Preload("Locations").
-					Preload("DefaultLocation").
-					Where("id in ?", ids).
-					Find(objects).Error; err != nil {
-					log.Errorln(err.Error())
-					return err
-				}
+			if err := tx.Model(&models.Object{}).
+				Preload("Labels").
+				Preload("Locations").
+				Preload("DefaultLocation").
+				Where("id in ?", ids).
+				Find(objects).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
 			}
 
 		} else if request.PageRequest != nil && request.PageRequest.LastUuid != "" && request.PageRequest.PageSize > 0 {
@@ -301,21 +301,21 @@ func (read *Read) getDatasetObjectsWithLabelFilter(request *v1servicemodels.GetD
 				Find(&objectIDs).Error; err != nil {
 				log.Errorln(err.Error())
 				return err
+			}
 
-				ids := make([]uuid.UUID, len(objectIDs))
-				for i, id := range objectIDs {
-					ids[i] = id.ID
-				}
+			ids := make([]uuid.UUID, len(objectIDs))
+			for i, id := range objectIDs {
+				ids[i] = id.ID
+			}
 
-				if err := tx.Model(&models.Object{}).
-					Preload("Labels").
-					Preload("Locations").
-					Preload("DefaultLocation").
-					Where("id in ?", ids).
-					Find(objects).Error; err != nil {
-					log.Errorln(err.Error())
-					return err
-				}
+			if err := tx.Model(&models.Object{}).
+				Preload("Labels").
+				Preload("Locations").
+				Preload("DefaultLocation").
+				Where("id in ?", ids).
+				Find(objects).Error; err != nil {
+				log.Errorln(err.Error())
+				return err
 			}
 
 		} else {
