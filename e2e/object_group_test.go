@@ -259,23 +259,16 @@ func TestObjectGroupUpdate(t *testing.T) {
 		CreateRevisionRequest: &v1storageservices.CreateObjectGroupRevisionRequest{
 			Name:        "revision-1",
 			Description: "revision-1-description",
-			UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{
+			UpdateObjects: &v1storageservices.UpdateObjectsRequests{
 				AddObjects: addDataRequest,
 			},
-			UpdateObjects: &v1storageservices.UpdateObjectsRequests{
+			UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{
 				AddObjects: addMetaRequests,
 			},
 		},
 	}
 
 	objectGroup, err := ServerEndpoints.object.CreateObjectGroup(context.Background(), objectGroupCreateRequest)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	_, err = ServerEndpoints.object.FinishObjectGroupRevisionUpload(context.Background(), &v1storageservices.FinishObjectGroupRevisionUploadRequest{
-		Id: objectGroup.CreateRevisionResponse.GetId(),
-	})
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -287,8 +280,8 @@ func TestObjectGroupUpdate(t *testing.T) {
 	assert.Equal(t, objectGroup.CreateRevisionResponse.GetId(), objectGroupFromGet.ObjectGroup.CurrentRevision.Id)
 	assert.Equal(t, objectGroupCreateRequest.CreateRevisionRequest.GetName(), objectGroupFromGet.ObjectGroup.CurrentRevision.GetName())
 	assert.Equal(t, objectGroupCreateRequest.CreateRevisionRequest.GetDescription(), objectGroupFromGet.ObjectGroup.CurrentRevision.GetDescription())
-	assert.Equal(t, 6, len(objectGroupFromGet.ObjectGroup.CurrentRevision.Objects))
-	assert.Equal(t, 6, len(objectGroupFromGet.ObjectGroup.CurrentRevision.MetadataObjects))
+	assert.Equal(t, 5, len(objectGroupFromGet.ObjectGroup.CurrentRevision.Objects))
+	assert.Equal(t, 5, len(objectGroupFromGet.ObjectGroup.CurrentRevision.MetadataObjects))
 
 	newDataObjects, err := UploadObjects(ServerEndpoints.load, ServerEndpoints.object, 5, datasetID.GetId(), "data")
 	if err != nil {

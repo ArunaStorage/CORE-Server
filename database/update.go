@@ -130,8 +130,8 @@ func (update *Update) UpdateObjectGroup(request *v1storageservices.UpdateObjectG
 			}
 
 			currentObjectGroupRevision := &models.ObjectGroupRevision{}
-			currentObjectGroupRevision.ID = currentObjectGroupInTransaction.ID
-			if err := tx.Preload("data_objects").Preload("meta_objects").First(currentObjectGroupRevision).Error; err != nil {
+			currentObjectGroupRevision.ID = currentObjectGroupInTransaction.CurrentObjectGroupRevisionID
+			if err := tx.Preload("DataObjects").Preload("MetaObjects").First(currentObjectGroupRevision).Error; err != nil {
 				log.Errorln(err.Error())
 				return err
 			}
@@ -166,7 +166,7 @@ func (update *Update) UpdateObjectGroup(request *v1storageservices.UpdateObjectG
 				return err
 			}
 
-			updateColumns := map[string]interface{}{"current_revision_id": newObjectGroupRevision.ID.String(), "current_revision_count": objectGroup.CurrentRevisionCount + 1}
+			updateColumns := map[string]interface{}{"current_object_group_revision_id": newObjectGroupRevision.ID.String(), "current_revision_count": objectGroup.CurrentRevisionCount + 1}
 			if err := tx.Model(objectGroup).Updates(updateColumns).Error; err != nil {
 				log.Errorln(err.Error())
 				return err

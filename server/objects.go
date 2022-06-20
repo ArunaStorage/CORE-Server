@@ -314,6 +314,20 @@ func (endpoint *ObjectServerEndpoints) UpdateObjectGroup(ctx context.Context, re
 		return nil, err
 	}
 
+	objectGroupRevision, err := endpoint.UpdateHandler.UpdateObjectGroup(request, &objectGroup.Dataset, &objectGroup.Project, objectGroup)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
+	msg := &v1notficationservices.EventNotificationMessage{Resource: v1storagemodels.Resource_RESOURCE_OBJECT_GROUP, ResourceId: objectGroupRevision.ObjectGroupID.String(), UpdatedType: v1notficationservices.EventNotificationMessage_UPDATE_TYPE_UPDATED}
+
+	err = endpoint.EventStreamMgmt.PublishMessage(msg)
+	if err != nil {
+		log.Errorln(err.Error())
+		return nil, err
+	}
+
 	return &v1storageservices.UpdateObjectGroupResponse{}, nil
 }
 

@@ -99,7 +99,7 @@ func (read *Read) GetObjectGroup(objectGroupID uuid.UUID) (*models.ObjectGroup, 
 
 	err := crdbgorm.ExecuteTx(context.Background(), read.DB, nil, func(tx *gorm.DB) error {
 		return tx.Transaction(func(tx *gorm.DB) error {
-			if err := tx.First(objectGroup).Error; err != nil {
+			if err := tx.Preload("Dataset").Preload("Project").First(objectGroup).Error; err != nil {
 				log.Errorln(err.Error())
 				return err
 			}
@@ -107,7 +107,7 @@ func (read *Read) GetObjectGroup(objectGroupID uuid.UUID) (*models.ObjectGroup, 
 			objectGroupRevision := &models.ObjectGroupRevision{}
 			objectGroupRevision.ID = objectGroup.CurrentObjectGroupRevisionID
 
-			preloads := tx.Preload("MetaObjects.Locations").Preload("MetaObjects.DefaultLocation").Preload("DataObjects.Locations").Preload("DataObjects.DefaultLocation").Preload("DataObjects").Preload("MetaObjects").Preload("Labels").Preload("DataObjects.Labels")
+			preloads := tx.Preload("Dataset").Preload("Project").Preload("MetaObjects.Locations").Preload("MetaObjects.DefaultLocation").Preload("DataObjects.Locations").Preload("DataObjects.DefaultLocation").Preload("DataObjects").Preload("MetaObjects").Preload("Labels").Preload("DataObjects.Labels")
 			if err := preloads.First(objectGroupRevision).Error; err != nil {
 				log.Errorln(err.Error())
 				return err

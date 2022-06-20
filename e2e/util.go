@@ -60,7 +60,7 @@ func DownloadObjects(t *testing.T, objects []*v1resourcemodels.Object, data []st
 func UploadObjects(loadendpoint *server.LoadEndpoints, objectEndpoint *server.ObjectServerEndpoints, objectNumber int, datasetID string, prefix string) ([]*models.Object, error) {
 	var modelsObjects []*models.Object
 
-	for i := 0; i <= objectNumber; i++ {
+	for i := 0; i < objectNumber; i++ {
 		objectData := fmt.Sprintf("%v-data-%v", prefix, i)
 		object := &v1storagemodels.CreateObjectRequest{
 			Filename:   fmt.Sprintf("%v-file%v.bin", prefix, i),
