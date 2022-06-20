@@ -128,7 +128,7 @@ func TestDatasetObjectsQuery(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, 6, len(response.GetObjects()))
+	assert.Equal(t, 5, len(response.GetObjects()))
 
 	responsePage1, err := ServerEndpoints.dataset.GetDatasetObjects(context.Background(), &v1storageservices.GetDatasetObjectsRequest{
 		Id: datasetID.GetId(),
@@ -153,7 +153,7 @@ func TestDatasetObjectsQuery(t *testing.T) {
 		log.Fatalln(err.Error())
 	}
 
-	assert.Equal(t, 3, len(responsePage2.GetObjects()))
+	assert.Equal(t, 2, len(responsePage2.GetObjects()))
 
 	objects := make([]string, 0)
 	for _, object := range responsePage1.Objects {
