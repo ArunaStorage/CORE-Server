@@ -5,7 +5,7 @@ DB:
   DatabaseType: CockroachDB
   Cockroach:
     Hostname: "localhost"
-    Port: 61567
+    Port: 51337
     Username: "sciobjdsdbuser"
     Databasename: "sciobjsdb"
 S3:

@@ -136,6 +136,112 @@ func TestDataset(t *testing.T) {
 
 }
 
+func TestDatasetObjects(t *testing.T) {
+	createProjectRequest := &v1storageservices.CreateProjectRequest{
+		Name:        "testproject_dataset",
+		Description: "test",
+	}
+
+	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
+		Name:      "testdataset",
+		ProjectId: createResponse.GetId(),
+	}
+
+	datasetCreateResponse, err := ServerEndpoints.dataset.CreateDataset(context.Background(), createDatasetRequest)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	fwLabel := v1storagemodels.Label{
+		Key:   "genomic.bioinformatics/read_orientation",
+		Value: "forward",
+	}
+
+	revLabel := v1storagemodels.Label{
+		Key:   "genomic.bioinformatics/read_orientation",
+		Value: "reverse",
+	}
+
+	experimentLabel := v1storagemodels.Label{
+		Key:   "genomic.bioinformatics/experiment_id",
+		Value: "id_1234",
+	}
+
+	fwReadObjectResponse, err := ServerEndpoints.object.CreateObject(context.Background(), &v1storageservices.CreateObjectRequest{
+		Filename:  "forward.fasta",
+		Filetype:  "fasta",
+		DatasetId: datasetCreateResponse.GetId(),
+		Labels: []*v1storagemodels.Label{
+			&fwLabel, &experimentLabel,
+		},
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	revReadObjectResponse, err := ServerEndpoints.object.CreateObject(context.Background(), &v1storageservices.CreateObjectRequest{
+		Filename:  "reverse.fasta",
+		Filetype:  "fasta",
+		DatasetId: datasetCreateResponse.GetId(),
+		Labels: []*v1storagemodels.Label{
+			&revLabel, &experimentLabel,
+		},
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	_, err = ServerEndpoints.object.FinishObjectUpload(context.Background(), &v1storageservices.FinishObjectUploadRequest{
+		Id: fwReadObjectResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	_, err = ServerEndpoints.object.FinishObjectUpload(context.Background(), &v1storageservices.FinishObjectUploadRequest{
+		Id: revReadObjectResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	objects, err := ServerEndpoints.dataset.GetDatasetObjects(context.Background(), &v1storageservices.GetDatasetObjectsRequest{
+		Id: datasetCreateResponse.GetId(),
+		LabelFilter: &v1storagemodels.LabelFilter{
+			Labels: []*v1storagemodels.Label{
+				&fwLabel,
+			},
+		},
+	})
+
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 1, len(objects.GetObjects()))
+
+	experimentObjects, err := ServerEndpoints.dataset.GetDatasetObjects(context.Background(), &v1storageservices.GetDatasetObjectsRequest{
+		Id: datasetCreateResponse.GetId(),
+		LabelFilter: &v1storagemodels.LabelFilter{
+			Labels: []*v1storagemodels.Label{
+				&experimentLabel,
+			},
+		},
+	})
+
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 2, len(experimentObjects.GetObjects()))
+
+}
+
 func TestDatasetObjectGroupsPagination(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
 		Name:        "testproject_dataset",
