@@ -65,8 +65,38 @@ func (handler *Delete) DeleteProject(projectID uuid.UUID) error {
 	project := &models.Project{}
 	project.ID = projectID
 
+	var labels []*models.Label
+
 	err := crdbgorm.ExecuteTx(context.Background(), handler.DB, nil, func(tx *gorm.DB) error {
-		return tx.Select("Labels", "User", "APIToken", "Datasets", "Datasets.Objects").Unscoped().Delete(project).Error
+		return tx.Transaction(func(tx *gorm.DB) error {
+			// Get project Label records
+			err := tx.Model(&project).Association("Labels").Find(&labels)
+			if err != nil {
+				log.Println(err.Error())
+				return err
+			}
+
+			// Delete project which should cascade delete
+			//   - All elements which are directly associated
+			//   - All mapping table elements of many2many associations
+			err = tx.
+				Select("Users", "Labels", "APIToken", "Datasets").
+				Unscoped().
+				Delete(project).Error
+			if err != nil {
+				log.Println(err.Error())
+				return err
+			}
+
+			// Delete dangling project Label records if available
+			if len(labels) > 0 {
+				return tx.
+					Unscoped().
+					Delete(&labels).Error
+			}
+
+			return err
+		})
 	})
 
 	if err != nil {
