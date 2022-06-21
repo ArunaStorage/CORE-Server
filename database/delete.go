@@ -19,7 +19,12 @@ func (handler *Delete) DeleteObjectGroup(objectGroupID uuid.UUID) error {
 	objectGroup.ID = objectGroupID
 
 	err := crdbgorm.ExecuteTx(context.Background(), handler.DB, nil, func(tx *gorm.DB) error {
-		return tx.Select("Labels", "Objects").Unscoped().Delete(objectGroup).Error
+		return tx.Select(
+			"Labels",
+			"CurrentObjectGroupRevision",
+			"ObjectGroupRevisions",
+			"ObjectGroupRevisions.Objects",
+			"ObjectGroupRevisions.MetaObjects").Unscoped().Delete(objectGroup).Error
 	})
 
 	if err != nil {
