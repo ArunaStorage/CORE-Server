@@ -15,8 +15,8 @@ import (
 
 func TestDatasetVersion(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject_dataset",
-		Description: "test",
+		Name:        "Test DatasetVersion - Project 001",
+		Description: "Project containing a dataset to test the lifecycle of a dataset version.",
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -25,7 +25,7 @@ func TestDatasetVersion(t *testing.T) {
 	}
 
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
-		Name:      "testdataset",
+		Name:      "Test DatasetVersion - Dataset 001",
 		ProjectId: createResponse.GetId(),
 	}
 
@@ -116,7 +116,7 @@ func TestDatasetVersion(t *testing.T) {
 	}
 
 	releaseVersionRequest := &v1storageservices.ReleaseDatasetVersionRequest{
-		Name:      "foo",
+		Name:      "Dataset 001 Snapshot 1.0.2.1",
 		DatasetId: datasetCreateResponse.GetId(),
 		Version: &v1storagemodels.Version{
 			Major:    1,
@@ -125,7 +125,7 @@ func TestDatasetVersion(t *testing.T) {
 			Revision: 1,
 			Stage:    v1storagemodels.Version_VERSION_STAGE_STABLE,
 		},
-		Description:            "testrelease",
+		Description:            "Dataset 001 version release 001",
 		ObjectGroupRevisionIds: []string{getObjectGroupResponse.ObjectGroup.CurrentRevision.Id},
 		Labels:                 versionLabel,
 	}
@@ -136,7 +136,7 @@ func TestDatasetVersion(t *testing.T) {
 	}
 
 	releaseVersionRequest2 := &v1storageservices.ReleaseDatasetVersionRequest{
-		Name:      "foo",
+		Name:      "Dataset 001 Snapshot 1.0.2.2",
 		DatasetId: datasetCreateResponse.GetId(),
 		Version: &v1storagemodels.Version{
 			Major:    1,
@@ -145,13 +145,12 @@ func TestDatasetVersion(t *testing.T) {
 			Revision: 2,
 			Stage:    v1storagemodels.Version_VERSION_STAGE_STABLE,
 		},
-		Description:            "testrelease",
+		Description:            "Dataset 001 version release 002",
 		ObjectGroupRevisionIds: []string{getObjectGroupResponse.ObjectGroup.CurrentRevision.Id, createObjectGroupResponse2.CreateRevisionResponse.GetId()},
 		Labels:                 versionLabel,
 	}
 
-	_, err = ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest2)
-
+	version2Response, _ := ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest2)
 	err = nil
 
 	datasetVersions, err := ServerEndpoints.dataset.GetDatasetVersions(context.Background(), &v1storageservices.GetDatasetVersionsRequest{
@@ -227,8 +226,8 @@ func TestDatasetVersion(t *testing.T) {
 
 func TestDatasetVersionPaginated(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject_dataset",
-		Description: "test",
+		Name:        "Test DatasetVersion - Project 002",
+		Description: "Project containing a dataset to test the dataset version pagination.",
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -355,8 +354,8 @@ func TestDatasetVersionPaginated(t *testing.T) {
 
 func TestDatasetVersionEmpty(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject_dataset",
-		Description: "test",
+		Name:        "Test DatasetVersion - Project 003",
+		Description: "Project containing a dataset to test an empty dataset version.",
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -406,6 +405,9 @@ func TestDatasetVersionEmpty(t *testing.T) {
 	version, err := ServerEndpoints.dataset.GetDatasetVersion(context.Background(), &v1storageservices.GetDatasetVersionRequest{
 		Id: versionCreateResponse.GetId(),
 	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
 	assert.Equal(t, int64(0), version.DatasetVersion.Stats.AccSize)
 	assert.Equal(t, float64(0), version.DatasetVersion.Stats.AvgObjectSize)
