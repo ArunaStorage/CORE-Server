@@ -24,8 +24,8 @@ type TestMetadata struct {
 
 func TestDataset(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject_dataset",
-		Description: "test",
+		Name:        "Dataset Test - Project 001",
+		Description: "Project used to test the complete lifecycle of a dataset.",
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -62,7 +62,8 @@ func TestDataset(t *testing.T) {
 	}
 
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
-		Name:            "testdataset",
+		Name:            "Test Dataset - Dataset 001",
+		Description:     "Simple dataset with Labels and MetaObjects to test the dataset lifecycle.",
 		ProjectId:       createResponse.GetId(),
 		Labels:          datasetLabel,
 		MetadataObjects: metadataEntries,
@@ -111,6 +112,13 @@ func TestDataset(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			log.Fatalln("error when uploading data")
 		}
+
+		_, err = ServerEndpoints.object.FinishObjectUpload(context.Background(), &v1storageservices.FinishObjectUploadRequest{
+			Id: object.Id,
+		})
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
 	}
 
 	datasetGetResponseWithMetadata, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
@@ -144,8 +152,8 @@ func TestDataset(t *testing.T) {
 
 func TestDatasetObjects(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject_dataset",
-		Description: "test",
+		Name:        "Dataset Test - Project 002",
+		Description: "Project used to test a dataset with directly connected objects without object group.",
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -154,8 +162,9 @@ func TestDatasetObjects(t *testing.T) {
 	}
 
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
-		Name:      "testdataset",
-		ProjectId: createResponse.GetId(),
+		Name:        "Dataset Test - Dataset 002",
+		Description: "Dataset with directly connected objects.",
+		ProjectId:   createResponse.GetId(),
 	}
 
 	datasetCreateResponse, err := ServerEndpoints.dataset.CreateDataset(context.Background(), createDatasetRequest)
@@ -265,8 +274,8 @@ func TestDatasetObjects(t *testing.T) {
 
 func TestDatasetObjectGroupsPagination(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject_dataset",
-		Description: "test",
+		Name:        "Dataset Test - Project 003",
+		Description: "Project used to test a dataset with multiple object groups.",
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -275,8 +284,9 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 	}
 
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
-		Name:      "testdataset",
-		ProjectId: createResponse.GetId(),
+		Name:        "Dataset Test - Dataset 003",
+		Description: "Dataset with multiple object groups to test pagination.",
+		ProjectId:   createResponse.GetId(),
 	}
 
 	datasetCreateResponse, err := ServerEndpoints.dataset.CreateDataset(context.Background(), createDatasetRequest)
