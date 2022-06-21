@@ -126,14 +126,20 @@ func TestDataset(t *testing.T) {
 	assert.Equal(t, createDatasetRequest.Description, datasetGetResponse.GetDataset().Description)
 	assert.ElementsMatch(t, createDatasetRequest.Labels, datasetGetResponse.Dataset.Labels)
 
-	//_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &services.DeleteDatasetRequest{
-	//	Id: datasetCreateResponse.GetId(),
-	//})
-	//if err != nil {
-	//	log.Fatalln(err.Error())
-	//
-	//}
+	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
+	// Validating Dataset deletion by trying to get deleted Dataset which should fail and return nil
+	nilResponse, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
+		Id: datasetCreateResponse.Id,
+	})
+
+	assert.NotNil(t, err)
+	assert.Nil(t, nilResponse)
 }
 
 func TestDatasetObjects(t *testing.T) {
@@ -240,6 +246,21 @@ func TestDatasetObjects(t *testing.T) {
 
 	assert.Equal(t, 2, len(experimentObjects.GetObjects()))
 
+	// Delete created Dataset
+	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	// Validating Project deletion by trying to get deleted Project which should fail and return nil
+	nilResponse, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
+		Id: datasetCreateResponse.Id,
+	})
+
+	assert.NotNil(t, err)
+	assert.Nil(t, nilResponse)
 }
 
 func TestDatasetObjectGroupsPagination(t *testing.T) {
@@ -339,4 +360,20 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 			log.Fatalln("found duplicate object group in pagination")
 		}
 	}
+
+	// Delete created Dataset
+	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	// Validating Project deletion by trying to get deleted Project which should fail and return nil
+	nilResponse, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
+		Id: datasetCreateResponse.Id,
+	})
+
+	assert.NotNil(t, err)
+	assert.Nil(t, nilResponse)
 }
