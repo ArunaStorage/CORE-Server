@@ -668,7 +668,7 @@ func (endpoint *DatasetEndpoints) DeleteDatasetVersion(ctx context.Context, requ
 
 	msg := &v1notificationservices.EventNotificationMessage{
 		ResourceId:  version.ID.String(),
-		Resource:    v1storagemodels.Resource_RESOURCE_DATASET,
+		Resource:    v1storagemodels.Resource_RESOURCE_DATASET_VERSION,
 		UpdatedType: v1notificationservices.EventNotificationMessage_UPDATE_TYPE_DELETED,
 	}
 	err = endpoint.EventStreamMgmt.PublishMessage(msg)

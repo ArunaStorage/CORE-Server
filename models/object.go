@@ -22,9 +22,9 @@ type Object struct {
 	Labels            []Label   `gorm:"many2many:object_labels;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	UploadID          string
 	ProjectID         uuid.UUID `gorm:"index"`
-	Project           Project
+	Project           Project   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	DatasetID         uuid.UUID `gorm:"index"`
-	Dataset           Dataset
+	Dataset           Dataset   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
@@ -68,7 +68,6 @@ func (object *Object) ToProtoModel() (*v1storagemodels.Object, error) {
 		ProjectId:       object.ProjectID.String(),
 		Status:          status,
 	}, nil
-
 }
 
 type ObjectGroup struct {
@@ -77,10 +76,10 @@ type ObjectGroup struct {
 	CurrentObjectGroupRevision   ObjectGroupRevision
 	CurrentObjectGroupRevisionID uuid.UUID `gorm:"index"`
 	ObjectGroupRevisions         []ObjectGroupRevision
-	DatasetID                    uuid.UUID
-	Dataset                      Dataset
+	DatasetID                    uuid.UUID `gorm:"index"`
+	Dataset                      Dataset   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	ProjectID                    uuid.UUID `gorm:"index"`
-	Project                      Project
+	Project                      Project   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Status                       string
 }
 
@@ -105,9 +104,9 @@ type ObjectGroupRevision struct {
 	Name            string
 	Description     string
 	DatasetID       uuid.UUID
-	Dataset         Dataset
-	ProjectID       uuid.UUID `gorm:"index"`
-	Project         Project
+	Dataset         Dataset          `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ProjectID       uuid.UUID        `gorm:"index"`
+	Project         Project          `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Labels          []Label          `gorm:"many2many:object_group_revision_label;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	DatasetVersions []DatasetVersion `gorm:"many2many:dataset_version_object_group_revisions;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Status          string           `gorm:"index"`

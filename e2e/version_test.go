@@ -15,8 +15,8 @@ import (
 
 func TestDatasetVersion(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject_dataset",
-		Description: "test",
+		Name:        "Test DatasetVersion - Project 001",
+		Description: "Project containing a dataset to test the lifecycle of a dataset version.",
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -25,7 +25,7 @@ func TestDatasetVersion(t *testing.T) {
 	}
 
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
-		Name:      "testdataset",
+		Name:      "Test DatasetVersion - Dataset 001",
 		ProjectId: createResponse.GetId(),
 	}
 
@@ -116,7 +116,7 @@ func TestDatasetVersion(t *testing.T) {
 	}
 
 	releaseVersionRequest := &v1storageservices.ReleaseDatasetVersionRequest{
-		Name:      "foo",
+		Name:      "Dataset 001 Snapshot 1.0.2.1",
 		DatasetId: datasetCreateResponse.GetId(),
 		Version: &v1storagemodels.Version{
 			Major:    1,
@@ -125,7 +125,7 @@ func TestDatasetVersion(t *testing.T) {
 			Revision: 1,
 			Stage:    v1storagemodels.Version_VERSION_STAGE_STABLE,
 		},
-		Description:            "testrelease",
+		Description:            "Dataset 001 version release 001",
 		ObjectGroupRevisionIds: []string{getObjectGroupResponse.ObjectGroup.CurrentRevision.Id},
 		Labels:                 versionLabel,
 	}
@@ -136,7 +136,7 @@ func TestDatasetVersion(t *testing.T) {
 	}
 
 	releaseVersionRequest2 := &v1storageservices.ReleaseDatasetVersionRequest{
-		Name:      "foo",
+		Name:      "Dataset 001 Snapshot 1.0.2.2",
 		DatasetId: datasetCreateResponse.GetId(),
 		Version: &v1storagemodels.Version{
 			Major:    1,
@@ -145,13 +145,12 @@ func TestDatasetVersion(t *testing.T) {
 			Revision: 2,
 			Stage:    v1storagemodels.Version_VERSION_STAGE_STABLE,
 		},
-		Description:            "testrelease",
+		Description:            "Dataset 001 version release 002",
 		ObjectGroupRevisionIds: []string{getObjectGroupResponse.ObjectGroup.CurrentRevision.Id, createObjectGroupResponse2.CreateRevisionResponse.GetId()},
 		Labels:                 versionLabel,
 	}
 
-	_, err = ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest2)
-
+	version2Response, _ := ServerEndpoints.dataset.ReleaseDatasetVersion(context.Background(), releaseVersionRequest2)
 	err = nil
 
 	datasetVersions, err := ServerEndpoints.dataset.GetDatasetVersions(context.Background(), &v1storageservices.GetDatasetVersionsRequest{
@@ -183,18 +182,52 @@ func TestDatasetVersion(t *testing.T) {
 
 	assert.Equal(t, 1, len(versionRevisions.GetObjectGroupRevisions()))
 
-	//_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
-	//	Id: datasetCreateResponse.GetId(),
-	//})
-	//if err != nil {
-	//	log.Fatalln(err.Error())
-	//}
+	// Delete latest dataset version
+	_, err = ServerEndpoints.dataset.DeleteDatasetVersion(context.Background(), &v1storageservices.DeleteDatasetVersionRequest{
+		Id: version2Response.Id,
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	// Validate dataset version deletion
+	datasetVersion, err = ServerEndpoints.dataset.GetDatasetVersion(context.Background(), &v1storageservices.GetDatasetVersionRequest{
+		Id: version2Response.GetId(),
+	})
+
+	assert.NotNil(t, err)
+	assert.Nil(t, datasetVersion)
+
+	datasetVersions, err = ServerEndpoints.dataset.GetDatasetVersions(context.Background(), &v1storageservices.GetDatasetVersionsRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	assert.Equal(t, 1, len(datasetVersions.GetDatasetVersions()))
+
+	// Delete created Dataset
+	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	// Validating Project deletion by trying to get deleted Project which should fail and return nil
+	nilResponse, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
+		Id: datasetCreateResponse.Id,
+	})
+
+	assert.NotNil(t, err)
+	assert.Nil(t, nilResponse)
 }
 
 func TestDatasetVersionPaginated(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject_dataset",
-		Description: "test",
+		Name:        "Test DatasetVersion - Project 002",
+		Description: "Project containing a dataset to test the dataset version pagination.",
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -301,12 +334,28 @@ func TestDatasetVersionPaginated(t *testing.T) {
 			log.Fatalln("found duplicate object group in pagination")
 		}
 	}
+
+	// Delete created Dataset
+	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	// Validating dataset deletion by trying to get deleted dataset which should fail and return nil
+	nilResponse, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
+		Id: datasetCreateResponse.Id,
+	})
+
+	assert.NotNil(t, err)
+	assert.Nil(t, nilResponse)
 }
 
 func TestDatasetVersionEmpty(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject_dataset",
-		Description: "test",
+		Name:        "Test DatasetVersion - Project 003",
+		Description: "Project containing a dataset to test an empty dataset version.",
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -356,10 +405,28 @@ func TestDatasetVersionEmpty(t *testing.T) {
 	version, err := ServerEndpoints.dataset.GetDatasetVersion(context.Background(), &v1storageservices.GetDatasetVersionRequest{
 		Id: versionCreateResponse.GetId(),
 	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
 	assert.Equal(t, int64(0), version.DatasetVersion.Stats.AccSize)
 	assert.Equal(t, float64(0), version.DatasetVersion.Stats.AvgObjectSize)
 	assert.Equal(t, int64(0), version.DatasetVersion.Stats.ObjectCount)
 	assert.Equal(t, int64(0), version.DatasetVersion.Stats.ObjectGroupCount)
 
+	// Delete created Dataset
+	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	// Validating dataset deletion by trying to get deleted daatset which should fail and return nil
+	nilResponse, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
+		Id: datasetCreateResponse.Id,
+	})
+
+	assert.NotNil(t, err)
+	assert.Nil(t, nilResponse)
 }

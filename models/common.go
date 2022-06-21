@@ -55,9 +55,9 @@ type Location struct {
 	UploadID  string
 	Status    string
 	ProjectID uuid.UUID `gorm:"index"`
-	Project   Project
+	Project   Project   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	DatasetID uuid.UUID `gorm:"index"`
-	Dataset   Dataset
+	Dataset   Dataset   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	ObjectID  uuid.UUID `gorm:"index"`
 }
 

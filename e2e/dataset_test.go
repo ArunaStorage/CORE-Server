@@ -24,8 +24,8 @@ type TestMetadata struct {
 
 func TestDataset(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject_dataset",
-		Description: "test",
+		Name:        "Dataset Test - Project 001",
+		Description: "Project used to test the complete lifecycle of a dataset.",
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -62,7 +62,8 @@ func TestDataset(t *testing.T) {
 	}
 
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
-		Name:            "testdataset",
+		Name:            "Test Dataset - Dataset 001",
+		Description:     "Simple dataset with Labels and MetaObjects to test the dataset lifecycle.",
 		ProjectId:       createResponse.GetId(),
 		Labels:          datasetLabel,
 		MetadataObjects: metadataEntries,
@@ -111,6 +112,13 @@ func TestDataset(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			log.Fatalln("error when uploading data")
 		}
+
+		_, err = ServerEndpoints.object.FinishObjectUpload(context.Background(), &v1storageservices.FinishObjectUploadRequest{
+			Id: object.Id,
+		})
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
 	}
 
 	datasetGetResponseWithMetadata, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
@@ -126,20 +134,26 @@ func TestDataset(t *testing.T) {
 	assert.Equal(t, createDatasetRequest.Description, datasetGetResponse.GetDataset().Description)
 	assert.ElementsMatch(t, createDatasetRequest.Labels, datasetGetResponse.Dataset.Labels)
 
-	//_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &services.DeleteDatasetRequest{
-	//	Id: datasetCreateResponse.GetId(),
-	//})
-	//if err != nil {
-	//	log.Fatalln(err.Error())
-	//
-	//}
+	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
+	// Validating Dataset deletion by trying to get deleted Dataset which should fail and return nil
+	nilResponse, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
+		Id: datasetCreateResponse.Id,
+	})
+
+	assert.NotNil(t, err)
+	assert.Nil(t, nilResponse)
 }
 
 func TestDatasetObjects(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject_dataset",
-		Description: "test",
+		Name:        "Dataset Test - Project 002",
+		Description: "Project used to test a dataset with directly connected objects without object group.",
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -148,8 +162,9 @@ func TestDatasetObjects(t *testing.T) {
 	}
 
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
-		Name:      "testdataset",
-		ProjectId: createResponse.GetId(),
+		Name:        "Dataset Test - Dataset 002",
+		Description: "Dataset with directly connected objects.",
+		ProjectId:   createResponse.GetId(),
 	}
 
 	datasetCreateResponse, err := ServerEndpoints.dataset.CreateDataset(context.Background(), createDatasetRequest)
@@ -240,12 +255,27 @@ func TestDatasetObjects(t *testing.T) {
 
 	assert.Equal(t, 2, len(experimentObjects.GetObjects()))
 
+	// Delete created Dataset
+	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	// Validating Project deletion by trying to get deleted Project which should fail and return nil
+	nilResponse, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
+		Id: datasetCreateResponse.Id,
+	})
+
+	assert.NotNil(t, err)
+	assert.Nil(t, nilResponse)
 }
 
 func TestDatasetObjectGroupsPagination(t *testing.T) {
 	createProjectRequest := &v1storageservices.CreateProjectRequest{
-		Name:        "testproject_dataset",
-		Description: "test",
+		Name:        "Dataset Test - Project 003",
+		Description: "Project used to test a dataset with multiple object groups.",
 	}
 
 	createResponse, err := ServerEndpoints.project.CreateProject(context.Background(), createProjectRequest)
@@ -254,8 +284,9 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 	}
 
 	createDatasetRequest := &v1storageservices.CreateDatasetRequest{
-		Name:      "testdataset",
-		ProjectId: createResponse.GetId(),
+		Name:        "Dataset Test - Dataset 003",
+		Description: "Dataset with multiple object groups to test pagination.",
+		ProjectId:   createResponse.GetId(),
 	}
 
 	datasetCreateResponse, err := ServerEndpoints.dataset.CreateDataset(context.Background(), createDatasetRequest)
@@ -339,4 +370,20 @@ func TestDatasetObjectGroupsPagination(t *testing.T) {
 			log.Fatalln("found duplicate object group in pagination")
 		}
 	}
+
+	// Delete created Dataset
+	_, err = ServerEndpoints.dataset.DeleteDataset(context.Background(), &v1storageservices.DeleteDatasetRequest{
+		Id: datasetCreateResponse.GetId(),
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	// Validating Project deletion by trying to get deleted Project which should fail and return nil
+	nilResponse, err := ServerEndpoints.dataset.GetDataset(context.Background(), &v1storageservices.GetDatasetRequest{
+		Id: datasetCreateResponse.Id,
+	})
+
+	assert.NotNil(t, err)
+	assert.Nil(t, nilResponse)
 }
