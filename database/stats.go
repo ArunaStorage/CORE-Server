@@ -94,6 +94,9 @@ func (stats *Stats) GetDatasetStats(datasetID uuid.UUID) (*v1storagemodels.Datas
 	var acc_object_size int64
 	var avg_objects_size float64
 
+	//This causes timeouts on datasets with a large number of objects, therefor it will be disabled for now
+	return &v1storagemodels.DatasetStats{}, nil
+
 	wg := errgroup.Group{}
 
 	wg.Go(func() error {
