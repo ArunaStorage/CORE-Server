@@ -146,7 +146,7 @@ func (create *Create) CreateDataset(request *v1storageservices.CreateDatasetRequ
 func (create *Create) CreateObjectGroup(request *v1storageservices.CreateObjectGroupRequest, dataset *models.Dataset, project *models.Project) (*models.ObjectGroup, error) {
 	objectGroupID := uuid.New()
 	objectGroup := models.ObjectGroup{
-		CurrentRevisionCount: 0,
+		CurrentRevisionCount: 1,
 		DatasetID:            dataset.ID,
 		ProjectID:            dataset.ProjectID,
 		Status:               v1storagemodels.Status_STATUS_AVAILABLE.String(),

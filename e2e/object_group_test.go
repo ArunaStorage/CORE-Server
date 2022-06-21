@@ -351,11 +351,77 @@ func TestObjectGroupUpdate(t *testing.T) {
 		objectIDs = append(objectIDs, object.Id)
 	}
 
-	assert.Contains(t, objectNames, objectGroupFromGet.ObjectGroup.CurrentRevision.Objects[1].Filename)
-	assert.NotContains(t, objectIDs, addDataRequest[0].GetId())
+	assert.Equal(t, 9, len(newCurrentRevision.Objects))
 
-	assert.Contains(t, objectIDs, objectGroupFromGet.ObjectGroup.CurrentRevision.Objects[1].Id)
+	dataObjects2, err := UploadObjects(ServerEndpoints.load, ServerEndpoints.object, 5, datasetID.GetId(), "data")
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
+	metaObjects2, err := UploadObjects(ServerEndpoints.load, ServerEndpoints.object, 5, datasetID.GetId(), "meta")
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	addDataRequest2 := make([]*v1storageservices.AddObjectRequest, 0)
+	for _, dataObject := range dataObjects2 {
+		addDataRequest2 = append(addDataRequest2, &v1storageservices.AddObjectRequest{
+			Id: dataObject.ID.String(),
+		})
+	}
+
+	addMetaRequests2 := make([]*v1storageservices.AddObjectRequest, 0)
+	for _, dataObject := range metaObjects2 {
+		addMetaRequests2 = append(addMetaRequests2, &v1storageservices.AddObjectRequest{
+			Id: dataObject.ID.String(),
+		})
+	}
+
+	updateObjectGroupRequest2 := &v1storageservices.UpdateObjectGroupRequest{
+		Id: objectGroup.GetObjectGroupId(),
+		CreateRevisionRequest: &v1storageservices.CreateObjectGroupRevisionRequest{
+			Name:        "updated-revision",
+			Description: "updated-revision",
+			UpdateObjects: &v1storageservices.UpdateObjectsRequests{
+				AddObjects: addDataRequest2,
+				DeleteObjects: []*v1storageservices.DeleteObjectRequest{&v1storageservices.DeleteObjectRequest{
+					Id: addDataRequest[1].GetId(),
+				}},
+			},
+			UpdateMetaObjects: &v1storageservices.UpdateObjectsRequests{
+				AddObjects: addMetaRequests2,
+				DeleteObjects: []*v1storageservices.DeleteObjectRequest{
+					&v1storageservices.DeleteObjectRequest{
+						Id: addMetaRequests[1].GetId(),
+					},
+				},
+			},
+		},
+	}
+
+	_, err = ServerEndpoints.object.UpdateObjectGroup(context.Background(), updateObjectGroupRequest2)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	objectGroupNewRevision2, err := ServerEndpoints.object.GetObjectGroup(context.Background(), &v1storageservices.GetObjectGroupRequest{
+		Id: objectGroup.ObjectGroupId,
+	})
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
+	newCurrentRevision2 := objectGroupNewRevision2.ObjectGroup.CurrentRevision
+
+	var objectNames2 []string
+	var objectIDs2 []string
+
+	for _, object := range newCurrentRevision2.Objects {
+		objectNames2 = append(objectNames2, object.Filename)
+		objectIDs2 = append(objectIDs2, object.Id)
+	}
+
+	assert.Equal(t, 13, len(newCurrentRevision2.Objects))
 }
 
 func TestObjectGroupBatch(t *testing.T) {

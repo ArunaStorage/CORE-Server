@@ -107,11 +107,30 @@ func (read *Read) GetObjectGroup(objectGroupID uuid.UUID) (*models.ObjectGroup, 
 			objectGroupRevision := &models.ObjectGroupRevision{}
 			objectGroupRevision.ID = objectGroup.CurrentObjectGroupRevisionID
 
-			preloads := tx.Preload("Dataset").Preload("Project").Preload("MetaObjects.Locations").Preload("MetaObjects.DefaultLocation").Preload("DataObjects.Locations").Preload("DataObjects.DefaultLocation").Preload("DataObjects").Preload("MetaObjects").Preload("Labels").Preload("DataObjects.Labels")
+			dataObjects := make([]models.Object, 0)
+
+			dataObjectPreloads := tx.Preload("Locations").Preload("DefaultLocation").Preload("Labels")
+			dataObjectPreloads.Model(&models.Object{}).
+				Joins("inner join object_group_revision_data_objects on object_group_revision_data_objects.object_id = objects.id").
+				Where("object_group_revision_id = ?", objectGroup.CurrentObjectGroupRevisionID).
+				Find(&dataObjects)
+
+			metaObjects := make([]models.Object, 0)
+
+			metaObjectsPreloads := tx.Preload("Locations").Preload("DefaultLocation").Preload("Labels")
+			metaObjectsPreloads.Model(&models.Object{}).
+				Joins("inner join object_group_revision_meta_objects on object_group_revision_meta_objects.object_id = objects.id").
+				Where("object_group_revision_id = ?", objectGroup.CurrentObjectGroupRevisionID).
+				Find(&metaObjects)
+
+			preloads := tx.Preload("Dataset").Preload("Project").Preload("Labels")
 			if err := preloads.First(objectGroupRevision).Error; err != nil {
 				log.Errorln(err.Error())
 				return err
 			}
+
+			objectGroupRevision.DataObjects = dataObjects
+			objectGroupRevision.MetaObjects = metaObjects
 
 			objectGroup.CurrentObjectGroupRevision = *objectGroupRevision
 

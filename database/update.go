@@ -115,6 +115,7 @@ func (update *Update) UpdateObjectGroup(request *v1storageservices.UpdateObjectG
 	}
 
 	err := crdbgorm.ExecuteTx(context.Background(), update.DB, nil, func(tx *gorm.DB) error {
+
 		tx.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(objectGroup).Error; err != nil {
 				log.Errorln(err.Error())
@@ -129,24 +130,40 @@ func (update *Update) UpdateObjectGroup(request *v1storageservices.UpdateObjectG
 				return err
 			}
 
+			dataObjects := make([]models.Object, 0)
+
+			dataObjectPreloads := tx.Preload("Locations").Preload("DefaultLocation").Preload("Labels")
+			dataObjectPreloads.Model(&models.Object{}).
+				Joins("inner join object_group_revision_data_objects on object_group_revision_data_objects.object_id = objects.id").
+				Where("object_group_revision_id = ?", currentObjectGroupInTransaction.CurrentObjectGroupRevisionID).
+				Find(&dataObjects)
+
+			metaObjects := make([]models.Object, 0)
+
+			metaObjectsPreloads := tx.Preload("Locations").Preload("DefaultLocation").Preload("Labels")
+			metaObjectsPreloads.Model(&models.Object{}).
+				Joins("inner join object_group_revision_meta_objects on object_group_revision_meta_objects.object_id = objects.id").
+				Where("object_group_revision_id = ?", currentObjectGroupInTransaction.CurrentObjectGroupRevisionID).
+				Find(&metaObjects)
+
 			currentObjectGroupRevision := &models.ObjectGroupRevision{}
 			currentObjectGroupRevision.ID = currentObjectGroupInTransaction.CurrentObjectGroupRevisionID
-			if err := tx.Preload("DataObjects").Preload("MetaObjects").First(currentObjectGroupRevision).Error; err != nil {
+			if err := tx.First(currentObjectGroupRevision).Error; err != nil {
 				log.Errorln(err.Error())
 				return err
 			}
 
-			new_data_objects, err := update.updateObjects(currentObjectGroupRevision.DataObjects, request.CreateRevisionRequest.UpdateObjects)
+			new_data_objects, err := update.updateObjects(dataObjects, request.CreateRevisionRequest.UpdateObjects)
 			if err != nil {
 				log.Errorln(err.Error())
 				return err
 			}
 
-			new_meta_objects, err := update.updateObjects(currentObjectGroupRevision.MetaObjects, request.CreateRevisionRequest.UpdateMetaObjects)
-			if err != nil {
-				log.Errorln(err.Error())
-				return err
-			}
+			//new_meta_objects, err := update.updateObjects(metaObjects, request.CreateRevisionRequest.UpdateMetaObjects)
+			//if err != nil {
+			//	log.Errorln(err.Error())
+			//	return err
+			//}
 
 			labels := make([]models.Label, len(request.CreateRevisionRequest.Labels))
 			for i, labelRequest := range labels {
@@ -157,7 +174,7 @@ func (update *Update) UpdateObjectGroup(request *v1storageservices.UpdateObjectG
 			}
 
 			newObjectGroupRevision.DataObjects = new_data_objects
-			newObjectGroupRevision.MetaObjects = new_meta_objects
+			//newObjectGroupRevision.MetaObjects = new_meta_objects
 			newObjectGroupRevision.Labels = labels
 			newObjectGroupRevision.RevisionNumber = objectGroup.CurrentRevisionCount + 1
 

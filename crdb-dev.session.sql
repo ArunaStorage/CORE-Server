@@ -1,11 +1,17 @@
-select objects.id
-from objects
-    inner join object_labels on objects.id = object_labels.object_id
-    inner join labels on object_labels.label_id = labels.id
-where dataset_id = 'a5683322-7891-4548-ad36-96f564da125c'
-    AND (key, value) in (
-        VALUES ('key-1-3', 'value-1-3')
-    )
-GROUP BY objects.id
-HAVING COUNT(objects.id) = 1
-ORDER BY objects.id asc;
+SELECT "objects"."id",
+    "objects"."created_at",
+    "objects"."updated_at",
+    "objects"."deleted_at",
+    "objects"."object_uuid",
+    "objects"."filename",
+    "objects"."filetype",
+    "objects"."content_len",
+    "objects"."status",
+    "objects"."default_location_id",
+    "objects"."upload_id",
+    "objects"."project_id",
+    "objects"."dataset_id"
+FROM "objects"
+    inner join object_group_revision_data_objects on object_group_revision_data_objects.object_id = objects.id
+WHERE object_group_revision_id = '897699bf-6e30-40e9-8434-03b1b73514bc'
+    AND "objects"."deleted_at" IS NULL;
